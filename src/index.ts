@@ -319,25 +319,61 @@ private formatIssue(issue: JiraIssue): string {
   }
 
   private async loadProjectKey(workingDir: string): Promise<string> {
-    try {
-      const configPath = path.join(workingDir, ".jira-config.json");
-      const configContent = await fs.promises.readFile(configPath, "utf-8");
-      const config: JiraConfig = JSON.parse(configContent);
-      if (!config.projectKey) {
-        throw new Error("projectKey not found in .jira-config.json");
+    console.error("Received working_dir parameter:", workingDir);
+    
+    // List of potential config locations, prioritizing process.cwd()
+    const configLocations = [
+      process.cwd(),
+      "/Users/robsherman/Servers/mcp-jira-server",
+      workingDir
+    ];
+    
+    console.error("Will try these config locations:", configLocations);
+    
+    let lastError: Error | null = null;
+    
+    // Try each location
+    for (const location of configLocations) {
+      try {
+        const configPath = path.join(location, ".jira-config.json");
+        console.error("\nTrying config path:", configPath);
+        
+        const configContent = await fs.promises.readFile(configPath, "utf-8");
+        console.error("Found config content:", configContent);
+        
+        const config: JiraConfig = JSON.parse(configContent);
+        console.error("Parsed config:", JSON.stringify(config, null, 2));
+        
+        if (!config.projectKey) {
+          console.error("No projectKey found in config, trying next location");
+          continue;
+        }
+        
+        // Store story points field ID if available
+        console.error("Checking for story points field in config...");
+        if (config.storyPointsField) {
+          console.error("Found story points field in config:", config.storyPointsField);
+          this.storyPointsField = config.storyPointsField;
+        } else {
+          console.error("No story points field found in this config");
+          this.storyPointsField = null;
+        }
+        
+        console.error("Successfully loaded config from:", configPath);
+        return config.projectKey;
+        
+      } catch (error) {
+        console.error("Error trying location", location, ":", error);
+        lastError = error as Error;
       }
-      // Store story points field ID if available
-      this.storyPointsField = config.storyPointsField || null;
-      if (this.storyPointsField) {
-        console.error("Using story points field:", this.storyPointsField);
-      }
-      return config.projectKey;
-    } catch (error) {
-      throw new McpError(
-        ErrorCode.InvalidRequest,
-        "Failed to load project key from .jira-config.json. Please ensure the file exists and contains a valid projectKey."
-      );
     }
+    
+    // If we get here, no config was found
+    console.error("Failed to load config from any location");
+    throw new McpError(
+      ErrorCode.InvalidRequest,
+      `Failed to load project key from .jira-config.json. Tried locations: ${configLocations.join(", ")}`
+    );
   }
 
   private setupToolHandlers() {
