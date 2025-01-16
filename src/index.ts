@@ -65,6 +65,7 @@ interface JiraIssue {
 class JiraServer {
   private server: Server;
   private axiosInstance;
+  private agileAxiosInstance;
   private currentProjectKey: string | null = null;
 
   constructor() {
@@ -80,8 +81,21 @@ class JiraServer {
       }
     );
 
+    // Create separate instances for REST API v2 and Agile API
     this.axiosInstance = axios.create({
       baseURL: `https://${JIRA_DOMAIN}.atlassian.net/rest/api/2`,
+      auth: {
+        username: JIRA_EMAIL,
+        password: JIRA_API_TOKEN,
+      },
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+      },
+    });
+
+    this.agileAxiosInstance = axios.create({
+      baseURL: `https://${JIRA_DOMAIN}.atlassian.net/rest/agile/1.0`,
       auth: {
         username: JIRA_EMAIL,
         password: JIRA_API_TOKEN,
@@ -108,6 +122,32 @@ class JiraServer {
       year: "numeric",
     });
   }
+private async inspectSprints(): Promise<void> {
+  const boardId = await this.getBoardId();
+  console.error("Found board ID:", boardId);
+
+  const sprintsResponse = await this.agileAxiosInstance.get(
+    `/board/${boardId}/sprint`,
+    {
+      params: {
+        state: 'active,closed,future'
+      }
+    }
+  );
+  
+  console.error("Available sprints:", JSON.stringify(sprintsResponse.data, null, 2));
+}
+
+private async inspectIssueFields(issueKey: string): Promise<void> {
+  const response = await this.axiosInstance.get(`/issue/${issueKey}`, {
+    params: {
+      expand: "renderedFields,names,schema",
+      fields: "*all"
+    }
+  });
+  console.error("Issue fields:", JSON.stringify(response.data.fields, null, 2));
+}
+
 private formatIssue(issue: JiraIssue): string {
   let output = `${issue.key}: ${issue.fields.summary}
 - Type: ${issue.fields.issuetype.name}
@@ -157,6 +197,41 @@ private formatIssue(issue: JiraIssue): string {
 - URL: https://${JIRA_DOMAIN}.atlassian.net/browse/${issue.key}`;
   }
 
+  private async getBoardId(): Promise<number> {
+    // Use Agile REST API to find the board for the project
+    const boardsResponse = await this.agileAxiosInstance.get(
+      `/board`,
+      {
+        params: {
+          projectKeyOrId: this.currentProjectKey
+        }
+      }
+    );
+    
+    if (!boardsResponse.data.values.length) {
+      throw new McpError(ErrorCode.InvalidRequest, 'No board found for project');
+    }
+    
+    return boardsResponse.data.values[0].id;
+  }
+
+  private async getActiveSprint(boardId: number): Promise<number | null> {
+    const sprintsResponse = await this.agileAxiosInstance.get(
+      `/board/${boardId}/sprint`,
+      {
+        params: {
+          state: 'active'
+        }
+      }
+    );
+    
+    if (!sprintsResponse.data.values.length) {
+      return null;
+    }
+    
+    return sprintsResponse.data.values[0].id;
+  }
+
   private async loadProjectKey(workingDir: string): Promise<string> {
     try {
       const configPath = path.join(workingDir, ".jira-config.json");
@@ -202,6 +277,10 @@ private formatIssue(issue: JiraIssue): string {
               epic_link: {
                 type: "string",
                 description: "Epic issue key to link to (e.g., AIS-27)",
+              },
+              sprint: {
+                type: "string",
+                description: "Sprint name or 'current' to add to active sprint",
               },
             },
             required: ["working_dir", "summary", "description", "type"],
@@ -251,6 +330,14 @@ private formatIssue(issue: JiraIssue): string {
               status: {
                 type: "string",
                 description: "New status",
+              },
+              epic_link: {
+                type: "string",
+                description: "Epic issue key to link to (e.g., AIS-27). Set to empty string to remove epic link.",
+              },
+              sprint: {
+                type: "string",
+                description: "Sprint name or 'current' to add to active sprint. Set to empty string to remove from sprint.",
               },
             },
             required: ["working_dir", "issue_key"],
@@ -324,7 +411,7 @@ private formatIssue(issue: JiraIssue): string {
 
         switch (request.params.name) {
           case "create_issue": {
-            const { summary, description, type, epic_link } = args;
+            const { summary, description, type, epic_link, sprint } = args;
 
             console.error("Creating issue with:", {
               projectKey: this.currentProjectKey,
@@ -332,6 +419,7 @@ private formatIssue(issue: JiraIssue): string {
               description,
               type,
               epic_link,
+              sprint,
             });
 
             // First, get project metadata to verify it exists and get available issue types
@@ -370,28 +458,9 @@ private formatIssue(issue: JiraIssue): string {
               );
             }
 
-            // Get field configuration for this issue type
-            const fieldConfigResponse = await this.axiosInstance.get(
-              `/issue/createmeta/${this.currentProjectKey}/issuetypes/${issueType.id}`,
-              {
-                params: {
-                  expand: 'fields',
-                },
-              }
-            );
-
-            console.error("Field configuration:", JSON.stringify(fieldConfigResponse.data, null, 2));
-
-            // Find Epic Link field
-            let epicLinkFieldId;
-            for (const [fieldId, fieldMeta] of Object.entries(fieldConfigResponse.data.fields)) {
-              if ((fieldMeta as any).name === 'Epic Link') {
-                epicLinkFieldId = fieldId;
-                break;
-              }
-            }
-
-            console.error("Epic Link field ID:", epicLinkFieldId);
+            // Use known sprint field ID
+            const sprintFieldId = 'customfield_10020';
+            console.error("Using sprint field ID:", sprintFieldId);
 
             const fields: any = {
               project: {
@@ -403,6 +472,80 @@ private formatIssue(issue: JiraIssue): string {
                 name: type
               }
             };
+
+            // Handle sprint assignment if requested
+            if (sprint && sprintFieldId) {
+              try {
+                const boardId = await this.getBoardId();
+                console.error("Found board ID:", boardId);
+
+                // Use a test sprint ID for now
+                const sprintId = 1;
+                console.error("Using test sprint ID:", sprintId);
+
+                // Validate sprint ID
+                if (typeof sprintId !== 'number' || isNaN(sprintId)) {
+                  throw new McpError(ErrorCode.InvalidRequest, `Invalid sprint ID: ${sprintId}`);
+                }
+                
+                // Get sprint details
+                const sprintsResponse = await this.agileAxiosInstance.get(
+                  `/board/${boardId}/sprint`,
+                  {
+                    params: {
+                      state: sprint.toLowerCase() === 'current' ? 'active' : 'active,future'
+                    }
+                  }
+                );
+
+                console.error("Available sprints:", JSON.stringify(sprintsResponse.data, null, 2));
+
+                // Find the requested sprint
+                const sprintObj = sprint.toLowerCase() === 'current'
+                  ? sprintsResponse.data.values.find((s: any) => s.state === 'active')
+                  : sprintsResponse.data.values.find((s: any) => s.name.toLowerCase() === sprint.toLowerCase());
+
+                if (!sprintObj) {
+                  throw new McpError(
+                    ErrorCode.InvalidRequest,
+                    `Sprint "${sprint}" not found. Available sprints: ${sprintsResponse.data.values.map((s: any) => s.name).join(', ')}`
+                  );
+                }
+
+                // Convert sprint ID to number and validate
+                const numericSprintId = Number(sprintObj.id);
+                if (isNaN(numericSprintId)) {
+                  throw new McpError(ErrorCode.InvalidRequest, `Invalid sprint ID: ${sprintObj.id} is not a number`);
+                }
+
+                // Set sprint field with just the numeric ID
+                fields[sprintFieldId] = numericSprintId;
+
+                console.error("Setting sprint field:", {
+                  fieldId: sprintFieldId,
+                  sprintId: numericSprintId,
+                  sprintName: sprintObj.name,
+                  fieldValue: fields[sprintFieldId]
+                });
+
+                // Create issue with sprint field
+                const createResponse = await this.axiosInstance.post("/issue", {
+                  fields
+                });
+
+                return {
+                  content: [
+                    {
+                      type: "text",
+                      text: this.formatCreatedIssue(createResponse.data),
+                    },
+                  ],
+                };
+              } catch (error) {
+                console.error("Error setting sprint:", error);
+                throw error;
+              }
+            }
 
             if (epic_link) {
               fields.parent = {
@@ -456,14 +599,95 @@ private formatIssue(issue: JiraIssue): string {
           }
 
           case "update_issue": {
-            const { issue_key, summary, description, status } = args;
+            const { issue_key, summary, description, status, epic_link, sprint } = args;
+            
             const updateData: any = {
               fields: {},
             };
 
             if (summary) updateData.fields.summary = summary;
             if (description) updateData.fields.description = description;
+            if (epic_link) {
+              updateData.fields.parent = {
+                key: epic_link
+              };
+              console.error("Adding Epic link using parent field:", epic_link);
+            }
+
+            // Handle sprint field update
+            if (sprint !== undefined) {
+              // Get field configuration to find Sprint field ID
+              const fieldConfigResponse = await this.axiosInstance.get(
+                `/field`,
+                {
+                  params: {
+                    expand: 'names',
+                  },
+                }
+              );
+
+              let sprintFieldId;
+              for (const field of fieldConfigResponse.data) {
+                if (field.name === 'Sprint') {
+                  sprintFieldId = field.id;
+                  break;
+                }
+              }
+
+              if (!sprintFieldId) {
+                throw new McpError(ErrorCode.InvalidRequest, 'Sprint field not found');
+              }
+
+              if (sprint === '') {
+                // Remove from sprint
+                updateData.fields[sprintFieldId] = null;
+                console.error("Removing issue from sprint");
+              } else {
+                // Add to specified sprint
+                const boardId = await this.getBoardId();
+                const sprintsResponse = await this.agileAxiosInstance.get(
+                  `/board/${boardId}/sprint`,
+                  {
+                    params: {
+                      state: sprint.toLowerCase() === 'current' ? 'active' : 'active,future'
+                    }
+                  }
+                );
+
+                console.error("Available sprints:", JSON.stringify(sprintsResponse.data, null, 2));
+
+                // Find the requested sprint
+                const sprintObj = sprint.toLowerCase() === 'current'
+                  ? sprintsResponse.data.values.find((s: any) => s.state === 'active')
+                  : sprintsResponse.data.values.find((s: any) => s.name.toLowerCase() === sprint.toLowerCase());
+
+                if (!sprintObj) {
+                  throw new McpError(
+                    ErrorCode.InvalidRequest,
+                    `Sprint "${sprint}" not found. Available sprints: ${sprintsResponse.data.values.map((s: any) => s.name).join(', ')}`
+                  );
+                }
+
+                // Convert sprint ID to number and validate
+                const numericSprintId = Number(sprintObj.id);
+                if (isNaN(numericSprintId)) {
+                  throw new McpError(ErrorCode.InvalidRequest, `Invalid sprint ID: ${sprintObj.id} is not a number`);
+                }
+
+                // Set sprint field with just the numeric ID
+                updateData.fields[sprintFieldId] = numericSprintId;
+                console.error("Adding issue to sprint:", {
+                  fieldId: sprintFieldId,
+                  sprintId: numericSprintId,
+                  sprintName: sprintObj.name,
+                  fieldValue: updateData.fields[sprintFieldId]
+                });
+              }
+            }
+
+            // Handle status transitions
             if (status) {
+              console.error(`Fetching transitions for status update to ${status}...`);
               const transitions = await this.axiosInstance.get(
                 `/issue/${issue_key}/transitions`
               );
@@ -471,22 +695,38 @@ private formatIssue(issue: JiraIssue): string {
                 (t: any) => t.name.toLowerCase() === status.toLowerCase()
               );
               if (transition) {
+                console.error(`Applying transition ID ${transition.id}...`);
                 await this.axiosInstance.post(
                   `/issue/${issue_key}/transitions`,
                   {
                     transition: { id: transition.id },
                   }
                 );
+              } else {
+                console.error(`No transition found for status: ${status}`);
+                console.error(`Available transitions: ${transitions.data.transitions.map((t: any) => t.name).join(', ')}`);
               }
             }
 
+            // Apply updates if there are any
             if (Object.keys(updateData.fields).length > 0) {
+              console.error("Applying field updates:", JSON.stringify(updateData, null, 2));
               await this.axiosInstance.put(`/issue/${issue_key}`, updateData);
+            } else {
+              console.error("No field updates to apply");
             }
 
+            // Fetch updated issue
+            console.error("Fetching updated issue...");
             const updatedIssue = await this.axiosInstance.get(
-              `/issue/${issue_key}`
+              `/issue/${issue_key}`,
+              {
+                params: {
+                  expand: "renderedFields,names,schema,transitions,operations,editmeta,changelog",
+                },
+              }
             );
+            
             return {
               content: [
                 {
@@ -499,24 +739,41 @@ private formatIssue(issue: JiraIssue): string {
 
           case "get_issue": {
             const { issue_key } = args;
-            const getResponse = await this.axiosInstance.get(
-              `/issue/${issue_key}`,
+            
+            // Get all available data
+            const boardId = await this.getBoardId();
+            console.error("Found board ID:", boardId);
+
+            const sprintsResponse = await this.agileAxiosInstance.get(
+              `/board/${boardId}/sprint`,
               {
                 params: {
-                  expand:
-                    "renderedFields,names,schema,transitions,operations,editmeta,changelog,comments",
-                  fields:
-                    "summary,description,status,issuetype,created,creator,comment",
-                },
+                  state: 'active,closed,future'
+                }
               }
             );
+
+            const issueResponse = await this.axiosInstance.get(`/issue/${issue_key}`, {
+              params: {
+                expand: "renderedFields,names,schema",
+                fields: "*all"
+              }
+            });
+
+            // Return both standard issue info and debug info
             return {
               content: [
                 {
                   type: "text",
-                  text: this.formatIssue(getResponse.data),
-                },
-              ],
+                  text: `Debug Information:
+Available Sprints: ${JSON.stringify(sprintsResponse.data, null, 2)}
+
+Issue Fields: ${JSON.stringify(issueResponse.data.fields, null, 2)}
+
+Standard Issue Info:
+${this.formatIssue(issueResponse.data)}`
+                }
+              ]
             };
           }
 
