@@ -23,6 +23,7 @@ if (!JIRA_EMAIL || !JIRA_API_TOKEN || !JIRA_DOMAIN) {
 
 interface JiraConfig {
   projectKey: string;
+  storyPointsField?: string; // Custom field ID for story points (e.g., 'customfield_10016')
 }
 
 interface JiraComment {
@@ -50,6 +51,10 @@ interface JiraIssue {
     creator: {
       displayName: string;
     };
+    priority?: {
+      name: string;
+      id?: string;
+    };
     comment?: {
       comments: JiraComment[];
     };
@@ -59,6 +64,7 @@ interface JiraIssue {
         summary: string;
       };
     };
+    [key: string]: any; // Allow dynamic story points field
   };
 }
 
@@ -67,6 +73,7 @@ class JiraServer {
   private axiosInstance;
   private agileAxiosInstance;
   private currentProjectKey: string | null = null;
+  private storyPointsField: string | null = null;
 
   constructor() {
     this.server = new Server(
@@ -139,22 +146,101 @@ private async inspectSprints(): Promise<void> {
 }
 
 private async inspectIssueFields(issueKey: string): Promise<void> {
+  // Get field configuration first
+  const fieldConfigResponse = await this.axiosInstance.get('/field');
+  
+  // Look specifically for Story Points field
+  const storyPointsFields = fieldConfigResponse.data
+    .filter((field: any) => {
+      const nameMatch = field.name?.toLowerCase().includes('story point');
+      const descMatch = field.description?.toLowerCase().includes('story point');
+      return nameMatch || descMatch;
+    });
+  
+  console.error("Story Points Fields:", JSON.stringify(storyPointsFields, null, 2));
+
+  // Get available field metadata for the project
+  const metadataResponse = await this.axiosInstance.get('/issue/createmeta', {
+    params: {
+      projectKeys: this.currentProjectKey,
+      expand: 'projects.issuetypes.fields'
+    }
+  });
+
+  // Look for Story Points in available fields
+  const availableFields = metadataResponse.data.projects[0].issuetypes[0].fields;
+  const storyPointsInMeta = Object.entries(availableFields)
+    .filter(([_, value]: [string, any]) =>
+      value.name?.toLowerCase().includes('story point') ||
+      value.description?.toLowerCase().includes('story point')
+    );
+  
+  console.error("Story Points in Metadata:", JSON.stringify(storyPointsInMeta, null, 2));
+
+  // Get current field values
   const response = await this.axiosInstance.get(`/issue/${issueKey}`, {
     params: {
-      expand: "renderedFields,names,schema",
+      expand: "renderedFields,names,schema,editmeta",
       fields: "*all"
     }
   });
-  console.error("Issue fields:", JSON.stringify(response.data.fields, null, 2));
+  
+  // Look for potential Story Points values in custom fields
+  const customFields = Object.entries(response.data.fields)
+    .filter(([key, value]) =>
+      key.startsWith('customfield_') &&
+      (typeof value === 'number' || value === null)
+    )
+    .reduce((acc: any, [key, value]) => {
+      acc[key] = value;
+      return acc;
+    }, {});
+  
+  console.error("Potential Story Points Fields:", JSON.stringify(customFields, null, 2));
+}
+
+private async checkStoryPointsField(): Promise<void> {
+  const fieldConfigResponse = await this.axiosInstance.get('/field');
+  const storyPointsFields = fieldConfigResponse.data
+    .filter((field: any) => {
+      // Look specifically for "Story Points" field
+      return field.name === 'Story Points';
+    });
+  
+  if (storyPointsFields.length === 0) {
+    console.error(`Story Points field not found. Please ensure:
+1. The "Story Points" field is configured in Jira
+2. The field is added to the appropriate screens (create/edit) for your issue types
+3. You have the necessary permissions to access and modify the field`);
+  } else {
+    const field = storyPointsFields[0];
+    console.error(`Found Story Points field: ${field.name} (${field.id})`);
+    if (!this.storyPointsField) {
+      console.error(`To enable Story Points support, add this to .jira-config.json:
+"storyPointsField": "${field.id}"`);
+    }
+  }
 }
 
 private formatIssue(issue: JiraIssue): string {
   let output = `${issue.key}: ${issue.fields.summary}
 - Type: ${issue.fields.issuetype.name}
 - Status: ${issue.fields.status.name}
-- Created: ${this.formatDate(issue.fields.created)}
+- Priority: ${issue.fields.priority?.name || "Not set"}`;
+
+  // Only show Story Points if field is configured
+  if (this.storyPointsField && issue.fields[this.storyPointsField] !== undefined) {
+    output += `\n- Story Points: ${issue.fields[this.storyPointsField] || "Not set"}`;
+  }
+
+  output += `\n- Created: ${this.formatDate(issue.fields.created)}
 - Description: ${issue.fields.description || "No description"}
 - Creator: ${issue.fields.creator.displayName}`;
+
+  // Add labels if any exist
+  if (issue.fields.labels && issue.fields.labels.length > 0) {
+    output += `\n- Labels: ${issue.fields.labels.join(", ")}`;
+  }
 
   if (issue.fields.parent) {
     output += `\n- Parent Epic: ${issue.fields.parent.key} - ${issue.fields.parent.fields.summary}`;
@@ -240,6 +326,11 @@ private formatIssue(issue: JiraIssue): string {
       if (!config.projectKey) {
         throw new Error("projectKey not found in .jira-config.json");
       }
+      // Store story points field ID if available
+      this.storyPointsField = config.storyPointsField || null;
+      if (this.storyPointsField) {
+        console.error("Using story points field:", this.storyPointsField);
+      }
       return config.projectKey;
     } catch (error) {
       throw new McpError(
@@ -277,6 +368,21 @@ private formatIssue(issue: JiraIssue): string {
               epic_link: {
                 type: "string",
                 description: "Epic issue key to link to (e.g., AIS-27)",
+              },
+              priority: {
+                type: "string",
+                description: "Issue priority (e.g., 'Highest', 'High', 'Medium', 'Low', 'Lowest')",
+              },
+              story_points: {
+                type: "number",
+                description: "Story Points estimate (e.g., 1, 2, 3, 5, 8)",
+              },
+              labels: {
+                type: "array",
+                items: {
+                  type: "string"
+                },
+                description: "Labels to add to the issue",
               },
               sprint: {
                 type: "string",
@@ -334,6 +440,21 @@ private formatIssue(issue: JiraIssue): string {
               epic_link: {
                 type: "string",
                 description: "Epic issue key to link to (e.g., AIS-27). Set to empty string to remove epic link.",
+              },
+              priority: {
+                type: "string",
+                description: "Issue priority (e.g., 'Highest', 'High', 'Medium', 'Low', 'Lowest')",
+              },
+              story_points: {
+                type: "number",
+                description: "Story Points estimate (e.g., 1, 2, 3, 5, 8). Set to null to remove story points.",
+              },
+              labels: {
+                type: "array",
+                items: {
+                  type: "string"
+                },
+                description: "Labels for the issue. Replaces all existing labels.",
               },
               sprint: {
                 type: "string",
@@ -411,7 +532,7 @@ private formatIssue(issue: JiraIssue): string {
 
         switch (request.params.name) {
           case "create_issue": {
-            const { summary, description, type, epic_link, sprint } = args;
+            const { summary, description, type, epic_link, sprint, priority, story_points, labels } = args;
 
             console.error("Creating issue with:", {
               projectKey: this.currentProjectKey,
@@ -420,6 +541,9 @@ private formatIssue(issue: JiraIssue): string {
               type,
               epic_link,
               sprint,
+              priority,
+              story_points,
+              labels,
             });
 
             // First, get project metadata to verify it exists and get available issue types
@@ -470,8 +594,23 @@ private formatIssue(issue: JiraIssue): string {
               description,
               issuetype: {
                 name: type
-              }
+              },
+              labels: labels || []
             };
+
+            // Add priority if specified
+            if (priority) {
+              fields.priority = {
+                name: priority
+              };
+              console.error("Setting priority:", priority);
+            }
+
+            // Add story points if specified
+            if (story_points !== undefined && this.storyPointsField) {
+              fields[this.storyPointsField] = story_points;
+              console.error("Setting story points:", story_points);
+            }
 
             // Handle sprint assignment if requested
             if (sprint && sprintFieldId) {
@@ -599,7 +738,7 @@ private formatIssue(issue: JiraIssue): string {
           }
 
           case "update_issue": {
-            const { issue_key, summary, description, status, epic_link, sprint } = args;
+            const { issue_key, summary, description, status, epic_link, sprint, priority, story_points, labels } = args;
             
             const updateData: any = {
               fields: {},
@@ -607,6 +746,18 @@ private formatIssue(issue: JiraIssue): string {
 
             if (summary) updateData.fields.summary = summary;
             if (description) updateData.fields.description = description;
+            if (priority) {
+              updateData.fields.priority = { name: priority };
+              console.error("Setting priority:", priority);
+            }
+            if (story_points !== undefined && this.storyPointsField) {
+              updateData.fields[this.storyPointsField] = story_points;
+              console.error("Setting story points:", story_points);
+            }
+            if (labels !== undefined) {
+              updateData.fields.labels = labels || [];
+              console.error("Setting labels:", labels);
+            }
             if (epic_link) {
               updateData.fields.parent = {
                 key: epic_link
@@ -740,6 +891,9 @@ private formatIssue(issue: JiraIssue): string {
           case "get_issue": {
             const { issue_key } = args;
             
+            // Check Story Points field configuration
+            await this.checkStoryPointsField();
+            
             // Get all available data
             const boardId = await this.getBoardId();
             console.error("Found board ID:", boardId);
@@ -755,7 +909,7 @@ private formatIssue(issue: JiraIssue): string {
 
             const issueResponse = await this.axiosInstance.get(`/issue/${issue_key}`, {
               params: {
-                expand: "renderedFields,names,schema",
+                expand: "renderedFields,names,schema,editmeta",
                 fields: "*all"
               }
             });
