@@ -53,6 +53,12 @@ interface JiraIssue {
     comment?: {
       comments: JiraComment[];
     };
+    parent?: {
+      key: string;
+      fields: {
+        summary: string;
+      };
+    };
   };
 }
 
@@ -102,14 +108,24 @@ class JiraServer {
       year: "numeric",
     });
   }
-
-  private formatIssue(issue: JiraIssue): string {
-    let output = `${issue.key}: ${issue.fields.summary}
+private formatIssue(issue: JiraIssue): string {
+  let output = `${issue.key}: ${issue.fields.summary}
 - Type: ${issue.fields.issuetype.name}
 - Status: ${issue.fields.status.name}
 - Created: ${this.formatDate(issue.fields.created)}
 - Description: ${issue.fields.description || "No description"}
 - Creator: ${issue.fields.creator.displayName}`;
+
+  if (issue.fields.parent) {
+    output += `\n- Parent Epic: ${issue.fields.parent.key} - ${issue.fields.parent.fields.summary}`;
+  }
+
+  // Add Epic link information if available
+  for (const [fieldId, value] of Object.entries(issue.fields)) {
+    if (fieldId.startsWith('customfield_') && value && typeof value === 'string') {
+      output += `\n- Epic Link: ${value}`;
+    }
+  }
 
     const comments = issue.fields.comment?.comments;
     if (comments && comments.length > 0) {
@@ -182,6 +198,10 @@ class JiraServer {
               type: {
                 type: "string",
                 description: "Issue type (Task, Epic, or Subtask)",
+              },
+              epic_link: {
+                type: "string",
+                description: "Epic issue key to link to (e.g., AIS-27)",
               },
             },
             required: ["working_dir", "summary", "description", "type"],
@@ -304,13 +324,14 @@ class JiraServer {
 
         switch (request.params.name) {
           case "create_issue": {
-            const { summary, description, type } = args;
+            const { summary, description, type, epic_link } = args;
 
             console.error("Creating issue with:", {
               projectKey: this.currentProjectKey,
               summary,
               description,
               type,
+              epic_link,
             });
 
             // First, get project metadata to verify it exists and get available issue types
@@ -349,17 +370,49 @@ class JiraServer {
               );
             }
 
-            const createResponse = await this.axiosInstance.post("/issue", {
-              fields: {
-                project: {
-                  key: this.currentProjectKey,
+            // Get field configuration for this issue type
+            const fieldConfigResponse = await this.axiosInstance.get(
+              `/issue/createmeta/${this.currentProjectKey}/issuetypes/${issueType.id}`,
+              {
+                params: {
+                  expand: 'fields',
                 },
-                summary,
-                description,
-                issuetype: {
-                  id: issueType.id,
-                },
+              }
+            );
+
+            console.error("Field configuration:", JSON.stringify(fieldConfigResponse.data, null, 2));
+
+            // Find Epic Link field
+            let epicLinkFieldId;
+            for (const [fieldId, fieldMeta] of Object.entries(fieldConfigResponse.data.fields)) {
+              if ((fieldMeta as any).name === 'Epic Link') {
+                epicLinkFieldId = fieldId;
+                break;
+              }
+            }
+
+            console.error("Epic Link field ID:", epicLinkFieldId);
+
+            const fields: any = {
+              project: {
+                key: this.currentProjectKey,
               },
+              summary,
+              description,
+              issuetype: {
+                name: type
+              }
+            };
+
+            if (epic_link) {
+              fields.parent = {
+                key: epic_link
+              };
+              console.error("Adding Epic link using parent field:", epic_link);
+            }
+
+            const createResponse = await this.axiosInstance.post("/issue", {
+              fields,
             });
 
             return {
