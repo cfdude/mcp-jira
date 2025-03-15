@@ -27,7 +27,9 @@ export async function loadProjectConfig(workingDir: string): Promise<JiraConfig>
   // List of potential config locations, prioritizing process.cwd()
   const configLocations = [
     workingDir,
-    process.cwd()
+    process.cwd(),
+    "/Users/robsherman/Servers/mcp-jira-server",
+    path.join(process.cwd(), "..")  // Try parent directory
   ];
   
   console.error("Will try these config locations:", configLocations);

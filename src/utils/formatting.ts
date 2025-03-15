@@ -28,8 +28,24 @@ export function formatIssue(issue: JiraIssue, storyPointsField: string | null = 
     output += `\n- Story Points: ${issue.fields[storyPointsField] || "Not set"}`;
   }
 
-  output += `\n- Created: ${formatDate(issue.fields.created)}
-- Description: ${issue.fields.description || "No description"}
+  output += `\n- Created: ${formatDate(issue.fields.created)}`;
+  
+  // Add Sprint information if available - using try/catch to handle potential issues
+  try {
+    if (issue.fields.customfield_10020 && Array.isArray(issue.fields.customfield_10020) && issue.fields.customfield_10020.length > 0) {
+      const sprint = issue.fields.customfield_10020[0];
+      if (sprint && typeof sprint === 'object') {
+        output += `\n- Sprint: ${sprint.name || 'Unknown'} (${sprint.state || 'Unknown'})`;
+        if (sprint.id) {
+          output += `\n- Sprint ID: ${sprint.id}`;
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error formatting sprint information:", error);
+  }
+
+  output += `\n- Description: ${issue.fields.description || "No description"}
 - Creator: ${issue.fields.creator.displayName}`;
 
   // Add labels if any exist

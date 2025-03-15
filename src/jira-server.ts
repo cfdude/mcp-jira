@@ -3,7 +3,7 @@
  */
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { ListResourcesRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import { ListResourcesRequestSchema, ListPromptsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { createJiraApiInstances } from "./utils/jira-api.js";
 import { setupToolHandlers } from "./tools/index.js";
 
@@ -23,6 +23,7 @@ export class JiraServer {
         capabilities: {
           tools: {},
           resources: {},
+          prompts: {},
         },
       }
     );
@@ -43,6 +44,11 @@ export class JiraServer {
     // Setup resources handlers
     this.server.setRequestHandler(ListResourcesRequestSchema, async () => ({
       resources: [], // Return empty resources list
+    }));
+
+    // Setup prompts handlers
+    this.server.setRequestHandler(ListPromptsRequestSchema, async () => ({
+      prompts: [], // Return empty prompts list
     }));
 
     // Setup error handling
