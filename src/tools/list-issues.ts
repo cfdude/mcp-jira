@@ -11,15 +11,21 @@ export async function handleListIssues(
   storyPointsField: string | null,
   args: ListIssuesArgs
 ) {
-  const { status, projectKey } = args;
+  // Extract parameters with defaults
+  const { status, projectKey, sortField, sortOrder } = args;
   
+  // Default sort field is Rank (cf[10019]) and default order is ASC
+  const effectiveSortField = sortField || 'cf[10019]';
+  const effectiveSortOrder = sortOrder || 'ASC';
   // Use provided projectKey if it exists, otherwise use the default
   const effectiveProjectKey = projectKey || defaultProjectKey;
   
-  // Build JQL query based on status filter
+  // Build JQL query based on status filter and sort parameters
   const jql = status
-    ? `project = ${effectiveProjectKey} AND status = "${status}" ORDER BY created DESC`
-    : `project = ${effectiveProjectKey} ORDER BY created DESC`;
+    ? `project = ${effectiveProjectKey} AND status = "${status}" ORDER BY ${effectiveSortField} ${effectiveSortOrder}`
+    : `project = ${effectiveProjectKey} ORDER BY ${effectiveSortField} ${effectiveSortOrder}`;
+  
+  console.error(`JQL Query: ${jql}`); // Log the JQL query for debugging
 
   // Get fields to retrieve, including story points if configured
   const fields = [

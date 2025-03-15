@@ -69,6 +69,8 @@ export interface CreateIssueArgs extends BaseArgs {
 export interface ListIssuesArgs extends BaseArgs {
   projectKey?: string;
   status?: string;
+  sortField?: string;
+  sortOrder?: 'ASC' | 'DESC';
 }
 
 export interface UpdateIssueArgs extends BaseArgs {

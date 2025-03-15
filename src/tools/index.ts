@@ -95,6 +95,15 @@ export function setupToolHandlers(
               description:
                 'Filter by status (e.g., "To Do", "In Progress", "Done")',
             },
+            sortField: {
+              type: "string",
+              description: "Field to sort by (e.g., 'created', 'updated', 'priority', 'cf[10019]' for Rank). Default is 'cf[10019]' (Rank).",
+            },
+            sortOrder: {
+              type: "string",
+              enum: ["ASC", "DESC"],
+              description: "Sort order: ASC (ascending) or DESC (descending). Default is ASC.",
+            },
           },
           required: ["working_dir"],
         },
