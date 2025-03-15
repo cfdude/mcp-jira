@@ -39,7 +39,8 @@ export async function handleListIssues(
     "labels",
     "parent",
     "comment",
-    "customfield_10020" // Sprint field
+    "customfield_10020", // Sprint field
+    "customfield_10019"  // Rank field
   ];
 
   // Add story points field if configured
@@ -67,6 +68,11 @@ export async function handleListIssues(
     // Add Story Points if configured
     if (storyPointsField && issue.fields[storyPointsField] !== undefined) {
       formattedIssue += `\n- Story Points: ${issue.fields[storyPointsField] || "Not set"}`;
+    }
+    
+    // Add Rank information if available
+    if (issue.fields.customfield_10019) {
+      formattedIssue += `\n- Rank: ${issue.fields.customfield_10019}`;
     }
 
     // Add Sprint information if available

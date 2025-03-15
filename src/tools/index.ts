@@ -157,6 +157,14 @@ export function setupToolHandlers(
               type: "string",
               description: "Sprint name or 'current' to add to active sprint. Set to empty string to remove from sprint.",
             },
+            rank_before_issue: {
+              type: "string",
+              description: "Issue key to rank the issue before (e.g., 'APA-123'). Cannot be used with rank_after_issue.",
+            },
+            rank_after_issue: {
+              type: "string",
+              description: "Issue key to rank the issue after (e.g., 'APA-123'). Cannot be used with rank_before_issue.",
+            },
           },
           required: ["working_dir", "issue_key"],
         },

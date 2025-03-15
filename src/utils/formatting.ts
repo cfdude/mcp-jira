@@ -27,6 +27,11 @@ export function formatIssue(issue: JiraIssue, storyPointsField: string | null = 
   if (storyPointsField && issue.fields[storyPointsField] !== undefined) {
     output += `\n- Story Points: ${issue.fields[storyPointsField] || "Not set"}`;
   }
+  
+  // Add Rank information if available (customfield_10019)
+  if (issue.fields.customfield_10019) {
+    output += `\n- Rank: ${issue.fields.customfield_10019}`;
+  }
 
   output += `\n- Created: ${formatDate(issue.fields.created)}`;
   

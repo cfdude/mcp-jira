@@ -56,6 +56,11 @@ export async function handleGetIssue(
   if (storyPointsField && issueResponse.data.fields[storyPointsField] !== undefined) {
     standardIssueInfo += `\n- Story Points: ${issueResponse.data.fields[storyPointsField] || "Not set"}`;
   }
+  
+  // Add Rank information if available (customfield_10019)
+  if (issueResponse.data.fields.customfield_10019) {
+    standardIssueInfo += `\n- Rank: ${issueResponse.data.fields.customfield_10019}`;
+  }
 
   // Add Sprint information if available
   if (issueResponse.data.fields.customfield_10020 &&

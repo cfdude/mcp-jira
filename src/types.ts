@@ -83,6 +83,8 @@ export interface UpdateIssueArgs extends BaseArgs {
   story_points?: number | null;
   labels?: string[];
   sprint?: string;
+  rank_before_issue?: string;
+  rank_after_issue?: string;
 }
 
 export interface GetIssueArgs extends BaseArgs {

@@ -1,7 +1,7 @@
 /**
  * Handler for the update_issue tool
  */
-import { AxiosInstance } from "axios";
+import axios, { AxiosInstance } from "axios";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { UpdateIssueArgs } from "../types.js";
 import { getBoardId } from "../utils/jira-api.js";
@@ -14,7 +14,19 @@ export async function handleUpdateIssue(
   storyPointsField: string | null,
   args: UpdateIssueArgs
 ) {
-  const { issue_key, summary, description, status, epic_link, sprint, priority, story_points, labels } = args;
+  const {
+    issue_key,
+    summary,
+    description,
+    status,
+    epic_link,
+    sprint,
+    priority,
+    story_points,
+    labels,
+    rank_before_issue,
+    rank_after_issue
+  } = args;
   
   const updateData: any = {
     fields: {},
@@ -142,6 +154,58 @@ export async function handleUpdateIssue(
     await axiosInstance.put(`/issue/${issue_key}`, updateData);
   } else {
     console.error("No field updates to apply");
+  }
+
+  // Handle rank update if specified
+  if (rank_before_issue || rank_after_issue) {
+    if (rank_before_issue && rank_after_issue) {
+      throw new McpError(
+        ErrorCode.InvalidRequest,
+        "Cannot specify both rank_before_issue and rank_after_issue"
+      );
+    }
+
+    console.error("Updating issue rank...");
+    const rankData: any = {
+      issues: [issue_key],
+    };
+
+    if (rank_before_issue) {
+      rankData.rankBeforeIssue = rank_before_issue;
+      console.error(`Ranking issue ${issue_key} before ${rank_before_issue}`);
+    } else {
+      rankData.rankAfterIssue = rank_after_issue;
+      console.error(`Ranking issue ${issue_key} after ${rank_after_issue}`);
+    }
+
+    // Default rank field ID is 10019 (standard Jira rank field)
+    rankData.rankCustomFieldId = 10019;
+
+    try {
+      // Use the Agile API to update the rank
+      const rankResponse = await agileAxiosInstance.put("/issue/rank", rankData);
+      console.error("Rank update response:", rankResponse.status);
+      
+      if (rankResponse.status === 207) {
+        // Partial success - some issues may have failed
+        console.error("Partial success in rank update:", JSON.stringify(rankResponse.data, null, 2));
+      }
+    } catch (error: any) {
+      if (axios.isAxiosError(error)) {
+        console.error("Rank update error:", {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+        });
+        throw new McpError(
+          ErrorCode.InternalError,
+          `Rank update error: ${JSON.stringify(
+            error.response?.data ?? error.message
+          )}`
+        );
+      }
+      throw error;
+    }
   }
 
   // Fetch updated issue
