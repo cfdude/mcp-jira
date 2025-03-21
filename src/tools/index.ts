@@ -118,6 +118,10 @@ export function setupToolHandlers(
               type: "string",
               description: "Working directory containing .jira-config.json",
             },
+            projectKey: {
+              type: "string",
+              description: "Optional project key to override the default from config (e.g., 'APA')",
+            },
             issue_key: {
               type: "string",
               description: "Issue key (e.g., PRJ-123)",
@@ -250,13 +254,13 @@ export function setupToolHandlers(
       // Route to the appropriate handler based on the tool name
       switch (request.params.name) {
         case "create_issue":
-          return handleCreateIssue(axiosInstance, agileAxiosInstance, projectKey, storyPointsFieldRef.current, args);
+          return handleCreateIssue(axiosInstance, agileAxiosInstance, args.projectKey || projectKey, storyPointsFieldRef.current, args);
         
         case "list_issues":
-          return handleListIssues(axiosInstance, projectKey, storyPointsFieldRef.current, args);
+          return handleListIssues(axiosInstance, args.projectKey || projectKey, storyPointsFieldRef.current, args);
         
         case "update_issue":
-          return handleUpdateIssue(axiosInstance, agileAxiosInstance, projectKey, storyPointsFieldRef.current, args);
+          return handleUpdateIssue(axiosInstance, agileAxiosInstance, args.projectKey || projectKey, storyPointsFieldRef.current, args);
         
         case "get_issue":
           return handleGetIssue(axiosInstance, agileAxiosInstance, projectKey, storyPointsFieldRef.current, args);

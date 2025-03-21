@@ -75,6 +75,7 @@ export interface ListIssuesArgs extends BaseArgs {
 
 export interface UpdateIssueArgs extends BaseArgs {
   issue_key: string;
+  projectKey?: string;
   summary?: string;
   description?: string;
   status?: string;
