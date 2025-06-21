@@ -43,6 +43,21 @@ import { handleGetVelocityChartData } from "./get-velocity-chart-data.js";
 import { handleGetBurndownChartData } from "./get-burndown-chart-data.js";
 import { handleGetBoardCumulativeFlow } from "./get-board-cumulative-flow.js";
 
+// Project Planning Tools
+import { handleListVersions } from "./list-versions.js";
+import { handleCreateVersion } from "./create-version.js";
+import { handleGetVersionProgress } from "./get-version-progress.js";
+import { handleListComponents } from "./list-components.js";
+import { handleCreateComponent } from "./create-component.js";
+import { handleGetComponentProgress } from "./get-component-progress.js";
+import { handleSearchProjects } from "./search-projects.js";
+import { handleGetProjectDetails } from "./get-project-details.js";
+import { handleSearchIssuesJql } from "./search-issues-jql.js";
+import { handleCreateFilter } from "./create-filter.js";
+import { handleListPlans } from "./list-plans.js";
+import { handleGetProjectStatuses } from "./get-project-statuses.js";
+import { handleGetIssueTypes } from "./get-issue-types.js";
+
 /**
  * Register all tool handlers with the server
  */
@@ -857,6 +872,388 @@ export function setupToolHandlers(
           required: ["working_dir", "boardId"],
         },
       },
+      
+      // Project Planning Tools - Version Management
+      {
+        name: "list_versions",
+        description: "List project versions for release planning and milestone tracking. Shows active, released, and archived versions with timeline information. Use first to discover available versions, then follow with get_version_progress for detailed tracking.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            working_dir: {
+              type: "string",
+              description: "Working directory containing .jira-config.json",
+            },
+            projectKey: {
+              type: "string",
+              description: "Optional project key to override the default from config (e.g., 'PROJ', 'APP')",
+            },
+          },
+          required: ["working_dir"],
+        },
+      },
+      {
+        name: "create_version",
+        description: "Create a new project version/release for organizing work by milestones. Typically used before sprint planning to establish release targets. Follow with list_versions to confirm creation.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            working_dir: {
+              type: "string",
+              description: "Working directory containing .jira-config.json",
+            },
+            projectKey: {
+              type: "string",
+              description: "Optional project key to override the default from config (e.g., 'PROJ', 'APP')",
+            },
+            name: {
+              type: "string",
+              description: "Version name - use semantic versioning (e.g., '1.0.0', '2.1.0') or milestone names (e.g., 'Q1 2024', 'Beta Release')",
+            },
+            description: {
+              type: "string",
+              description: "Version description explaining scope, goals, or key features (e.g., 'Initial release with core features', 'Bug fixes and performance improvements')",
+            },
+            startDate: {
+              type: "string",
+              description: "Version start date in YYYY-MM-DD format (e.g., '2024-01-15'). When development/planning begins.",
+            },
+            releaseDate: {
+              type: "string",
+              description: "Version release date in YYYY-MM-DD format (e.g., '2024-03-01'). Target completion date for milestone tracking.",
+            },
+            archived: {
+              type: "boolean",
+              description: "Whether the version is archived (default: false). Only set to true for old versions no longer in use.",
+            },
+            released: {
+              type: "boolean",
+              description: "Whether the version is released (default: false). Set to true only when version is completed and deployed.",
+            },
+          },
+          required: ["working_dir", "name"],
+        },
+      },
+      {
+        name: "get_version_progress",
+        description: "Get detailed version progress including issue counts, status breakdown, and timeline analysis. Essential for release planning and stakeholder reporting. Use version ID from list_versions output.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            working_dir: {
+              type: "string",
+              description: "Working directory containing .jira-config.json",
+            },
+            projectKey: {
+              type: "string",
+              description: "Optional project key to override the default from config (e.g., 'PROJ', 'APP')",
+            },
+            versionId: {
+              type: "string",
+              description: "Version ID to get progress for (numeric ID from list_versions output, e.g., '10123')",
+            },
+          },
+          required: ["working_dir", "versionId"],
+        },
+      },
+      
+      // Project Planning Tools - Component Management
+      {
+        name: "list_components",
+        description: "List project components for feature-based work organization. Components help categorize issues by system areas, features, or teams. Use first to discover existing components, then follow with get_component_progress for detailed tracking.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            working_dir: {
+              type: "string",
+              description: "Working directory containing .jira-config.json",
+            },
+            projectKey: {
+              type: "string",
+              description: "Optional project key to override the default from config (e.g., 'PROJ', 'APP')",
+            },
+          },
+          required: ["working_dir"],
+        },
+      },
+      {
+        name: "create_component",
+        description: "Create a new project component for organizing work by feature areas, system modules, or team ownership. Essential for structured project organization and workload distribution. Use after project setup and before issue creation.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            working_dir: {
+              type: "string",
+              description: "Working directory containing .jira-config.json",
+            },
+            projectKey: {
+              type: "string",
+              description: "Optional project key to override the default from config (e.g., 'PROJ', 'APP')",
+            },
+            name: {
+              type: "string",
+              description: "Component name - use clear, descriptive names (e.g., 'Frontend UI', 'Payment API', 'User Management', 'Mobile App', 'Database Layer')",
+            },
+            description: {
+              type: "string",
+              description: "Component description explaining scope and responsibilities (e.g., 'Handles user authentication and authorization', 'React-based user interface components')",
+            },
+            leadAccountId: {
+              type: "string",
+              description: "Account ID of the component lead/owner responsible for this area (get from user search or team directory)",
+            },
+            assigneeType: {
+              type: "string",
+              description: "How new issues in this component get assigned: 'PROJECT_DEFAULT' (use project settings), 'COMPONENT_LEAD' (auto-assign to lead), 'PROJECT_LEAD' (assign to project lead), 'UNASSIGNED' (leave unassigned)",
+            },
+          },
+          required: ["working_dir", "name"],
+        },
+      },
+      {
+        name: "get_component_progress",
+        description: "Get detailed component progress with issue distribution, team workload, and completion metrics. Critical for feature-based planning and team performance tracking. Use component ID from list_components output.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            working_dir: {
+              type: "string",
+              description: "Working directory containing .jira-config.json",
+            },
+            projectKey: {
+              type: "string",
+              description: "Optional project key to override the default from config (e.g., 'PROJ', 'APP')",
+            },
+            componentId: {
+              type: "string",
+              description: "Component ID to get progress for (numeric ID from list_components output, e.g., '10456')",
+            },
+          },
+          required: ["working_dir", "componentId"],
+        },
+      },
+      
+      // Project Planning Tools - Project Search
+      {
+        name: "search_projects",
+        description: "Search and discover projects across the Jira instance with advanced filtering. Essential for cross-project planning, finding related projects, and project portfolio management. Use before detailed project analysis.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            working_dir: {
+              type: "string",
+              description: "Working directory containing .jira-config.json",
+            },
+            query: {
+              type: "string",
+              description: "Search query for project name or key. Examples: 'mobile' (finds projects with 'mobile'), 'PROJ' (finds project keys containing PROJ), 'api service' (finds projects with both terms)",
+            },
+            typeKey: {
+              type: "string",
+              description: "Project type filter: 'software' (development projects), 'service_desk' (IT support projects), 'business' (business process projects). Leave empty for all types.",
+            },
+            categoryId: {
+              type: "string",
+              description: "Project category ID filter (numeric ID from project categories). Use to group projects by department or purpose.",
+            },
+            status: {
+              type: "string",
+              description: "Project status filter: 'live' (active projects), 'archived' (completed/inactive), 'deleted' (marked for deletion). Default shows live projects.",
+            },
+            expand: {
+              type: "string",
+              description: "Additional details to include. Comma-separated: 'description' (project descriptions), 'lead' (project leads), 'url' (project URLs), 'projectKeys' (related keys), 'insight' (metrics)",
+            },
+            startAt: {
+              type: "number",
+              description: "Pagination start index (0-based). Use for large result sets. Example: 0 (first page), 50 (second page if maxResults=50)",
+            },
+            maxResults: {
+              type: "number",
+              description: "Maximum results to return per page (1-100, default: 50). Use smaller values for faster responses.",
+            },
+          },
+          required: ["working_dir"],
+        },
+      },
+      {
+        name: "get_project_details",
+        description: "Get comprehensive project information including components, versions, roles, and features. Essential for project analysis, planning context, and understanding project structure. Use project key from search_projects or known project.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            working_dir: {
+              type: "string",
+              description: "Working directory containing .jira-config.json",
+            },
+            projectKey: {
+              type: "string",
+              description: "Project key to get details for (e.g., 'PROJ', 'APP', 'WEB'). Case-sensitive and typically uppercase.",
+            },
+            expand: {
+              type: "string",
+              description: "Additional details to include. Comma-separated options: 'description,lead,url' (basic info), 'permissions' (user access), 'insight' (project metrics), 'features' (enabled features). Default includes most useful options.",
+            },
+          },
+          required: ["working_dir", "projectKey"],
+        },
+      },
+      
+      // Project Planning Tools - Advanced Planning
+      {
+        name: "search_issues_jql",
+        description: "Advanced issue search using Jira Query Language (JQL) for powerful project analysis and custom reporting. Essential for complex filtering, cross-project queries, and detailed project insights. Use before creating filters to test queries.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            working_dir: {
+              type: "string",
+              description: "Working directory containing .jira-config.json",
+            },
+            jql: {
+              type: "string",
+              description: "JQL query string. Examples: 'project = PROJ AND status != Done' (active work), 'fixVersion = \"1.0.0\" AND assignee = currentUser()' (my release work), 'component = \"Frontend\" AND priority >= High' (critical frontend issues), 'created >= -30d ORDER BY created DESC' (recent issues). Use double quotes for multi-word values.",
+            },
+            startAt: {
+              type: "number",
+              description: "Pagination start index (0-based). Use for large result sets. Example: 0 (first page), 50 (second page)",
+            },
+            maxResults: {
+              type: "number",
+              description: "Maximum results to return per page (1-1000, default: 50). Use 100+ for comprehensive analysis, 50 or less for quick overviews.",
+            },
+            fields: {
+              type: "string",
+              description: "Comma-separated fields to return for performance. Examples: 'summary,status,assignee' (basic info), 'key,summary,status,priority,components,fixVersions' (planning view), '*all' (everything). Default includes essential planning fields.",
+            },
+            expand: {
+              type: "string",
+              description: "Additional data to expand. Options: 'names' (field names), 'schema' (field types), 'changelog' (history), 'renderedFields' (formatted values). Use sparingly for performance.",
+            },
+            validateQuery: {
+              type: "boolean",
+              description: "Whether to validate JQL syntax before execution (default: false). Set to true when testing complex queries to catch syntax errors.",
+            },
+          },
+          required: ["working_dir", "jql"],
+        },
+      },
+      {
+        name: "create_filter",
+        description: "Create saved filters for consistent project tracking, dashboard widgets, and team collaboration. Essential for recurring project views and shared reporting. Test JQL with search_issues_jql first before creating filters.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            working_dir: {
+              type: "string",
+              description: "Working directory containing .jira-config.json",
+            },
+            name: {
+              type: "string",
+              description: "Filter name - use descriptive names (e.g., 'Sprint Planning View', 'Bug Backlog', 'Release 1.0 Progress', 'Team Frontend Tasks')",
+            },
+            description: {
+              type: "string",
+              description: "Filter description explaining purpose and usage (e.g., 'Shows all active bugs for triaging', 'Release tracking for stakeholder updates')",
+            },
+            jql: {
+              type: "string",
+              description: "JQL query for the filter. Must be valid JQL tested with search_issues_jql. Examples: 'project = PROJ AND status != Done', 'assignee = currentUser() AND resolution = Unresolved'",
+            },
+            favourite: {
+              type: "boolean",
+              description: "Whether to mark as favourite for quick access (default: false). Set to true for frequently used filters.",
+            },
+            sharePermissions: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  type: {
+                    type: "string",
+                    description: "Permission type: 'global' (everyone), 'project' (project members), 'group' (specific group), 'role' (project role)",
+                  },
+                  projectId: {
+                    type: "string",
+                    description: "Project ID for 'project' type permissions (numeric project ID, not key)",
+                  },
+                  groupname: {
+                    type: "string",
+                    description: "Group name for 'group' type permissions (e.g., 'jira-developers', 'project-managers')",
+                  },
+                  projectRoleId: {
+                    type: "string",
+                    description: "Role ID for 'role' type permissions (numeric role ID from project roles)",
+                  },
+                },
+                required: ["type"],
+              },
+              description: "Share permissions for the filter. Examples: [{'type': 'project', 'projectId': '10000'}] (project access), [{'type': 'global'}] (everyone), [{'type': 'group', 'groupname': 'developers'}] (specific group)",
+            },
+          },
+          required: ["working_dir", "name", "jql"],
+        },
+      },
+      {
+        name: "list_plans",
+        description: "List strategic plans for high-level roadmap and portfolio management (Jira Premium feature). Plans organize multiple projects and teams around business objectives. Returns informative alternatives if feature not available.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            working_dir: {
+              type: "string",
+              description: "Working directory containing .jira-config.json",
+            },
+            startAt: {
+              type: "number",
+              description: "Pagination start index (0-based). Use for large plan sets in enterprise environments.",
+            },
+            maxResults: {
+              type: "number",
+              description: "Maximum results to return per page. Plans are typically fewer than 50 per organization.",
+            },
+          },
+          required: ["working_dir"],
+        },
+      },
+      
+      // Project Planning Tools - Workflow Insight
+      {
+        name: "get_project_statuses",
+        description: "Get comprehensive project workflow statuses and transitions for process understanding and planning optimization. Essential for workflow analysis, status planning, and understanding issue lifecycle. Use before creating complex JQL queries with status filters.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            working_dir: {
+              type: "string",
+              description: "Working directory containing .jira-config.json",
+            },
+            projectKey: {
+              type: "string",
+              description: "Optional project key to override the default from config (e.g., 'PROJ', 'APP'). Shows statuses specific to this project's workflow configuration.",
+            },
+          },
+          required: ["working_dir"],
+        },
+      },
+      {
+        name: "get_issue_types",
+        description: "Get available issue types, their hierarchy, required fields, and configuration for effective work categorization and issue creation planning. Critical for understanding project structure and choosing appropriate issue types for different work items.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            working_dir: {
+              type: "string",
+              description: "Working directory containing .jira-config.json",
+            },
+            projectKey: {
+              type: "string",
+              description: "Optional project key to override the default from config (e.g., 'PROJ', 'APP'). Shows issue types available for this specific project.",
+            },
+          },
+          required: ["working_dir"],
+        },
+      },
     ],
   }));
 
@@ -964,6 +1361,50 @@ export function setupToolHandlers(
         
         case "get_board_cumulative_flow":
           return handleGetBoardCumulativeFlow(agileAxiosInstance, args);
+        
+        // Project Planning Tools - Version Management
+        case "list_versions":
+          return handleListVersions(axiosInstance, args.projectKey || projectKey, args);
+        
+        case "create_version":
+          return handleCreateVersion(axiosInstance, args.projectKey || projectKey, args);
+        
+        case "get_version_progress":
+          return handleGetVersionProgress(axiosInstance, args.projectKey || projectKey, args);
+        
+        // Project Planning Tools - Component Management
+        case "list_components":
+          return handleListComponents(axiosInstance, args.projectKey || projectKey, args);
+        
+        case "create_component":
+          return handleCreateComponent(axiosInstance, args.projectKey || projectKey, args);
+        
+        case "get_component_progress":
+          return handleGetComponentProgress(axiosInstance, args.projectKey || projectKey, args);
+        
+        // Project Planning Tools - Project Search
+        case "search_projects":
+          return handleSearchProjects(axiosInstance, args);
+        
+        case "get_project_details":
+          return handleGetProjectDetails(axiosInstance, args);
+        
+        // Project Planning Tools - Advanced Planning
+        case "search_issues_jql":
+          return handleSearchIssuesJql(axiosInstance, args);
+        
+        case "create_filter":
+          return handleCreateFilter(axiosInstance, args);
+        
+        case "list_plans":
+          return handleListPlans(axiosInstance, args);
+        
+        // Project Planning Tools - Workflow Insight
+        case "get_project_statuses":
+          return handleGetProjectStatuses(axiosInstance, args.projectKey || projectKey, args);
+        
+        case "get_issue_types":
+          return handleGetIssueTypes(axiosInstance, args.projectKey || projectKey, args);
         
         default:
           throw new McpError(
