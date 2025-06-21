@@ -40,7 +40,7 @@ npm run build
 
 ```json
 {
-  "projectKey": "YOUR_PROJECT_KEY"
+  "projectKey": ["YOUR_PROJECT_KEY", "YOUR_OTHER_PROJECT_KEY"]
 }
 ```
 

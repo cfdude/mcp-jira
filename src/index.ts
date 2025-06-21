@@ -22,7 +22,7 @@ if (!JIRA_EMAIL || !JIRA_API_TOKEN || !JIRA_DOMAIN) {
 }
 
 interface JiraConfig {
-  projectKey: string;
+  projectKey: string[];
 }
 
 interface JiraComment {
@@ -141,19 +141,35 @@ class JiraServer {
 - URL: https://${JIRA_DOMAIN}.atlassian.net/browse/${issue.key}`;
   }
 
-  private async loadProjectKey(workingDir: string): Promise<string> {
+  private async loadProjectKey(workingDir: string, issueKey?: string, projectOverride?: string): Promise<string> {
     try {
       const configPath = path.join(workingDir, ".jira-config.json");
       const configContent = await fs.promises.readFile(configPath, "utf-8");
       const config: JiraConfig = JSON.parse(configContent);
-      if (!config.projectKey) {
-        throw new Error("projectKey not found in .jira-config.json");
+      
+      if (!config.projectKey || !Array.isArray(config.projectKey) || config.projectKey.length === 0) {
+        throw new Error("projectKey array not found or empty in .jira-config.json");
       }
-      return config.projectKey;
+
+      // If project override is provided and valid, use it
+      if (projectOverride && config.projectKey.includes(projectOverride)) {
+        return projectOverride;
+      }
+
+      // If an issue key is provided, try to match its project
+      if (issueKey) {
+        const projectFromKey = issueKey.split('-')[0];
+        if (config.projectKey.includes(projectFromKey)) {
+          return projectFromKey;
+        }
+      }
+
+      // For create_issue, list_issues, or when no matching project found
+      return config.projectKey[0];
     } catch (error) {
       throw new McpError(
         ErrorCode.InvalidRequest,
-        "Failed to load project key from .jira-config.json. Please ensure the file exists and contains a valid projectKey."
+        "Failed to load project keys from .jira-config.json. Please ensure the file exists and contains a valid projectKey array."
       );
     }
   }
@@ -170,6 +186,10 @@ class JiraServer {
               working_dir: {
                 type: "string",
                 description: "Working directory containing .jira-config.json",
+              },
+              project: {
+                type: "string",
+                description: "Project key to create the issue in (e.g., TESTSEO, TESTWEB)",
               },
               summary: {
                 type: "string",
@@ -300,7 +320,9 @@ class JiraServer {
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       try {
         const { working_dir, ...args } = request.params.arguments as any;
-        this.currentProjectKey = await this.loadProjectKey(working_dir);
+        
+        // Pass issue_key and project to loadProjectKey if they exist
+        this.currentProjectKey = await this.loadProjectKey(working_dir, args.issue_key, args.project);
 
         switch (request.params.name) {
           case "create_issue": {
