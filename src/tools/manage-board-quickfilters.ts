@@ -59,10 +59,9 @@ ${quickfilters.map((filter: any) => {
 **Total:** ${quickfilters.length} quickfilter(s)
 
 Use \`manage_board_quickfilters\` with action 'get' to view detailed filter information.`,
-            },
-          ],
-        };
-      }
+          },
+        ],
+      };
     } else if (action === 'get') {
       if (!quickfilterId) {
         throw new McpError(

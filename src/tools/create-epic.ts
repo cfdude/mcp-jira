@@ -148,8 +148,9 @@ ${labels && labels.length > 0 ? `- **Labels:** ${labels.join(', ')}` : ''}
 🔗 **Link:** ${JIRA_DOMAIN}/browse/${createResponse.data.key}
 
 Use \`update_issue\` to modify the epic or \`move_issues_to_epic\` to add issues.`,
-          },
-        ];
+            },
+          ],
+        };
       } catch (retryError: any) {
         throw new McpError(
           ErrorCode.InternalError,
