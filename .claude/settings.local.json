@@ -9,7 +9,13 @@
       "Bash(git push:*)",
       "Bash(npm run lint)",
       "Bash(timeout 5s npm start)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "mcp__claude-code__Glob",
+      "mcp__claude-code__Bash",
+      "mcp__claude-code__Read",
+      "Bash(npm run start:*)",
+      "Bash(npm run:*)",
+      "Bash(rm:*)"
     ],
     "deny": []
   }

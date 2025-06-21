@@ -3,6 +3,7 @@
  */
 import { AxiosInstance } from "axios";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import { resolveAssigneeValue } from "../utils/user-resolver.js";
 
 interface BulkUpdateIssuesArgs {
   working_dir: string;
@@ -60,11 +61,22 @@ export async function handleBulkUpdateIssues(
         fields.status = { name: updates.status };
       }
       
-      if (updates.assignee) {
-        if (updates.assignee.toLowerCase() === 'unassigned') {
-          fields.assignee = null;
-        } else {
-          fields.assignee = { accountId: updates.assignee };
+      if (updates.assignee !== undefined) {
+        try {
+          const resolvedAccountId = await resolveAssigneeValue(axiosInstance, updates.assignee);
+          if (resolvedAccountId === null) {
+            fields.assignee = null;
+          } else {
+            fields.assignee = { accountId: resolvedAccountId };
+          }
+        } catch (error: any) {
+          console.error(`Failed to resolve assignee for ${issueKey}:`, error.message);
+          errors.push({
+            issueKey,
+            status: 'error',
+            message: `Failed to resolve assignee "${updates.assignee}": ${error.message}`
+          });
+          continue; // Skip this issue and move to the next one
         }
       }
       

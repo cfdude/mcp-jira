@@ -1,20 +1,35 @@
 /**
- * Jira API interaction utilities
+ * Jira API interaction utilities with multi-instance support
  */
 import axios, { AxiosInstance } from "axios";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { JIRA_DOMAIN, JIRA_EMAIL, JIRA_API_TOKEN } from "../config.js";
+import { JiraInstanceConfig } from "../types.js";
 
 /**
- * Create Axios instances for Jira API
+ * Create Axios instances for Jira API using specific instance configuration
  */
-export function createJiraApiInstances() {
+export function createJiraApiInstances(instanceConfig?: JiraInstanceConfig) {
+  // Use instance config if provided, otherwise fall back to environment variables
+  const domain = instanceConfig?.domain || JIRA_DOMAIN;
+  const email = instanceConfig?.email || JIRA_EMAIL;
+  const apiToken = instanceConfig?.apiToken || JIRA_API_TOKEN;
+  
+  if (!domain || !email || !apiToken) {
+    throw new McpError(
+      ErrorCode.InvalidRequest,
+      "Missing Jira configuration. Either provide instance config or set JIRA_DOMAIN, JIRA_EMAIL, and JIRA_API_TOKEN environment variables."
+    );
+  }
+
+  console.error(`Creating Jira API instances for domain: ${domain}, email: ${email}`);
+
   // Create instance for REST API v2
   const axiosInstance = axios.create({
-    baseURL: `https://${JIRA_DOMAIN}.atlassian.net/rest/api/2`,
+    baseURL: `https://${domain}.atlassian.net/rest/api/2`,
     auth: {
-      username: JIRA_EMAIL,
-      password: JIRA_API_TOKEN,
+      username: email,
+      password: apiToken,
     },
     headers: {
       "Accept": "application/json",
@@ -24,10 +39,10 @@ export function createJiraApiInstances() {
 
   // Create instance for Agile API
   const agileAxiosInstance = axios.create({
-    baseURL: `https://${JIRA_DOMAIN}.atlassian.net/rest/agile/1.0`,
+    baseURL: `https://${domain}.atlassian.net/rest/agile/1.0`,
     auth: {
-      username: JIRA_EMAIL,
-      password: JIRA_API_TOKEN,
+      username: email,
+      password: apiToken,
     },
     headers: {
       "Accept": "application/json",
@@ -36,6 +51,13 @@ export function createJiraApiInstances() {
   });
 
   return { axiosInstance, agileAxiosInstance };
+}
+
+/**
+ * Legacy function for backward compatibility
+ */
+export function createLegacyJiraApiInstances() {
+  return createJiraApiInstances();
 }
 
 /**

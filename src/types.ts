@@ -5,6 +5,30 @@
 export interface JiraConfig {
   projectKey: string;
   storyPointsField?: string; // Custom field ID for story points (e.g., 'customfield_10016')
+  sprintField?: string; // Custom field ID for sprint
+  epicLinkField?: string; // Custom field ID for epic link
+}
+
+export interface JiraInstanceConfig {
+  email: string;
+  apiToken: string;
+  domain: string;
+  projects?: string[]; // Optional: list of project keys this instance supports
+}
+
+export interface MultiInstanceJiraConfig {
+  instances: {
+    [instanceName: string]: JiraInstanceConfig;
+  };
+  projects: {
+    [projectKey: string]: {
+      instance: string; // which instance to use for this project
+      storyPointsField?: string;
+      sprintField?: string;
+      epicLinkField?: string;
+    };
+  };
+  defaultInstance?: string; // fallback instance if project not found
 }
 
 export interface JiraComment {
@@ -56,6 +80,7 @@ export interface JiraIssue {
 // Tool argument types
 export interface BaseArgs {
   working_dir: string;
+  instance?: string; // Optional: specify which Jira instance to use
 }
 
 export interface CreateIssueArgs extends BaseArgs {
@@ -84,6 +109,7 @@ export interface UpdateIssueArgs extends BaseArgs {
   summary?: string;
   description?: string;
   status?: string;
+  assignee?: string | null; // Display name, email, account ID, or null/"unassigned" to unassign
   epic_link?: string;
   priority?: string;
   story_points?: number | null;

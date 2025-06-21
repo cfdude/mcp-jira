@@ -1,7 +1,61 @@
 {
+  "instances": {
+    "primary": {
+      "email": "your-email@company.com",
+      "apiToken": "your-api-token-here",
+      "domain": "your-domain",
+      "projects": ["PROJ", "DEV", "OPS"]
+    },
+    "secondary": {
+      "email": "your-email@otherdomain.com",
+      "apiToken": "your-other-api-token",
+      "domain": "other-domain"
+    }
+  },
+  "projects": {
+    "PROJ": {
+      "instance": "primary",
+      "storyPointsField": "customfield_10016",
+      "sprintField": "customfield_10020",
+      "epicLinkField": "customfield_10014"
+    },
+    "DEV": {
+      "instance": "primary",
+      "storyPointsField": "customfield_10016"
+    },
+    "OTHER": {
+      "instance": "secondary",
+      "storyPointsField": "customfield_10020"
+    }
+  },
+  "defaultInstance": "primary",
+  
+  "_comment": "Legacy single-instance format (still supported):",
+  "_legacy_example": {
     "projectKey": "ABC",
-    "JIRA_EMAIL": "joe@acme.com",
-    "JIRA_API_TOKEN": "your API key",
-    "JIRA_DOMAIN": "Acme",
     "storyPointsField": "customfield_10036"
+  },
+  
+  "_instructions": {
+    "setup": [
+      "1. Replace 'your-email@company.com' with your actual Jira email",
+      "2. Get API tokens from https://id.atlassian.com/manage-profile/security/api-tokens",
+      "3. Replace 'your-domain' with your Jira domain (the part before .atlassian.net)",
+      "4. Update project keys and custom field IDs for your projects",
+      "5. Set defaultInstance to your most commonly used instance",
+      "6. Save this file as '.jira-config.json' (remove .example)"
+    ],
+    "finding_custom_fields": [
+      "Story Points: Usually customfield_10016 or customfield_10020",
+      "Sprint: Usually customfield_10020 or customfield_10001", 
+      "Epic Link: Usually customfield_10014 or customfield_10008",
+      "Use the list_instances tool to get field detection help"
+    ],
+    "multi_instance_benefits": [
+      "Work with multiple Jira Cloud instances from one Claude session",
+      "Automatic instance selection based on project key",
+      "Per-project custom field configuration",
+      "Backward compatible with single-instance setups"
+    ]
+  }
 }

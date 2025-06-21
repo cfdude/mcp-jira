@@ -6,6 +6,7 @@ import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { UpdateIssueArgs } from "../types.js";
 import { getBoardId } from "../utils/jira-api.js";
 import { formatIssue } from "../utils/formatting.js";
+import { resolveAssigneeValue } from "../utils/user-resolver.js";
 
 export async function handleUpdateIssue(
   axiosInstance: AxiosInstance,
@@ -19,6 +20,7 @@ export async function handleUpdateIssue(
     summary,
     description,
     status,
+    assignee,
     epic_link,
     sprint,
     priority,
@@ -46,6 +48,23 @@ export async function handleUpdateIssue(
   if (labels !== undefined) {
     updateData.fields.labels = labels || [];
     console.error("Setting labels:", labels);
+  }
+  if (assignee !== undefined) {
+    try {
+      const resolvedAccountId = await resolveAssigneeValue(axiosInstance, assignee);
+      if (resolvedAccountId === null) {
+        updateData.fields.assignee = null;
+        console.error("Unassigning issue");
+      } else {
+        updateData.fields.assignee = { accountId: resolvedAccountId };
+        console.error("Setting assignee to account ID:", resolvedAccountId);
+      }
+    } catch (error: any) {
+      throw new McpError(
+        ErrorCode.InvalidRequest,
+        `Failed to resolve assignee "${assignee}": ${error.message}`
+      );
+    }
   }
   if (epic_link) {
     updateData.fields.parent = {

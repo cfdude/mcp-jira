@@ -57,6 +57,7 @@ import { handleCreateFilter } from "./create-filter.js";
 import { handleListPlans } from "./list-plans.js";
 import { handleGetProjectStatuses } from "./get-project-statuses.js";
 import { handleGetIssueTypes } from "./get-issue-types.js";
+import { handleListInstances } from "./list-instances.js";
 
 /**
  * Register all tool handlers with the server
@@ -188,6 +189,10 @@ export function setupToolHandlers(
               type: "string",
               description: "New status",
             },
+            assignee: {
+              type: "string",
+              description: "Assignee display name (e.g., 'Esther Yang'), email, or account ID. Use 'unassigned' or null to unassign.",
+            },
             epic_link: {
               type: "string",
               description: "Epic issue key to link to (e.g., AIS-27). Set to empty string to remove epic link.",
@@ -279,6 +284,20 @@ export function setupToolHandlers(
             },
           },
           required: ["working_dir", "issue_key", "comment"],
+        },
+      },
+      {
+        name: "list_instances",
+        description: "List all available Jira instances and their configured projects. Useful for discovering which instances are available and how projects are mapped.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            working_dir: {
+              type: "string",
+              description: "Working directory containing .jira-config.json",
+            },
+          },
+          required: ["working_dir"],
         },
       },
       
@@ -707,7 +726,7 @@ export function setupToolHandlers(
                 },
                 assignee: {
                   type: "string",
-                  description: "New assignee for all issues (account ID or 'unassigned')",
+                  description: "New assignee for all issues - display name (e.g., 'Esther Yang'), email, or account ID. Use 'unassigned' to unassign.",
                 },
                 priority: {
                   type: "string",
@@ -1277,7 +1296,7 @@ export function setupToolHandlers(
       // Route to the appropriate handler based on the tool name
       switch (request.params.name) {
         case "create_issue":
-          return handleCreateIssue(axiosInstance, agileAxiosInstance, args.projectKey || projectKey, storyPointsFieldRef.current, args);
+          return handleCreateIssue({ ...args, working_dir });
         
         case "list_issues":
           return handleListIssues(axiosInstance, args.projectKey || projectKey, storyPointsFieldRef.current, args);
@@ -1293,6 +1312,9 @@ export function setupToolHandlers(
         
         case "add_comment":
           return handleAddComment(axiosInstance, args);
+        
+        case "list_instances":
+          return handleListInstances(args);
         
         // Sprint Management
         case "create_sprint":

@@ -1,24 +1,39 @@
 /**
- * Handler for the create_issue tool
+ * Handler for the create_issue tool with multi-instance support
  */
 import { AxiosInstance } from "axios";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { CreateIssueArgs } from "../types.js";
-import { getBoardId } from "../utils/jira-api.js";
+import { getBoardId, createJiraApiInstances } from "../utils/jira-api.js";
 import { formatCreatedIssue } from "../utils/formatting.js";
-import { JIRA_DOMAIN } from "../config.js";
+import { getInstanceForProject } from "../config.js";
 
 export async function handleCreateIssue(
-  axiosInstance: AxiosInstance,
-  agileAxiosInstance: AxiosInstance,
-  defaultProjectKey: string,
-  storyPointsField: string | null,
   args: CreateIssueArgs
 ) {
-  const { summary, description, type, epic_link, sprint, priority, story_points, labels, projectKey } = args;
+  const { summary, description, type, epic_link, sprint, priority, story_points, labels, projectKey, working_dir, instance } = args;
   
-  // Use provided projectKey if it exists, otherwise use the default
-  const effectiveProjectKey = projectKey || defaultProjectKey;
+  // Determine which project key to use
+  const effectiveProjectKey = projectKey || "UNKNOWN";
+  
+  if (effectiveProjectKey === "UNKNOWN") {
+    throw new McpError(
+      ErrorCode.InvalidRequest,
+      "projectKey is required when creating issues. Either provide it as a parameter or configure a default project in .jira-config.json"
+    );
+  }
+
+  // Get the appropriate instance and project configuration
+  const { instance: instanceConfig, projectConfig } = await getInstanceForProject(
+    working_dir, 
+    effectiveProjectKey, 
+    instance
+  );
+  
+  // Create API instances for this specific Jira instance
+  const { axiosInstance, agileAxiosInstance } = createJiraApiInstances(instanceConfig);
+  
+  console.error(`Creating issue in project ${effectiveProjectKey} using instance: ${instanceConfig.domain}`);
 
   console.error("Creating issue with:", {
     projectKey: effectiveProjectKey,
@@ -30,6 +45,7 @@ export async function handleCreateIssue(
     priority,
     story_points,
     labels,
+    instance: instanceConfig.domain
   });
 
   // First, get project metadata to verify it exists and get available issue types
@@ -68,8 +84,8 @@ export async function handleCreateIssue(
     );
   }
 
-  // Use known sprint field ID
-  const sprintFieldId = 'customfield_10020';
+  // Use configured sprint field or default
+  const sprintFieldId = projectConfig.sprintField || 'customfield_10020';
   console.error("Using sprint field ID:", sprintFieldId);
 
   const fields: any = {
@@ -93,9 +109,9 @@ export async function handleCreateIssue(
   }
 
   // Add story points if specified
-  if (story_points !== undefined && storyPointsField) {
-    fields[storyPointsField] = story_points;
-    console.error("Setting story points:", story_points);
+  if (story_points !== undefined && projectConfig.storyPointsField) {
+    fields[projectConfig.storyPointsField] = story_points;
+    console.error("Setting story points:", story_points, "using field:", projectConfig.storyPointsField);
   }
 
   // Handle sprint assignment if requested
@@ -153,7 +169,7 @@ export async function handleCreateIssue(
         content: [
           {
             type: "text",
-            text: formatCreatedIssue(createResponse.data, JIRA_DOMAIN),
+            text: formatCreatedIssue(createResponse.data, instanceConfig.domain),
           },
         ],
       };
@@ -164,10 +180,16 @@ export async function handleCreateIssue(
   }
 
   if (epic_link) {
-    fields.parent = {
-      key: epic_link
-    };
-    console.error("Adding Epic link using parent field:", epic_link);
+    // Use configured epic link field or try parent field
+    if (projectConfig.epicLinkField) {
+      fields[projectConfig.epicLinkField] = epic_link;
+      console.error("Adding Epic link using configured field:", projectConfig.epicLinkField, epic_link);
+    } else {
+      fields.parent = {
+        key: epic_link
+      };
+      console.error("Adding Epic link using parent field:", epic_link);
+    }
   }
 
   const createResponse = await axiosInstance.post("/issue", {
@@ -178,7 +200,7 @@ export async function handleCreateIssue(
     content: [
       {
         type: "text",
-        text: formatCreatedIssue(createResponse.data, JIRA_DOMAIN),
+        text: formatCreatedIssue(createResponse.data, instanceConfig.domain),
       },
     ],
   };

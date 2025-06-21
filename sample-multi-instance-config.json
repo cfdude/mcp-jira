@@ -1,0 +1,33 @@
+{
+  "instances": {
+    "highway": {
+      "email": "rob.sherman@highway.ai",
+      "apiToken": "YOUR_HIGHWAY_API_TOKEN",
+      "domain": "listreports",
+      "projects": ["HWY", "OPS", "PROD"]
+    },
+    "onvex": {
+      "email": "rsherman@onvex.ai",
+      "apiToken": "YOUR_ONVEX_API_TOKEN",
+      "domain": "onvex",
+      "projects": ["ONVX", "DEV"]
+    }
+  },
+  "projects": {
+    "HWY": {
+      "instance": "highway",
+      "storyPointsField": "customfield_10016",
+      "sprintField": "customfield_10020",
+      "epicLinkField": "customfield_10014"
+    },
+    "OPS": {
+      "instance": "highway",
+      "storyPointsField": "customfield_10016"
+    },
+    "ONVX": {
+      "instance": "onvex",
+      "storyPointsField": "customfield_10020"
+    }
+  },
+  "defaultInstance": "highway"
+}
