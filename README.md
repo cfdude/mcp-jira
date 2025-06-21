@@ -1,5 +1,7 @@
 # Jira MCP Server
 
+[![smithery badge](https://smithery.ai/badge/jira-server)](https://smithery.ai/server/jira-server)
+
 A Model Context Protocol server that provides integration with Jira's REST API, allowing AI assistants to manage Jira issues programmatically.
 
 ## Features
@@ -22,6 +24,15 @@ This server provides tools for managing Jira issues:
 
 ### Installation
 
+#### Installing via Smithery
+
+To install Jira Server for Claude Desktop automatically via [Smithery](https://smithery.ai/server/jira-server):
+
+```bash
+npx -y @smithery/cli install jira-server --client claude
+```
+
+#### Manual Installation
 1. Install dependencies:
 
 ```bash
