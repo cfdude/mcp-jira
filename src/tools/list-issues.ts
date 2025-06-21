@@ -12,7 +12,7 @@ export async function handleListIssues(
   args: ListIssuesArgs
 ) {
   // Extract parameters with defaults
-  const { status, projectKey, sortField, sortOrder } = args;
+  const { status, projectKey, sortField, sortOrder, epic_key } = args;
   
   // Default sort field is Rank (cf[10019]) and default order is ASC
   const effectiveSortField = sortField || 'cf[10019]';
@@ -20,10 +20,18 @@ export async function handleListIssues(
   // Use provided projectKey if it exists, otherwise use the default
   const effectiveProjectKey = projectKey || defaultProjectKey;
   
-  // Build JQL query based on status filter and sort parameters
-  const jql = status
-    ? `project = ${effectiveProjectKey} AND status = "${status}" ORDER BY ${effectiveSortField} ${effectiveSortOrder}`
-    : `project = ${effectiveProjectKey} ORDER BY ${effectiveSortField} ${effectiveSortOrder}`;
+  // Build JQL query based on filters and sort parameters
+  let jqlConditions = [`project = ${effectiveProjectKey}`];
+  
+  if (status) {
+    jqlConditions.push(`status = "${status}"`);
+  }
+  
+  if (epic_key) {
+    jqlConditions.push(`"Epic Link" = ${epic_key}`);
+  }
+  
+  const jql = `${jqlConditions.join(' AND ')} ORDER BY ${effectiveSortField} ${effectiveSortOrder}`;
   
   console.error(`JQL Query: ${jql}`); // Log the JQL query for debugging
 
@@ -35,6 +43,7 @@ export async function handleListIssues(
     "issuetype",
     "created",
     "creator",
+    "assignee",
     "priority",
     "labels",
     "parent",
@@ -63,7 +72,8 @@ export async function handleListIssues(
     let formattedIssue = `${issue.key}: ${issue.fields.summary}
 - Type: ${issue.fields.issuetype.name}
 - Status: ${issue.fields.status.name}
-- Priority: ${issue.fields.priority?.name || "Not set"}`;
+- Priority: ${issue.fields.priority?.name || "Not set"}
+- Assignee: ${issue.fields.assignee?.displayName || "Unassigned"}`;
 
     // Add Story Points if configured
     if (storyPointsField && issue.fields[storyPointsField] !== undefined) {

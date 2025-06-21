@@ -21,7 +21,8 @@ export function formatIssue(issue: JiraIssue, storyPointsField: string | null = 
   let output = `${issue.key}: ${issue.fields.summary}
 - Type: ${issue.fields.issuetype.name}
 - Status: ${issue.fields.status.name}
-- Priority: ${issue.fields.priority?.name || "Not set"}`;
+- Priority: ${issue.fields.priority?.name || "Not set"}
+- Assignee: ${issue.fields.assignee?.displayName || "Unassigned"}`;
 
   // Only show Story Points if field is configured
   if (storyPointsField && issue.fields[storyPointsField] !== undefined) {

@@ -32,6 +32,10 @@ export interface JiraIssue {
     creator: {
       displayName: string;
     };
+    assignee?: {
+      displayName: string;
+      accountId: string;
+    };
     priority?: {
       name: string;
       id?: string;
@@ -71,6 +75,7 @@ export interface ListIssuesArgs extends BaseArgs {
   status?: string;
   sortField?: string;
   sortOrder?: 'ASC' | 'DESC';
+  epic_key?: string;
 }
 
 export interface UpdateIssueArgs extends BaseArgs {

@@ -3,8 +3,6 @@
  */
 import { AxiosInstance } from "axios";
 import { GetIssueArgs } from "../types.js";
-import { checkStoryPointsField, getBoardId } from "../utils/jira-api.js";
-import { formatIssue } from "../utils/formatting.js";
 
 export async function handleGetIssue(
   axiosInstance: AxiosInstance,
@@ -15,42 +13,40 @@ export async function handleGetIssue(
 ) {
   const { issue_key } = args;
   
-  // Check Story Points field configuration
-  await checkStoryPointsField(axiosInstance, storyPointsField);
-  
-  // Get all available data
-  const boardId = await getBoardId(agileAxiosInstance, projectKey);
-  console.error("Found board ID:", boardId);
+  // Get specific fields to retrieve
+  const fields = [
+    "summary",
+    "description", 
+    "status",
+    "issuetype",
+    "created",
+    "creator",
+    "assignee",
+    "priority",
+    "labels",
+    "parent",
+    "comment",
+    "customfield_10020", // Sprint field
+    "customfield_10019"  // Rank field
+  ];
 
-  const sprintsResponse = await agileAxiosInstance.get(
-    `/board/${boardId}/sprint`,
-    {
-      params: {
-        state: 'active,closed,future'
-      }
-    }
-  );
+  // Add story points field if configured
+  if (storyPointsField) {
+    fields.push(storyPointsField);
+  }
 
   const issueResponse = await axiosInstance.get(`/issue/${issue_key}`, {
     params: {
-      expand: "renderedFields,names,schema,editmeta",
-      fields: "*all"
+      fields: fields.join(",")
     }
   });
-
-  // Extract sprint information for cleaner display
-  let sprintInfo = "No sprints available";
-  if (sprintsResponse.data.values && sprintsResponse.data.values.length > 0) {
-    sprintInfo = sprintsResponse.data.values.map((sprint: any) =>
-      `- ${sprint.name} (ID: ${sprint.id}, State: ${sprint.state}, Dates: ${sprint.startDate?.substring(0, 10) || 'N/A'} to ${sprint.endDate?.substring(0, 10) || 'N/A'})`
-    ).join('\n');
-  }
 
   // Create a custom formatted issue output with sprint information
   let standardIssueInfo = `${issueResponse.data.key}: ${issueResponse.data.fields.summary}
 - Type: ${issueResponse.data.fields.issuetype.name}
 - Status: ${issueResponse.data.fields.status.name}
-- Priority: ${issueResponse.data.fields.priority?.name || "Not set"}`;
+- Priority: ${issueResponse.data.fields.priority?.name || "Not set"}
+- Assignee: ${issueResponse.data.fields.assignee?.displayName || "Unassigned"}`;
 
   // Add Story Points if configured
   if (storyPointsField && issueResponse.data.fields[storyPointsField] !== undefined) {
@@ -103,28 +99,30 @@ export async function handleGetIssue(
     standardIssueInfo += `\n- Labels: ${issueResponse.data.fields.labels.join(", ")}`;
   }
   
-  // Add Epic link information if available
-  for (const [fieldId, value] of Object.entries(issueResponse.data.fields)) {
-    if (fieldId.startsWith('customfield_') && value && typeof value === 'string') {
-      standardIssueInfo += `\n- Epic Link: ${value}`;
-    }
+  // Add Epic link information if available (parent field)
+  if (issueResponse.data.fields.parent) {
+    standardIssueInfo += `\n- Epic Link: ${issueResponse.data.fields.parent.key}`;
   }
 
-  // Return both standard issue info and debug info
+  // Add comments if available
+  if (issueResponse.data.fields.comment && issueResponse.data.fields.comment.comments.length > 0) {
+    standardIssueInfo += `\n- Comments: ${issueResponse.data.fields.comment.comments.length} comment(s)`;
+    
+    // Show latest comment
+    const latestComment = issueResponse.data.fields.comment.comments[issueResponse.data.fields.comment.comments.length - 1];
+    const commentDate = new Date(latestComment.created).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric", 
+      year: "numeric",
+    });
+    standardIssueInfo += `\n- Latest Comment: "${latestComment.body.substring(0, 100)}${latestComment.body.length > 100 ? '...' : ''}" by ${latestComment.author.displayName} on ${commentDate}`;
+  }
+
   return {
     content: [
       {
         type: "text",
-        text: `Debug Information:
-Available Sprints: ${JSON.stringify(sprintsResponse.data, null, 2)}
-
-Issue Fields: ${JSON.stringify(issueResponse.data.fields, null, 2)}
-
-Project Sprints:
-${sprintInfo}
-
-Standard Issue Info:
-${standardIssueInfo}`
+        text: standardIssueInfo
       }
     ]
   };
