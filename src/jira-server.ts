@@ -4,13 +4,10 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { ListResourcesRequestSchema, ListPromptsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
-import { createJiraApiInstances } from "./utils/jira-api.js";
 import { setupToolHandlers } from "./tools/index.js";
 
 export class JiraServer {
   private server: Server;
-  private axiosInstance;
-  private agileAxiosInstance;
   private storyPointsFieldRef: { current: string | null } = { current: null };
 
   constructor() {
@@ -28,16 +25,9 @@ export class JiraServer {
       }
     );
 
-    // Create Axios instances for Jira API
-    const { axiosInstance, agileAxiosInstance } = createJiraApiInstances();
-    this.axiosInstance = axiosInstance;
-    this.agileAxiosInstance = agileAxiosInstance;
-
-    // Setup tool handlers
+    // Setup tool handlers (API instances created per-request now)
     setupToolHandlers(
       this.server, 
-      this.axiosInstance, 
-      this.agileAxiosInstance, 
       this.storyPointsFieldRef
     );
 

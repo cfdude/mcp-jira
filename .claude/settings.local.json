@@ -15,7 +15,11 @@
       "mcp__claude-code__Read",
       "Bash(npm run start:*)",
       "Bash(npm run:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "mcp__jira__update_issue",
+      "mcp__jira__create_issue",
+      "Bash(timeout:*)",
+      "Bash(gtimeout:*)"
     ],
     "deny": []
   }

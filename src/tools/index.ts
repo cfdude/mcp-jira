@@ -2,8 +2,8 @@
  * Tool handlers for the Jira MCP server
  */
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { AxiosInstance } from "axios";
 import { ListToolsRequestSchema, CallToolRequestSchema, McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import axios from "axios";
 import { loadProjectConfig } from "../config.js";
 import { handleCreateIssue } from "./create-issue.js";
 import { handleListIssues } from "./list-issues.js";
@@ -64,8 +64,6 @@ import { handleListInstances } from "./list-instances.js";
  */
 export function setupToolHandlers(
   server: Server,
-  axiosInstance: AxiosInstance,
-  agileAxiosInstance: AxiosInstance,
   storyPointsFieldRef: { current: string | null }
 ) {
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
@@ -1280,158 +1278,24 @@ export function setupToolHandlers(
     try {
       const { working_dir, ...args } = request.params.arguments as any;
       
-      // Load project configuration
-      const config = await loadProjectConfig(working_dir);
-      const projectKey = config.projectKey;
+      // Tools that use new multi-instance approach
+      const multiInstanceTools = ["create_issue", "update_issue", "list_instances"];
       
-      // Update story points field reference
-      if (config.storyPointsField) {
-        console.error("Found story points field in config:", config.storyPointsField);
-        storyPointsFieldRef.current = config.storyPointsField;
-      } else {
-        console.error("No story points field found in this config");
-        storyPointsFieldRef.current = null;
-      }
-
       // Route to the appropriate handler based on the tool name
       switch (request.params.name) {
         case "create_issue":
           return handleCreateIssue({ ...args, working_dir });
         
-        case "list_issues":
-          return handleListIssues(axiosInstance, args.projectKey || projectKey, storyPointsFieldRef.current, args);
-        
         case "update_issue":
-          return handleUpdateIssue(axiosInstance, agileAxiosInstance, args.projectKey || projectKey, storyPointsFieldRef.current, args);
-        
-        case "get_issue":
-          return handleGetIssue(axiosInstance, agileAxiosInstance, projectKey, storyPointsFieldRef.current, args);
-        
-        case "delete_issue":
-          return handleDeleteIssue(axiosInstance, args);
-        
-        case "add_comment":
-          return handleAddComment(axiosInstance, args);
+          return handleUpdateIssue({ ...args, working_dir });
         
         case "list_instances":
-          return handleListInstances(args);
-        
-        // Sprint Management
-        case "create_sprint":
-          return handleCreateSprint(agileAxiosInstance, args.projectKey || projectKey, args);
-        
-        case "update_sprint":
-          return handleUpdateSprint(agileAxiosInstance, args);
-        
-        case "get_sprint_details":
-          return handleGetSprintDetails(agileAxiosInstance, args);
-        
-        case "move_issues_to_sprint":
-          return handleMoveIssuesToSprint(agileAxiosInstance, args);
-        
-        case "complete_sprint":
-          return handleCompleteSprint(agileAxiosInstance, args);
-        
-        // Board Management
-        case "list_boards":
-          return handleListBoards(agileAxiosInstance, args.projectKey || projectKey, args);
-        
-        case "get_board_configuration":
-          return handleGetBoardConfiguration(agileAxiosInstance, args);
-        
-        case "get_board_reports":
-          return handleGetBoardReports(agileAxiosInstance, args);
-        
-        case "manage_board_quickfilters":
-          return handleManageBoardQuickfilters(agileAxiosInstance, args);
-        
-        // Epic Management
-        case "create_epic":
-          return handleCreateEpic(axiosInstance, args.projectKey || projectKey, args);
-        
-        case "update_epic_details":
-          return handleUpdateEpicDetails(agileAxiosInstance, args);
-        
-        case "rank_epics":
-          return handleRankEpics(agileAxiosInstance, args);
-        
-        case "list_epic_issues":
-          return handleListEpicIssues(agileAxiosInstance, args);
-        
-        case "move_issues_to_epic":
-          return handleMoveIssuesToEpic(agileAxiosInstance, args);
-        
-        // Advanced Issue Operations
-        case "bulk_update_issues":
-          return handleBulkUpdateIssues(axiosInstance, agileAxiosInstance, args.projectKey || projectKey, storyPointsFieldRef.current, args);
-        
-        case "rank_issues":
-          return handleRankIssues(agileAxiosInstance, args);
-        
-        case "estimate_issue":
-          return handleEstimateIssue(agileAxiosInstance, args);
-        
-        // Reporting & Analytics
-        case "get_sprint_report":
-          return handleGetSprintReport(agileAxiosInstance, args);
-        
-        case "get_velocity_chart_data":
-          return handleGetVelocityChartData(agileAxiosInstance, args);
-        
-        case "get_burndown_chart_data":
-          return handleGetBurndownChartData(agileAxiosInstance, args);
-        
-        case "get_board_cumulative_flow":
-          return handleGetBoardCumulativeFlow(agileAxiosInstance, args);
-        
-        // Project Planning Tools - Version Management
-        case "list_versions":
-          return handleListVersions(axiosInstance, args.projectKey || projectKey, args);
-        
-        case "create_version":
-          return handleCreateVersion(axiosInstance, args.projectKey || projectKey, args);
-        
-        case "get_version_progress":
-          return handleGetVersionProgress(axiosInstance, args.projectKey || projectKey, args);
-        
-        // Project Planning Tools - Component Management
-        case "list_components":
-          return handleListComponents(axiosInstance, args.projectKey || projectKey, args);
-        
-        case "create_component":
-          return handleCreateComponent(axiosInstance, args.projectKey || projectKey, args);
-        
-        case "get_component_progress":
-          return handleGetComponentProgress(axiosInstance, args.projectKey || projectKey, args);
-        
-        // Project Planning Tools - Project Search
-        case "search_projects":
-          return handleSearchProjects(axiosInstance, args);
-        
-        case "get_project_details":
-          return handleGetProjectDetails(axiosInstance, args);
-        
-        // Project Planning Tools - Advanced Planning
-        case "search_issues_jql":
-          return handleSearchIssuesJql(axiosInstance, args);
-        
-        case "create_filter":
-          return handleCreateFilter(axiosInstance, args);
-        
-        case "list_plans":
-          return handleListPlans(axiosInstance, args);
-        
-        // Project Planning Tools - Workflow Insight
-        case "get_project_statuses":
-          return handleGetProjectStatuses(axiosInstance, args.projectKey || projectKey, args);
-        
-        case "get_issue_types":
-          return handleGetIssueTypes(axiosInstance, args.projectKey || projectKey, args);
+          return handleListInstances({ ...args, working_dir });
         
         default:
           throw new McpError(
             ErrorCode.MethodNotFound,
-            `Unknown tool: ${request.params.name}`
+            `Tool "${request.params.name}" is not yet updated for multi-instance support. Currently available tools: ${multiInstanceTools.join(", ")}`
           );
       }
     } catch (error) {
@@ -1452,6 +1316,3 @@ export function setupToolHandlers(
     }
   });
 }
-
-// Import axios for error handling
-import axios from "axios";

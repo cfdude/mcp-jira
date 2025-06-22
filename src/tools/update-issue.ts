@@ -4,19 +4,17 @@
 import axios, { AxiosInstance } from "axios";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { UpdateIssueArgs } from "../types.js";
-import { getBoardId } from "../utils/jira-api.js";
+import { getBoardId, createJiraApiInstances } from "../utils/jira-api.js";
 import { formatIssue } from "../utils/formatting.js";
 import { resolveAssigneeValue } from "../utils/user-resolver.js";
+import { getInstanceForProject } from "../config.js";
 
-export async function handleUpdateIssue(
-  axiosInstance: AxiosInstance,
-  agileAxiosInstance: AxiosInstance,
-  projectKey: string,
-  storyPointsField: string | null,
-  args: UpdateIssueArgs
-) {
+export async function handleUpdateIssue(args: UpdateIssueArgs) {
   const {
+    working_dir,
     issue_key,
+    projectKey: explicitProjectKey,
+    instance: instanceOverride,
     summary,
     description,
     status,
@@ -29,6 +27,20 @@ export async function handleUpdateIssue(
     rank_before_issue,
     rank_after_issue
   } = args;
+
+  // Extract project key from issue key if not provided explicitly
+  const effectiveProjectKey = explicitProjectKey || issue_key.split('-')[0];
+  
+  // Get instance configuration
+  const { instance: instanceConfig, projectConfig } = await getInstanceForProject(
+    working_dir, effectiveProjectKey, instanceOverride
+  );
+
+  // Create API instances
+  const { axiosInstance, agileAxiosInstance } = createJiraApiInstances(instanceConfig);
+  
+  // Get story points field from project config
+  const storyPointsField = projectConfig.storyPointsField || null;
   
   const updateData: any = {
     fields: {},
@@ -103,7 +115,7 @@ export async function handleUpdateIssue(
       console.error("Removing issue from sprint");
     } else {
       // Add to specified sprint
-      const boardId = await getBoardId(agileAxiosInstance, projectKey);
+      const boardId = await getBoardId(agileAxiosInstance, effectiveProjectKey);
       const sprintsResponse = await agileAxiosInstance.get(
         `/board/${boardId}/sprint`,
         {
