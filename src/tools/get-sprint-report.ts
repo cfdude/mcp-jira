@@ -1,20 +1,16 @@
 /**
  * Handler for the get_sprint_report tool
  */
-import { AxiosInstance } from "axios";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import { getInstanceForProject, createJiraApiInstances } from "../config.js";
+import { GetSprintReportArgs } from "../types.js";
 
-interface GetSprintReportArgs {
-  working_dir: string;
-  boardId: number;
-  sprintId: number;
-}
-
-export async function handleGetSprintReport(
-  agileAxiosInstance: AxiosInstance,
-  args: GetSprintReportArgs
-) {
-  const { boardId, sprintId } = args;
+export async function handleGetSprintReport(args: GetSprintReportArgs) {
+  const { working_dir, instance, boardId, sprintId } = args;
+  
+  // Get the instance configuration (no project key needed for sprint reports)
+  const instanceConfig = await getInstanceForProject(working_dir, undefined, instance);
+  const { agileAxiosInstance } = await createJiraApiInstances(instanceConfig);
   
   console.error("Getting sprint report:", {
     boardId,

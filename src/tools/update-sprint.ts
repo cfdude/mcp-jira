@@ -1,11 +1,11 @@
 /**
  * Handler for the update_sprint tool
  */
-import { AxiosInstance } from "axios";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import { getInstanceForProject, createJiraApiInstances } from "../config.js";
+import { BaseArgs } from "../types.js";
 
-interface UpdateSprintArgs {
-  working_dir: string;
+export interface UpdateSprintArgs extends BaseArgs {
   sprintId: number;
   name?: string;
   goal?: string;
@@ -14,11 +14,13 @@ interface UpdateSprintArgs {
   state?: 'active' | 'closed' | 'future';
 }
 
-export async function handleUpdateSprint(
-  agileAxiosInstance: AxiosInstance,
-  args: UpdateSprintArgs
-) {
-  const { sprintId, name, goal, startDate, endDate, state } = args;
+export async function handleUpdateSprint(args: UpdateSprintArgs) {
+  const { working_dir, instance, sprintId, name, goal, startDate, endDate, state } = args;
+  
+  // Get the instance configuration - for sprint operations, we don't have a project key, 
+  // so we'll use the default instance or specified instance
+  const instanceConfig = await getInstanceForProject(working_dir, undefined, instance);
+  const { agileAxiosInstance } = await createJiraApiInstances(instanceConfig);
   
   console.error("Updating sprint:", {
     sprintId,

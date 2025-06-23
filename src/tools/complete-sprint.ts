@@ -1,19 +1,20 @@
 /**
  * Handler for the complete_sprint tool
  */
-import { AxiosInstance } from "axios";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import { getInstanceForProject, createJiraApiInstances } from "../config.js";
+import { BaseArgs } from "../types.js";
 
-interface CompleteSprintArgs {
-  working_dir: string;
+export interface CompleteSprintArgs extends BaseArgs {
   sprintId: number;
 }
 
-export async function handleCompleteSprint(
-  agileAxiosInstance: AxiosInstance,
-  args: CompleteSprintArgs
-) {
-  const { sprintId } = args;
+export async function handleCompleteSprint(args: CompleteSprintArgs) {
+  const { working_dir, instance, sprintId } = args;
+  
+  // Get the instance configuration
+  const instanceConfig = await getInstanceForProject(working_dir, undefined, instance);
+  const { agileAxiosInstance } = await createJiraApiInstances(instanceConfig);
   
   console.error("Completing sprint:", sprintId);
 

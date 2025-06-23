@@ -1,20 +1,19 @@
 /**
  * Handler for the move_issues_to_epic tool
  */
-import { AxiosInstance } from "axios";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import { getInstanceForProject, createJiraApiInstances } from "../config.js";
+import { MoveIssuesToEpicArgs } from "../types.js";
 
-interface MoveIssuesToEpicArgs {
-  working_dir: string;
-  epicKey: string;
-  issueKeys: string[];
-}
-
-export async function handleMoveIssuesToEpic(
-  agileAxiosInstance: AxiosInstance,
-  args: MoveIssuesToEpicArgs
-) {
-  const { epicKey, issueKeys } = args;
+export async function handleMoveIssuesToEpic(args: MoveIssuesToEpicArgs) {
+  const { working_dir, instance, epicKey, issueKeys } = args;
+  
+  // Extract project key from epic key (e.g., "MIG-123" -> "MIG")
+  const projectKey = epicKey.split('-')[0];
+  
+  // Get the instance configuration
+  const instanceConfig = await getInstanceForProject(working_dir, projectKey, instance);
+  const { agileAxiosInstance } = await createJiraApiInstances(instanceConfig);
   
   console.error("Moving issues to epic:", {
     epicKey,

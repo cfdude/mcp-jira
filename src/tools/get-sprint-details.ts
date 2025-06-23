@@ -1,19 +1,20 @@
 /**
  * Handler for the get_sprint_details tool
  */
-import { AxiosInstance } from "axios";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import { getInstanceForProject, createJiraApiInstances } from "../config.js";
+import { BaseArgs } from "../types.js";
 
-interface GetSprintDetailsArgs {
-  working_dir: string;
+export interface GetSprintDetailsArgs extends BaseArgs {
   sprintId: number;
 }
 
-export async function handleGetSprintDetails(
-  agileAxiosInstance: AxiosInstance,
-  args: GetSprintDetailsArgs
-) {
-  const { sprintId } = args;
+export async function handleGetSprintDetails(args: GetSprintDetailsArgs) {
+  const { working_dir, instance, sprintId } = args;
+  
+  // Get the instance configuration
+  const instanceConfig = await getInstanceForProject(working_dir, undefined, instance);
+  const { agileAxiosInstance } = await createJiraApiInstances(instanceConfig);
   
   console.error("Getting sprint details for:", sprintId);
 

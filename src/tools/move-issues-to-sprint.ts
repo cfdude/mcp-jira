@@ -1,20 +1,22 @@
 /**
  * Handler for the move_issues_to_sprint tool
  */
-import { AxiosInstance } from "axios";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import { getInstanceForProject, createJiraApiInstances } from "../config.js";
+import { BaseArgs } from "../types.js";
 
-interface MoveIssuesToSprintArgs {
-  working_dir: string;
+export interface MoveIssuesToSprintArgs extends BaseArgs {
   sprintId: number;
   issueKeys: string[];
 }
 
-export async function handleMoveIssuesToSprint(
-  agileAxiosInstance: AxiosInstance,
-  args: MoveIssuesToSprintArgs
-) {
-  const { sprintId, issueKeys } = args;
+export async function handleMoveIssuesToSprint(args: MoveIssuesToSprintArgs) {
+  const { working_dir, instance, sprintId, issueKeys } = args;
+  
+  // Get the instance configuration - for issue operations, we can extract project from issue key
+  const projectKey = issueKeys.length > 0 ? issueKeys[0].split('-')[0] : undefined;
+  const instanceConfig = await getInstanceForProject(working_dir, projectKey, instance);
+  const { agileAxiosInstance } = await createJiraApiInstances(instanceConfig);
   
   console.error("Moving issues to sprint:", {
     sprintId,

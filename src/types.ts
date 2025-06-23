@@ -131,3 +131,119 @@ export interface AddCommentArgs extends BaseArgs {
   issue_key: string;
   comment: string;
 }
+
+// Sprint Management Args
+export interface CreateSprintArgs extends BaseArgs {
+  projectKey?: string;
+  name: string;
+  goal?: string;
+  startDate?: string;
+  endDate?: string;
+  boardId?: number;
+}
+
+export interface UpdateSprintArgs extends BaseArgs {
+  sprintId: number;
+  name?: string;
+  goal?: string;
+  startDate?: string;
+  endDate?: string;
+  state?: 'active' | 'closed' | 'future';
+}
+
+export interface GetSprintDetailsArgs extends BaseArgs {
+  sprintId: number;
+}
+
+export interface MoveIssuesToSprintArgs extends BaseArgs {
+  sprintId: number;
+  issueKeys: string[];
+}
+
+export interface CompleteSprintArgs extends BaseArgs {
+  sprintId: number;
+}
+
+// Board Management Args
+export interface ListBoardsArgs extends BaseArgs {
+  projectKey?: string;
+  type?: 'scrum' | 'kanban' | 'simple';
+  name?: string;
+  startAt?: number;
+  maxResults?: number;
+}
+
+export interface GetBoardConfigurationArgs extends BaseArgs {
+  boardId: number;
+}
+
+export interface GetBoardReportsArgs extends BaseArgs {
+  boardId: number;
+}
+
+export interface ManageBoardQuickfiltersArgs extends BaseArgs {
+  boardId: number;
+  action: 'list' | 'get';
+  quickfilterId?: number;
+}
+
+// Epic Management Args
+export interface CreateEpicArgs extends BaseArgs {
+  projectKey?: string;
+  name: string;
+  summary: string;
+  description?: string;
+  priority?: string;
+  labels?: string[];
+}
+
+export interface UpdateEpicDetailsArgs extends BaseArgs {
+  epicKey: string;
+  name?: string;
+  summary?: string;
+  done?: boolean;
+  color?: string;
+}
+
+export interface RankEpicsArgs extends BaseArgs {
+  epicToRank: string;
+  rankBeforeEpic?: string;
+  rankAfterEpic?: string;
+  rankCustomFieldId?: number;
+}
+
+export interface ListEpicIssuesArgs extends BaseArgs {
+  epicKey: string;
+  startAt?: number;
+  maxResults?: number;
+}
+
+export interface MoveIssuesToEpicArgs extends BaseArgs {
+  epicKey: string;
+  issueKeys: string[];
+}
+
+// Advanced Issue Operations Args
+export interface BulkUpdateIssuesArgs extends BaseArgs {
+  issueKeys: string[];
+  updates: {
+    status?: string;
+    assignee?: string;
+    priority?: string;
+    labels?: string[];
+    sprint?: string;
+    storyPoints?: number;
+  };
+}
+
+export interface RankIssuesArgs extends BaseArgs {
+  issues: string[];
+  rankBeforeIssue?: string;
+  rankAfterIssue?: string;
+  rankCustomFieldId?: number;
+}
+
+export interface EstimateIssueArgs extends BaseArgs {
+  issueKey: string;
+  value: string;
+}

@@ -1,19 +1,20 @@
 /**
  * Handler for the get_board_reports tool
  */
-import { AxiosInstance } from "axios";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import { getInstanceForProject, createJiraApiInstances } from "../config.js";
+import { BaseArgs } from "../types.js";
 
-interface GetBoardReportsArgs {
-  working_dir: string;
+export interface GetBoardReportsArgs extends BaseArgs {
   boardId: number;
 }
 
-export async function handleGetBoardReports(
-  agileAxiosInstance: AxiosInstance,
-  args: GetBoardReportsArgs
-) {
-  const { boardId } = args;
+export async function handleGetBoardReports(args: GetBoardReportsArgs) {
+  const { working_dir, instance, boardId } = args;
+  
+  // Get the instance configuration
+  const instanceConfig = await getInstanceForProject(working_dir, undefined, instance);
+  const { agileAxiosInstance } = await createJiraApiInstances(instanceConfig);
   
   console.error("Getting board reports for:", boardId);
 

@@ -1,13 +1,12 @@
 /**
  * Handler for the create_epic tool
  */
-import { AxiosInstance } from "axios";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { formatCreatedIssue } from "../utils/formatting.js";
-import { JIRA_DOMAIN } from "../config.js";
+import { getInstanceForProject, createJiraApiInstances } from "../config.js";
+import { BaseArgs } from "../types.js";
 
-interface CreateEpicArgs {
-  working_dir: string;
+export interface CreateEpicArgs extends BaseArgs {
   projectKey?: string;
   name: string;
   summary: string;
@@ -16,14 +15,14 @@ interface CreateEpicArgs {
   labels?: string[];
 }
 
-export async function handleCreateEpic(
-  axiosInstance: AxiosInstance,
-  defaultProjectKey: string,
-  args: CreateEpicArgs
-) {
-  const { name, summary, description, priority, labels, projectKey } = args;
+export async function handleCreateEpic(args: CreateEpicArgs) {
+  const { working_dir, instance, name, summary, description, priority, labels, projectKey } = args;
   
-  const effectiveProjectKey = projectKey || defaultProjectKey;
+  // Get the instance configuration
+  const instanceConfig = await getInstanceForProject(working_dir, projectKey, instance);
+  const { axiosInstance } = await createJiraApiInstances(instanceConfig);
+  
+  const effectiveProjectKey = projectKey || instanceConfig.config.projectKey;
   
   console.error("Creating epic with:", {
     projectKey: effectiveProjectKey,
@@ -113,7 +112,7 @@ export async function handleCreateEpic(
 ${priority ? `- **Priority:** ${priority}` : ''}
 ${labels && labels.length > 0 ? `- **Labels:** ${labels.join(', ')}` : ''}
 
-🔗 **Link:** ${JIRA_DOMAIN}/browse/${createResponse.data.key}
+🔗 **Link:** https://${instanceConfig.domain}/browse/${createResponse.data.key}
 
 Use \`list_epic_issues\` to view issues in this epic or \`move_issues_to_epic\` to add issues.`,
         },
@@ -145,7 +144,7 @@ Use \`list_epic_issues\` to view issues in this epic or \`move_issues_to_epic\` 
 ${priority ? `- **Priority:** ${priority}` : ''}
 ${labels && labels.length > 0 ? `- **Labels:** ${labels.join(', ')}` : ''}
 
-🔗 **Link:** ${JIRA_DOMAIN}/browse/${createResponse.data.key}
+🔗 **Link:** https://${instanceConfig.domain}/browse/${createResponse.data.key}
 
 Use \`update_issue\` to modify the epic or \`move_issues_to_epic\` to add issues.`,
             },

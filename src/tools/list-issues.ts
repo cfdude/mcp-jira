@@ -1,24 +1,36 @@
 /**
- * Handler for the list_issues tool
+ * Handler for the list_issues tool with multi-instance support
  */
-import { AxiosInstance } from "axios";
 import { ListIssuesArgs } from "../types.js";
-import { formatIssue, formatIssueList } from "../utils/formatting.js";
+import { getInstanceForProject } from "../config.js";
+import { createJiraApiInstances } from "../utils/jira-api.js";
 
-export async function handleListIssues(
-  axiosInstance: AxiosInstance,
-  defaultProjectKey: string,
-  storyPointsField: string | null,
-  args: ListIssuesArgs
-) {
+export async function handleListIssues(args: ListIssuesArgs) {
   // Extract parameters with defaults
-  const { status, projectKey, sortField, sortOrder, epic_key } = args;
+  const { status, projectKey, sortField, sortOrder, epic_key, working_dir, instance } = args;
   
   // Default sort field is Rank (cf[10019]) and default order is ASC
   const effectiveSortField = sortField || 'cf[10019]';
   const effectiveSortOrder = sortOrder || 'ASC';
-  // Use provided projectKey if it exists, otherwise use the default
-  const effectiveProjectKey = projectKey || defaultProjectKey;
+  
+  // Determine which project key to use - if not provided, we need to get the first configured project
+  let effectiveProjectKey = projectKey;
+  if (!effectiveProjectKey) {
+    // We need a project key to proceed, let's try to get one from config
+    throw new Error("projectKey is required for listing issues. Please specify which project to list issues from.");
+  }
+  
+  // Get the appropriate instance and project configuration
+  const { instance: instanceConfig, projectConfig } = await getInstanceForProject(
+    working_dir, 
+    effectiveProjectKey, 
+    instance
+  );
+  
+  // Create API instances for this specific Jira instance
+  const { axiosInstance } = createJiraApiInstances(instanceConfig);
+  
+  console.error(`Listing issues from project ${effectiveProjectKey} using instance: ${instanceConfig.domain}`);
   
   // Build JQL query based on filters and sort parameters
   let jqlConditions = [`project = ${effectiveProjectKey}`];
@@ -47,15 +59,19 @@ export async function handleListIssues(
     "priority",
     "labels",
     "parent",
-    "comment",
-    "customfield_10020", // Sprint field
-    "customfield_10019"  // Rank field
+    "comment"
   ];
 
-  // Add story points field if configured
-  if (storyPointsField) {
-    fields.push(storyPointsField);
+  // Add configured custom fields
+  if (projectConfig.sprintField) {
+    fields.push(projectConfig.sprintField);
   }
+  if (projectConfig.storyPointsField) {
+    fields.push(projectConfig.storyPointsField);
+  }
+  
+  // Add rank field
+  fields.push("customfield_10019"); // Rank field
 
   // Search for issues
   const searchResponse = await axiosInstance.get("/search", {
@@ -76,8 +92,8 @@ export async function handleListIssues(
 - Assignee: ${issue.fields.assignee?.displayName || "Unassigned"}`;
 
     // Add Story Points if configured
-    if (storyPointsField && issue.fields[storyPointsField] !== undefined) {
-      formattedIssue += `\n- Story Points: ${issue.fields[storyPointsField] || "Not set"}`;
+    if (projectConfig.storyPointsField && issue.fields[projectConfig.storyPointsField] !== undefined) {
+      formattedIssue += `\n- Story Points: ${issue.fields[projectConfig.storyPointsField] || "Not set"}`;
     }
     
     // Add Rank information if available
@@ -86,11 +102,12 @@ export async function handleListIssues(
     }
 
     // Add Sprint information if available
-    if (issue.fields.customfield_10020 &&
-        Array.isArray(issue.fields.customfield_10020) &&
-        issue.fields.customfield_10020.length > 0) {
+    const sprintField = projectConfig.sprintField || 'customfield_10020';
+    if (issue.fields[sprintField] &&
+        Array.isArray(issue.fields[sprintField]) &&
+        issue.fields[sprintField].length > 0) {
       
-      const sprint = issue.fields.customfield_10020[0];
+      const sprint = issue.fields[sprintField][0];
       
       if (sprint && typeof sprint === 'object') {
         const sprintName = sprint.name || 'Unknown';
@@ -126,11 +143,9 @@ export async function handleListIssues(
       formattedIssue += `\n- Labels: ${issue.fields.labels.join(", ")}`;
     }
     
-    // Add Epic link information if available
-    for (const [fieldId, value] of Object.entries(issue.fields)) {
-      if (fieldId.startsWith('customfield_') && value && typeof value === 'string') {
-        formattedIssue += `\n- Epic Link: ${value}`;
-      }
+    // Add Epic link information if available (parent field)
+    if (issue.fields.parent) {
+      formattedIssue += `\n- Epic Link: ${issue.fields.parent.key}`;
     }
     
     return formattedIssue;

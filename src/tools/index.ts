@@ -82,6 +82,10 @@ export function setupToolHandlers(
               type: "string",
               description: "Optional project key to override the default from config (e.g., 'APA')",
             },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
             summary: {
               type: "string",
               description: "Issue summary/title",
@@ -135,6 +139,10 @@ export function setupToolHandlers(
               type: "string",
               description: "Optional project key to override the default from config (e.g., 'APA')",
             },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
             status: {
               type: "string",
               description:
@@ -170,6 +178,10 @@ export function setupToolHandlers(
             projectKey: {
               type: "string",
               description: "Optional project key to override the default from config (e.g., 'APA')",
+            },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
             },
             issue_key: {
               type: "string",
@@ -240,6 +252,10 @@ export function setupToolHandlers(
               type: "string",
               description: "Issue key (e.g., PRJ-123)",
             },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
           },
           required: ["working_dir", "issue_key"],
         },
@@ -253,6 +269,10 @@ export function setupToolHandlers(
             working_dir: {
               type: "string",
               description: "Working directory containing .jira-config.json",
+            },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
             },
             issue_key: {
               type: "string",
@@ -271,6 +291,10 @@ export function setupToolHandlers(
             working_dir: {
               type: "string",
               description: "Working directory containing .jira-config.json",
+            },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
             },
             issue_key: {
               type: "string",
@@ -314,6 +338,10 @@ export function setupToolHandlers(
               type: "string",
               description: "Optional project key to override the default from config",
             },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
             name: {
               type: "string",
               description: "Sprint name",
@@ -347,6 +375,10 @@ export function setupToolHandlers(
             working_dir: {
               type: "string",
               description: "Working directory containing .jira-config.json",
+            },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
             },
             sprintId: {
               type: "number",
@@ -387,6 +419,10 @@ export function setupToolHandlers(
               type: "string",
               description: "Working directory containing .jira-config.json",
             },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
             sprintId: {
               type: "number",
               description: "Sprint ID to get details for",
@@ -404,6 +440,10 @@ export function setupToolHandlers(
             working_dir: {
               type: "string",
               description: "Working directory containing .jira-config.json",
+            },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
             },
             sprintId: {
               type: "number",
@@ -430,6 +470,10 @@ export function setupToolHandlers(
               type: "string",
               description: "Working directory containing .jira-config.json",
             },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
             sprintId: {
               type: "number",
               description: "Sprint ID to complete",
@@ -453,6 +497,10 @@ export function setupToolHandlers(
             projectKey: {
               type: "string",
               description: "Optional project key to filter boards",
+            },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
             },
             type: {
               type: "string",
@@ -485,6 +533,10 @@ export function setupToolHandlers(
               type: "string",
               description: "Working directory containing .jira-config.json",
             },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
             boardId: {
               type: "number",
               description: "Board ID to get configuration for",
@@ -503,6 +555,10 @@ export function setupToolHandlers(
               type: "string",
               description: "Working directory containing .jira-config.json",
             },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
             boardId: {
               type: "number",
               description: "Board ID to get reports for",
@@ -520,6 +576,10 @@ export function setupToolHandlers(
             working_dir: {
               type: "string",
               description: "Working directory containing .jira-config.json",
+            },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
             },
             boardId: {
               type: "number",
@@ -553,6 +613,10 @@ export function setupToolHandlers(
             projectKey: {
               type: "string",
               description: "Optional project key to override the default from config",
+            },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
             },
             name: {
               type: "string",
@@ -591,6 +655,10 @@ export function setupToolHandlers(
               type: "string",
               description: "Working directory containing .jira-config.json",
             },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
             epicKey: {
               type: "string",
               description: "Epic key (e.g., PROJ-123)",
@@ -625,6 +693,10 @@ export function setupToolHandlers(
               type: "string",
               description: "Working directory containing .jira-config.json",
             },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
             epicToRank: {
               type: "string",
               description: "Epic key to rank",
@@ -655,6 +727,10 @@ export function setupToolHandlers(
               type: "string",
               description: "Working directory containing .jira-config.json",
             },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
             epicKey: {
               type: "string",
               description: "Epic key to list issues for",
@@ -680,6 +756,10 @@ export function setupToolHandlers(
             working_dir: {
               type: "string",
               description: "Working directory containing .jira-config.json",
+            },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
             },
             epicKey: {
               type: "string",
@@ -707,6 +787,10 @@ export function setupToolHandlers(
             working_dir: {
               type: "string",
               description: "Working directory containing .jira-config.json",
+            },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
             },
             issueKeys: {
               type: "array",
@@ -762,6 +846,10 @@ export function setupToolHandlers(
               type: "string",
               description: "Working directory containing .jira-config.json",
             },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
             issues: {
               type: "array",
               items: {
@@ -795,6 +883,10 @@ export function setupToolHandlers(
               type: "string",
               description: "Working directory containing .jira-config.json",
             },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
             issueKey: {
               type: "string",
               description: "Issue key to set estimation for",
@@ -819,6 +911,10 @@ export function setupToolHandlers(
               type: "string",
               description: "Working directory containing .jira-config.json",
             },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
             boardId: {
               type: "number",
               description: "Board ID",
@@ -840,6 +936,10 @@ export function setupToolHandlers(
             working_dir: {
               type: "string",
               description: "Working directory containing .jira-config.json",
+            },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
             },
             boardId: {
               type: "number",
@@ -863,6 +963,10 @@ export function setupToolHandlers(
               type: "string",
               description: "Working directory containing .jira-config.json",
             },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
             sprintId: {
               type: "number",
               description: "Sprint ID to get burndown data for",
@@ -880,6 +984,10 @@ export function setupToolHandlers(
             working_dir: {
               type: "string",
               description: "Working directory containing .jira-config.json",
+            },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
             },
             boardId: {
               type: "number",
@@ -905,6 +1013,10 @@ export function setupToolHandlers(
               type: "string",
               description: "Optional project key to override the default from config (e.g., 'PROJ', 'APP')",
             },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
           },
           required: ["working_dir"],
         },
@@ -922,6 +1034,10 @@ export function setupToolHandlers(
             projectKey: {
               type: "string",
               description: "Optional project key to override the default from config (e.g., 'PROJ', 'APP')",
+            },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
             },
             name: {
               type: "string",
@@ -965,6 +1081,10 @@ export function setupToolHandlers(
               type: "string",
               description: "Optional project key to override the default from config (e.g., 'PROJ', 'APP')",
             },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
             versionId: {
               type: "string",
               description: "Version ID to get progress for (numeric ID from list_versions output, e.g., '10123')",
@@ -989,6 +1109,10 @@ export function setupToolHandlers(
               type: "string",
               description: "Optional project key to override the default from config (e.g., 'PROJ', 'APP')",
             },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
           },
           required: ["working_dir"],
         },
@@ -1006,6 +1130,10 @@ export function setupToolHandlers(
             projectKey: {
               type: "string",
               description: "Optional project key to override the default from config (e.g., 'PROJ', 'APP')",
+            },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
             },
             name: {
               type: "string",
@@ -1041,6 +1169,10 @@ export function setupToolHandlers(
               type: "string",
               description: "Optional project key to override the default from config (e.g., 'PROJ', 'APP')",
             },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
             componentId: {
               type: "string",
               description: "Component ID to get progress for (numeric ID from list_components output, e.g., '10456')",
@@ -1060,6 +1192,10 @@ export function setupToolHandlers(
             working_dir: {
               type: "string",
               description: "Working directory containing .jira-config.json",
+            },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
             },
             query: {
               type: "string",
@@ -1103,6 +1239,10 @@ export function setupToolHandlers(
               type: "string",
               description: "Working directory containing .jira-config.json",
             },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
             projectKey: {
               type: "string",
               description: "Project key to get details for (e.g., 'PROJ', 'APP', 'WEB'). Case-sensitive and typically uppercase.",
@@ -1126,6 +1266,10 @@ export function setupToolHandlers(
             working_dir: {
               type: "string",
               description: "Working directory containing .jira-config.json",
+            },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
             },
             jql: {
               type: "string",
@@ -1164,6 +1308,10 @@ export function setupToolHandlers(
             working_dir: {
               type: "string",
               description: "Working directory containing .jira-config.json",
+            },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
             },
             name: {
               type: "string",
@@ -1221,6 +1369,10 @@ export function setupToolHandlers(
               type: "string",
               description: "Working directory containing .jira-config.json",
             },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
             startAt: {
               type: "number",
               description: "Pagination start index (0-based). Use for large plan sets in enterprise environments.",
@@ -1249,6 +1401,10 @@ export function setupToolHandlers(
               type: "string",
               description: "Optional project key to override the default from config (e.g., 'PROJ', 'APP'). Shows statuses specific to this project's workflow configuration.",
             },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
           },
           required: ["working_dir"],
         },
@@ -1267,6 +1423,10 @@ export function setupToolHandlers(
               type: "string",
               description: "Optional project key to override the default from config (e.g., 'PROJ', 'APP'). Shows issue types available for this specific project.",
             },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
           },
           required: ["working_dir"],
         },
@@ -1279,7 +1439,7 @@ export function setupToolHandlers(
       const { working_dir, ...args } = request.params.arguments as any;
       
       // Tools that use new multi-instance approach
-      const multiInstanceTools = ["create_issue", "update_issue", "list_instances"];
+      const multiInstanceTools = ["create_issue", "update_issue", "get_issue", "delete_issue", "add_comment", "list_issues", "list_instances"];
       
       // Route to the appropriate handler based on the tool name
       switch (request.params.name) {
@@ -1288,6 +1448,18 @@ export function setupToolHandlers(
         
         case "update_issue":
           return handleUpdateIssue({ ...args, working_dir });
+        
+        case "get_issue":
+          return handleGetIssue({ ...args, working_dir });
+        
+        case "delete_issue":
+          return handleDeleteIssue({ ...args, working_dir });
+        
+        case "add_comment":
+          return handleAddComment({ ...args, working_dir });
+        
+        case "list_issues":
+          return handleListIssues({ ...args, working_dir });
         
         case "list_instances":
           return handleListInstances({ ...args, working_dir });

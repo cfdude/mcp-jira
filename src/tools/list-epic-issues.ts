@@ -1,21 +1,19 @@
 /**
  * Handler for the list_epic_issues tool
  */
-import { AxiosInstance } from "axios";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import { getInstanceForProject, createJiraApiInstances } from "../config.js";
+import { ListEpicIssuesArgs } from "../types.js";
 
-interface ListEpicIssuesArgs {
-  working_dir: string;
-  epicKey: string;
-  startAt?: number;
-  maxResults?: number;
-}
-
-export async function handleListEpicIssues(
-  agileAxiosInstance: AxiosInstance,
-  args: ListEpicIssuesArgs
-) {
-  const { epicKey, startAt = 0, maxResults = 50 } = args;
+export async function handleListEpicIssues(args: ListEpicIssuesArgs) {
+  const { working_dir, instance, epicKey, startAt = 0, maxResults = 50 } = args;
+  
+  // Extract project key from epic key (e.g., "MIG-123" -> "MIG")
+  const projectKey = epicKey.split('-')[0];
+  
+  // Get the instance configuration
+  const instanceConfig = await getInstanceForProject(working_dir, projectKey, instance);
+  const { agileAxiosInstance } = await createJiraApiInstances(instanceConfig);
   
   console.error("Listing epic issues:", {
     epicKey,

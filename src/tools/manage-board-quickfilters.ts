@@ -1,21 +1,22 @@
 /**
  * Handler for the manage_board_quickfilters tool
  */
-import { AxiosInstance } from "axios";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import { getInstanceForProject, createJiraApiInstances } from "../config.js";
+import { BaseArgs } from "../types.js";
 
-interface ManageBoardQuickfiltersArgs {
-  working_dir: string;
+export interface ManageBoardQuickfiltersArgs extends BaseArgs {
   boardId: number;
   action: 'list' | 'get';
   quickfilterId?: number;
 }
 
-export async function handleManageBoardQuickfilters(
-  agileAxiosInstance: AxiosInstance,
-  args: ManageBoardQuickfiltersArgs
-) {
-  const { boardId, action, quickfilterId } = args;
+export async function handleManageBoardQuickfilters(args: ManageBoardQuickfiltersArgs) {
+  const { working_dir, instance, boardId, action, quickfilterId } = args;
+  
+  // Get the instance configuration
+  const instanceConfig = await getInstanceForProject(working_dir, undefined, instance);
+  const { agileAxiosInstance } = await createJiraApiInstances(instanceConfig);
   
   console.error("Managing board quickfilters:", {
     boardId,

@@ -1,23 +1,19 @@
 /**
  * Handler for the update_epic_details tool
  */
-import { AxiosInstance } from "axios";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import { getInstanceForProject, createJiraApiInstances } from "../config.js";
+import { UpdateEpicDetailsArgs } from "../types.js";
 
-interface UpdateEpicDetailsArgs {
-  working_dir: string;
-  epicKey: string;
-  name?: string;
-  summary?: string;
-  done?: boolean;
-  color?: string;
-}
-
-export async function handleUpdateEpicDetails(
-  agileAxiosInstance: AxiosInstance,
-  args: UpdateEpicDetailsArgs
-) {
-  const { epicKey, name, summary, done, color } = args;
+export async function handleUpdateEpicDetails(args: UpdateEpicDetailsArgs) {
+  const { working_dir, instance, epicKey, name, summary, done, color } = args;
+  
+  // Extract project key from epic key (e.g., "MIG-123" -> "MIG")
+  const projectKey = epicKey.split('-')[0];
+  
+  // Get the instance configuration
+  const instanceConfig = await getInstanceForProject(working_dir, projectKey, instance);
+  const { agileAxiosInstance } = await createJiraApiInstances(instanceConfig);
   
   console.error("Updating epic details:", {
     epicKey,

@@ -1,22 +1,19 @@
 /**
  * Handler for the rank_epics tool
  */
-import { AxiosInstance } from "axios";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import { getInstanceForProject, createJiraApiInstances } from "../config.js";
+import { RankEpicsArgs } from "../types.js";
 
-interface RankEpicsArgs {
-  working_dir: string;
-  epicToRank: string;
-  rankBeforeEpic?: string;
-  rankAfterEpic?: string;
-  rankCustomFieldId?: number;
-}
-
-export async function handleRankEpics(
-  agileAxiosInstance: AxiosInstance,
-  args: RankEpicsArgs
-) {
-  const { epicToRank, rankBeforeEpic, rankAfterEpic, rankCustomFieldId } = args;
+export async function handleRankEpics(args: RankEpicsArgs) {
+  const { working_dir, instance, epicToRank, rankBeforeEpic, rankAfterEpic, rankCustomFieldId } = args;
+  
+  // Extract project key from epic key (e.g., "MIG-123" -> "MIG")
+  const projectKey = epicToRank.split('-')[0];
+  
+  // Get the instance configuration
+  const instanceConfig = await getInstanceForProject(working_dir, projectKey, instance);
+  const { agileAxiosInstance } = await createJiraApiInstances(instanceConfig);
   
   console.error("Ranking epics:", {
     epicToRank,

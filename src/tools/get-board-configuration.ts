@@ -1,19 +1,20 @@
 /**
  * Handler for the get_board_configuration tool
  */
-import { AxiosInstance } from "axios";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import { getInstanceForProject, createJiraApiInstances } from "../config.js";
+import { BaseArgs } from "../types.js";
 
-interface GetBoardConfigurationArgs {
-  working_dir: string;
+export interface GetBoardConfigurationArgs extends BaseArgs {
   boardId: number;
 }
 
-export async function handleGetBoardConfiguration(
-  agileAxiosInstance: AxiosInstance,
-  args: GetBoardConfigurationArgs
-) {
-  const { boardId } = args;
+export async function handleGetBoardConfiguration(args: GetBoardConfigurationArgs) {
+  const { working_dir, instance, boardId } = args;
+  
+  // Get the instance configuration
+  const instanceConfig = await getInstanceForProject(working_dir, undefined, instance);
+  const { agileAxiosInstance } = await createJiraApiInstances(instanceConfig);
   
   console.error("Getting board configuration for:", boardId);
 

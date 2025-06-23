@@ -1,31 +1,22 @@
 /**
  * Handler for the bulk_update_issues tool
  */
-import { AxiosInstance } from "axios";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import { getInstanceForProject, createJiraApiInstances } from "../config.js";
 import { resolveAssigneeValue } from "../utils/user-resolver.js";
+import { BulkUpdateIssuesArgs } from "../types.js";
 
-interface BulkUpdateIssuesArgs {
-  working_dir: string;
-  issueKeys: string[];
-  updates: {
-    status?: string;
-    assignee?: string;
-    priority?: string;
-    labels?: string[];
-    sprint?: string;
-    storyPoints?: number;
-  };
-}
-
-export async function handleBulkUpdateIssues(
-  axiosInstance: AxiosInstance,
-  agileAxiosInstance: AxiosInstance,
-  defaultProjectKey: string,
-  storyPointsField: string | null,
-  args: BulkUpdateIssuesArgs
-) {
-  const { issueKeys, updates } = args;
+export async function handleBulkUpdateIssues(args: BulkUpdateIssuesArgs) {
+  const { working_dir, instance, issueKeys, updates } = args;
+  
+  // Extract project key from first issue key (e.g., "MIG-123" -> "MIG")
+  const projectKey = issueKeys.length > 0 ? issueKeys[0].split('-')[0] : undefined;
+  
+  // Get the instance configuration
+  const instanceConfig = await getInstanceForProject(working_dir, projectKey, instance);
+  const { axiosInstance, agileAxiosInstance } = await createJiraApiInstances(instanceConfig);
+  
+  const storyPointsField = instanceConfig.config.storyPointsField;
   
   console.error("Bulk updating issues:", {
     issueKeys,

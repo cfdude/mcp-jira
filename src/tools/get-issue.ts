@@ -1,17 +1,27 @@
 /**
- * Handler for the get_issue tool
+ * Handler for the get_issue tool with multi-instance support
  */
-import { AxiosInstance } from "axios";
 import { GetIssueArgs } from "../types.js";
+import { getInstanceForProject } from "../config.js";
+import { createJiraApiInstances } from "../utils/jira-api.js";
 
-export async function handleGetIssue(
-  axiosInstance: AxiosInstance,
-  agileAxiosInstance: AxiosInstance,
-  projectKey: string,
-  storyPointsField: string | null,
-  args: GetIssueArgs
-) {
-  const { issue_key } = args;
+export async function handleGetIssue(args: GetIssueArgs) {
+  const { issue_key, working_dir, instance } = args;
+  
+  // Extract project key from issue key (e.g., "MIG-123" -> "MIG")
+  const projectKey = issue_key.split('-')[0];
+  
+  // Get the appropriate instance and project configuration
+  const { instance: instanceConfig, projectConfig } = await getInstanceForProject(
+    working_dir, 
+    projectKey, 
+    instance
+  );
+  
+  // Create API instances for this specific Jira instance
+  const { axiosInstance } = createJiraApiInstances(instanceConfig);
+  
+  console.error(`Getting issue ${issue_key} from project ${projectKey} using instance: ${instanceConfig.domain}`);
   
   // Get specific fields to retrieve
   const fields = [
@@ -25,15 +35,19 @@ export async function handleGetIssue(
     "priority",
     "labels",
     "parent",
-    "comment",
-    "customfield_10020", // Sprint field
-    "customfield_10019"  // Rank field
+    "comment"
   ];
 
-  // Add story points field if configured
-  if (storyPointsField) {
-    fields.push(storyPointsField);
+  // Add configured custom fields
+  if (projectConfig.sprintField) {
+    fields.push(projectConfig.sprintField);
   }
+  if (projectConfig.storyPointsField) {
+    fields.push(projectConfig.storyPointsField);
+  }
+  
+  // Add rank field
+  fields.push("customfield_10019"); // Rank field
 
   const issueResponse = await axiosInstance.get(`/issue/${issue_key}`, {
     params: {
@@ -48,22 +62,23 @@ export async function handleGetIssue(
 - Priority: ${issueResponse.data.fields.priority?.name || "Not set"}
 - Assignee: ${issueResponse.data.fields.assignee?.displayName || "Unassigned"}`;
 
-  // Add Story Points if configured
-  if (storyPointsField && issueResponse.data.fields[storyPointsField] !== undefined) {
-    standardIssueInfo += `\n- Story Points: ${issueResponse.data.fields[storyPointsField] || "Not set"}`;
+  // Add Story Points if configured and available
+  if (projectConfig.storyPointsField && issueResponse.data.fields[projectConfig.storyPointsField] !== undefined) {
+    standardIssueInfo += `\n- Story Points: ${issueResponse.data.fields[projectConfig.storyPointsField] || "Not set"}`;
   }
   
-  // Add Rank information if available (customfield_10019)
+  // Add Rank information if available
   if (issueResponse.data.fields.customfield_10019) {
     standardIssueInfo += `\n- Rank: ${issueResponse.data.fields.customfield_10019}`;
   }
 
   // Add Sprint information if available
-  if (issueResponse.data.fields.customfield_10020 &&
-      Array.isArray(issueResponse.data.fields.customfield_10020) &&
-      issueResponse.data.fields.customfield_10020.length > 0) {
+  const sprintField = projectConfig.sprintField || 'customfield_10020';
+  if (issueResponse.data.fields[sprintField] &&
+      Array.isArray(issueResponse.data.fields[sprintField]) &&
+      issueResponse.data.fields[sprintField].length > 0) {
     
-    const sprint = issueResponse.data.fields.customfield_10020[0];
+    const sprint = issueResponse.data.fields[sprintField][0];
     
     if (sprint && typeof sprint === 'object') {
       const sprintName = sprint.name || 'Unknown';

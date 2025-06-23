@@ -1,12 +1,12 @@
 /**
  * Handler for the create_sprint tool
  */
-import { AxiosInstance } from "axios";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { getBoardId } from "../utils/jira-api.js";
+import { getInstanceForProject, createJiraApiInstances } from "../config.js";
+import { BaseArgs } from "../types.js";
 
-interface CreateSprintArgs {
-  working_dir: string;
+export interface CreateSprintArgs extends BaseArgs {
   projectKey?: string;
   name: string;
   goal?: string;
@@ -15,14 +15,14 @@ interface CreateSprintArgs {
   boardId?: number;
 }
 
-export async function handleCreateSprint(
-  agileAxiosInstance: AxiosInstance,
-  defaultProjectKey: string,
-  args: CreateSprintArgs
-) {
-  const { name, goal, startDate, endDate, boardId, projectKey } = args;
+export async function handleCreateSprint(args: CreateSprintArgs) {
+  const { working_dir, instance, name, goal, startDate, endDate, boardId, projectKey } = args;
   
-  const effectiveProjectKey = projectKey || defaultProjectKey;
+  // Get the instance configuration
+  const instanceConfig = await getInstanceForProject(working_dir, projectKey, instance);
+  const { agileAxiosInstance } = await createJiraApiInstances(instanceConfig);
+  
+  const effectiveProjectKey = projectKey || instanceConfig.config.projectKey;
   
   console.error("Creating sprint with:", {
     projectKey: effectiveProjectKey,

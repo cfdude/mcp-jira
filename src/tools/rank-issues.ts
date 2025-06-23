@@ -1,22 +1,19 @@
 /**
  * Handler for the rank_issues tool
  */
-import { AxiosInstance } from "axios";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import { getInstanceForProject, createJiraApiInstances } from "../config.js";
+import { RankIssuesArgs } from "../types.js";
 
-interface RankIssuesArgs {
-  working_dir: string;
-  issues: string[];
-  rankBeforeIssue?: string;
-  rankAfterIssue?: string;
-  rankCustomFieldId?: number;
-}
-
-export async function handleRankIssues(
-  agileAxiosInstance: AxiosInstance,
-  args: RankIssuesArgs
-) {
-  const { issues, rankBeforeIssue, rankAfterIssue, rankCustomFieldId } = args;
+export async function handleRankIssues(args: RankIssuesArgs) {
+  const { working_dir, instance, issues, rankBeforeIssue, rankAfterIssue, rankCustomFieldId } = args;
+  
+  // Extract project key from first issue key (e.g., "MIG-123" -> "MIG")
+  const projectKey = issues.length > 0 ? issues[0].split('-')[0] : undefined;
+  
+  // Get the instance configuration
+  const instanceConfig = await getInstanceForProject(working_dir, projectKey, instance);
+  const { agileAxiosInstance } = await createJiraApiInstances(instanceConfig);
   
   console.error("Ranking issues:", {
     issues,

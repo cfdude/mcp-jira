@@ -1,11 +1,11 @@
 /**
  * Handler for the list_boards tool
  */
-import { AxiosInstance } from "axios";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import { getInstanceForProject, createJiraApiInstances } from "../config.js";
+import { BaseArgs } from "../types.js";
 
-interface ListBoardsArgs {
-  working_dir: string;
+export interface ListBoardsArgs extends BaseArgs {
   projectKey?: string;
   type?: 'scrum' | 'kanban' | 'simple';
   name?: string;
@@ -13,14 +13,14 @@ interface ListBoardsArgs {
   maxResults?: number;
 }
 
-export async function handleListBoards(
-  agileAxiosInstance: AxiosInstance,
-  defaultProjectKey: string,
-  args: ListBoardsArgs
-) {
-  const { projectKey, type, name, startAt = 0, maxResults = 50 } = args;
+export async function handleListBoards(args: ListBoardsArgs) {
+  const { working_dir, instance, projectKey, type, name, startAt = 0, maxResults = 50 } = args;
   
-  const effectiveProjectKey = projectKey || defaultProjectKey;
+  // Get the instance configuration
+  const instanceConfig = await getInstanceForProject(working_dir, projectKey, instance);
+  const { agileAxiosInstance } = await createJiraApiInstances(instanceConfig);
+  
+  const effectiveProjectKey = projectKey || instanceConfig.config.projectKey;
   
   console.error("Listing boards with:", {
     projectKey: effectiveProjectKey,

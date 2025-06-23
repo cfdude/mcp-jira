@@ -1,20 +1,19 @@
 /**
  * Handler for the estimate_issue tool
  */
-import { AxiosInstance } from "axios";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import { getInstanceForProject, createJiraApiInstances } from "../config.js";
+import { EstimateIssueArgs } from "../types.js";
 
-interface EstimateIssueArgs {
-  working_dir: string;
-  issueKey: string;
-  value: string;
-}
-
-export async function handleEstimateIssue(
-  agileAxiosInstance: AxiosInstance,
-  args: EstimateIssueArgs
-) {
-  const { issueKey, value } = args;
+export async function handleEstimateIssue(args: EstimateIssueArgs) {
+  const { working_dir, instance, issueKey, value } = args;
+  
+  // Extract project key from issue key (e.g., "MIG-123" -> "MIG")
+  const projectKey = issueKey.split('-')[0];
+  
+  // Get the instance configuration
+  const instanceConfig = await getInstanceForProject(working_dir, projectKey, instance);
+  const { agileAxiosInstance } = await createJiraApiInstances(instanceConfig);
   
   console.error("Setting issue estimation:", {
     issueKey,
