@@ -1,46 +1,36 @@
 /**
  * Handler for the update_issue tool
  */
-import axios, { AxiosInstance } from "axios";
+import axios from "axios";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import { withJiraContext } from "../utils/tool-wrapper.js";
 import { UpdateIssueArgs } from "../types.js";
-import { getBoardId, createJiraApiInstances } from "../utils/jira-api.js";
+import { getBoardId } from "../utils/jira-api.js";
 import { formatIssue } from "../utils/formatting.js";
 import { resolveAssigneeValue } from "../utils/user-resolver.js";
-import { getInstanceForProject } from "../config.js";
 
 export async function handleUpdateIssue(args: UpdateIssueArgs) {
-  const {
-    working_dir,
-    issue_key,
-    projectKey: explicitProjectKey,
-    instance: instanceOverride,
-    summary,
-    description,
-    status,
-    assignee,
-    epic_link,
-    sprint,
-    priority,
-    story_points,
-    labels,
-    rank_before_issue,
-    rank_after_issue
-  } = args;
+  return withJiraContext(
+    args,
+    { extractProjectFromIssueKey: true },
+    async (toolArgs, { axiosInstance, agileAxiosInstance, projectConfig }) => {
+      const {
+        issue_key,
+        summary,
+        description,
+        status,
+        assignee,
+        epic_link,
+        sprint,
+        priority,
+        story_points,
+        labels,
+        rank_before_issue,
+        rank_after_issue
+      } = toolArgs;
 
-  // Extract project key from issue key if not provided explicitly
-  const effectiveProjectKey = explicitProjectKey || issue_key.split('-')[0];
-  
-  // Get instance configuration
-  const { instance: instanceConfig, projectConfig } = await getInstanceForProject(
-    working_dir, effectiveProjectKey, instanceOverride
-  );
-
-  // Create API instances
-  const { axiosInstance, agileAxiosInstance } = createJiraApiInstances(instanceConfig);
-  
-  // Get story points field from project config
-  const storyPointsField = projectConfig.storyPointsField || null;
+      // Get story points field from project config
+      const storyPointsField = projectConfig.storyPointsField || null;
   
   const updateData: any = {
     fields: {},
@@ -115,7 +105,7 @@ export async function handleUpdateIssue(args: UpdateIssueArgs) {
       console.error("Removing issue from sprint");
     } else {
       // Add to specified sprint
-      const boardId = await getBoardId(agileAxiosInstance, effectiveProjectKey);
+      const boardId = await getBoardId(agileAxiosInstance, toolArgs.issue_key.split('-')[0]);
       const sprintsResponse = await agileAxiosInstance.get(
         `/board/${boardId}/sprint`,
         {
@@ -250,12 +240,14 @@ export async function handleUpdateIssue(args: UpdateIssueArgs) {
     }
   );
   
-  return {
-    content: [
-      {
-        type: "text",
-        text: formatIssue(updatedIssue.data, storyPointsField),
-      },
-    ],
-  };
+      return {
+        content: [
+          {
+            type: "text",
+            text: formatIssue(updatedIssue.data, storyPointsField),
+          },
+        ],
+      };
+    }
+  );
 }

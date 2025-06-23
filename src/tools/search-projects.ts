@@ -1,93 +1,95 @@
 /**
  * Search for projects with filtering capabilities
  */
-import { AxiosInstance } from "axios";
+import { withJiraContext } from "../utils/tool-wrapper.js";
+import { SearchProjectsArgs } from "../types.js";
 
-export async function handleSearchProjects(
-  axiosInstance: AxiosInstance,
-  args: any
-) {
-  try {
-    const params: any = {};
-    
-    // Add search parameters
-    if (args.query) {
-      params.query = args.query;
-    }
-    if (args.typeKey) {
-      params.typeKey = args.typeKey;
-    }
-    if (args.categoryId) {
-      params.categoryId = args.categoryId;
-    }
-    if (args.action) {
-      params.action = args.action;
-    }
-    if (args.expand) {
-      params.expand = args.expand;
-    }
-    if (args.status) {
-      params.status = args.status;
-    }
-    if (args.properties) {
-      params.properties = args.properties;
-    }
-    if (args.propertyQuery) {
-      params.propertyQuery = args.propertyQuery;
-    }
+export async function handleSearchProjects(args: SearchProjectsArgs) {
+  return withJiraContext(
+    args,
+    { requiresProject: false },
+    async (toolArgs, { axiosInstance }) => {
+      try {
+        const params: any = {};
+        
+        // Add search parameters
+        if (toolArgs.query) {
+          params.query = toolArgs.query;
+        }
+        if (toolArgs.typeKey) {
+          params.typeKey = toolArgs.typeKey;
+        }
+        if (toolArgs.categoryId) {
+          params.categoryId = toolArgs.categoryId;
+        }
+        if (toolArgs.action) {
+          params.action = toolArgs.action;
+        }
+        if (toolArgs.expand) {
+          params.expand = toolArgs.expand;
+        }
+        if (toolArgs.status) {
+          params.status = toolArgs.status;
+        }
+        if (toolArgs.properties) {
+          params.properties = toolArgs.properties;
+        }
+        if (toolArgs.propertyQuery) {
+          params.propertyQuery = toolArgs.propertyQuery;
+        }
 
-    // Pagination
-    params.startAt = args.startAt || 0;
-    params.maxResults = args.maxResults || 50;
+        // Pagination
+        params.startAt = toolArgs.startAt || 0;
+        params.maxResults = toolArgs.maxResults || 50;
 
-    const response = await axiosInstance.get(
-      `/rest/api/3/project/search`,
-      { params }
-    );
+        const response = await axiosInstance.get(
+          `/rest/api/3/project/search`,
+          { params }
+        );
 
-    const data = response.data;
-    const projects = data.values || [];
+        const data = response.data;
+        const projects = data.values || [];
 
-    // Format projects with useful information
-    const formattedProjects = projects.map((project: any) => ({
-      id: project.id,
-      key: project.key,
-      name: project.name,
-      description: project.description || "No description",
-      projectTypeKey: project.projectTypeKey,
-      projectCategory: project.projectCategory?.name || "No category",
-      lead: project.lead?.displayName || "No lead",
-      leadAccountId: project.lead?.accountId || null,
-      url: project.url || "No URL",
-      email: project.email || "No email",
-      assigneeType: project.assigneeType || "UNASSIGNED",
-      avatarUrls: project.avatarUrls,
-      components: project.components?.length || 0,
-      versions: project.versions?.length || 0,
-      roles: project.roles ? Object.keys(project.roles).length : 0,
-      insight: project.insight || null,
-      deleted: project.deleted || false,
-      retentionTillDate: project.retentionTillDate || null,
-      deletedDate: project.deletedDate || null,
-      deletedBy: project.deletedBy || null,
-      archived: project.archived || false,
-      archivedDate: project.archivedDate || null,
-      archivedBy: project.archivedBy || null
-    }));
+        // Format projects with useful information
+        const formattedProjects = projects.map((project: any) => ({
+          id: project.id,
+          key: project.key,
+          name: project.name,
+          description: project.description || "No description",
+          projectTypeKey: project.projectTypeKey,
+          projectCategory: project.projectCategory?.name || "No category",
+          lead: project.lead?.displayName || "No lead",
+          leadAccountId: project.lead?.accountId || null,
+          url: project.url || "No URL",
+          email: project.email || "No email",
+          assigneeType: project.assigneeType || "UNASSIGNED",
+          avatarUrls: project.avatarUrls,
+          components: project.components?.length || 0,
+          versions: project.versions?.length || 0,
+          roles: project.roles ? Object.keys(project.roles).length : 0,
+          insight: project.insight || null,
+          deleted: project.deleted || false,
+          retentionTillDate: project.retentionTillDate || null,
+          deletedDate: project.deletedDate || null,
+          deletedBy: project.deletedBy || null,
+          archived: project.archived || false,
+          archivedDate: project.archivedDate || null,
+          archivedBy: project.archivedBy || null
+        }));
 
-    // Separate into categories
-    const activeProjects = formattedProjects.filter((p: any) => !p.deleted && !p.archived);
-    const archivedProjects = formattedProjects.filter((p: any) => p.archived);
-    const deletedProjects = formattedProjects.filter((p: any) => p.deleted);
+        // Separate into categories
+        const activeProjects = formattedProjects.filter((p: any) => !p.deleted && !p.archived);
+        const archivedProjects = formattedProjects.filter((p: any) => p.archived);
+        const deletedProjects = formattedProjects.filter((p: any) => p.deleted);
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: `# Project Search Results
+        return {
+          content: [
+            {
+              type: "text",
+              text: `# Project Search Results
 
 ## 📊 Search Summary
-- **Query**: ${args.query || "All projects"}
+- **Query**: ${toolArgs.query || "All projects"}
 - **Total Found**: ${data.total || formattedProjects.length}
 - **Showing**: ${formattedProjects.length} projects
 - **Active**: ${activeProjects.length}
@@ -129,18 +131,20 @@ ${deletedProjects.slice(0, 3).map((project: any) =>
 - Filter by \`typeKey\` (software, service_desk, business)
 - Use \`status\` parameter (live, archived, deleted)
 - Add \`expand\` parameter for more details (description, lead, url, projectKeys, insight)`,
-        },
-      ],
-    };
-  } catch (error: any) {
-    return {
-      content: [
-        {
-          type: "text",
-          text: `Error searching projects: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
-        },
-      ],
-      isError: true,
-    };
-  }
+            },
+          ],
+        };
+      } catch (error: any) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error searching projects: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
 }

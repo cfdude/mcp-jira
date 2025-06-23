@@ -1,35 +1,36 @@
 /**
  * Create a new project version/release
  */
-import { AxiosInstance } from "axios";
+import { withJiraContext } from "../utils/tool-wrapper.js";
+import { CreateVersionArgs } from "../types.js";
 
-export async function handleCreateVersion(
-  axiosInstance: AxiosInstance,
-  projectKey: string,
-  args: any
-) {
-  try {
-    const versionData: any = {
-      name: args.name,
-      projectId: projectKey,
-    };
+export async function handleCreateVersion(args: CreateVersionArgs) {
+  return withJiraContext(
+    args,
+    { requiresProject: true },
+    async (toolArgs, { axiosInstance, projectKey }) => {
+      try {
+        const versionData: any = {
+          name: toolArgs.name,
+          projectId: projectKey,
+        };
 
-    // Add optional fields if provided
-    if (args.description) {
-      versionData.description = args.description;
-    }
-    if (args.startDate) {
-      versionData.startDate = args.startDate;
-    }
-    if (args.releaseDate) {
-      versionData.releaseDate = args.releaseDate;
-    }
-    if (args.archived !== undefined) {
-      versionData.archived = args.archived;
-    }
-    if (args.released !== undefined) {
-      versionData.released = args.released;
-    }
+        // Add optional fields if provided
+        if (toolArgs.description) {
+          versionData.description = toolArgs.description;
+        }
+        if (toolArgs.startDate) {
+          versionData.startDate = toolArgs.startDate;
+        }
+        if (toolArgs.releaseDate) {
+          versionData.releaseDate = toolArgs.releaseDate;
+        }
+        if (toolArgs.archived !== undefined) {
+          versionData.archived = toolArgs.archived;
+        }
+        if (toolArgs.released !== undefined) {
+          versionData.released = toolArgs.released;
+        }
 
     const response = await axiosInstance.post(
       `/rest/api/3/version`,
@@ -38,11 +39,11 @@ export async function handleCreateVersion(
 
     const version = response.data;
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: `# Version Created Successfully
+        return {
+          content: [
+            {
+              type: "text",
+              text: `# Version Created Successfully
 
 **${version.name}** (ID: ${version.id})
 
@@ -53,18 +54,20 @@ export async function handleCreateVersion(
 - **Status**: ${version.released ? "Released" : version.archived ? "Archived" : "Active"}
 
 Version is ready for use in project planning and issue assignment.`,
-        },
-      ],
-    };
-  } catch (error: any) {
-    return {
-      content: [
-        {
-          type: "text",
-          text: `Error creating version: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
-        },
-      ],
-      isError: true,
-    };
-  }
+            },
+          ],
+        };
+      } catch (error: any) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error creating version: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
 }

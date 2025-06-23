@@ -1,27 +1,29 @@
 /**
  * Create custom filters for project tracking and views
  */
-import { AxiosInstance } from "axios";
+import { withJiraContext } from "../utils/tool-wrapper.js";
+import { CreateFilterArgs } from "../types.js";
 
-export async function handleCreateFilter(
-  axiosInstance: AxiosInstance,
-  args: any
-) {
-  try {
-    const filterData: any = {
-      name: args.name,
-      description: args.description || "",
-      jql: args.jql,
-      favourite: args.favourite !== undefined ? args.favourite : false
-    };
+export async function handleCreateFilter(args: CreateFilterArgs) {
+  return withJiraContext(
+    args,
+    { requiresProject: false },
+    async (toolArgs, { axiosInstance }) => {
+      try {
+        const filterData: any = {
+          name: toolArgs.name,
+          description: toolArgs.description || "",
+          jql: toolArgs.jql,
+          favourite: toolArgs.favourite !== undefined ? toolArgs.favourite : false
+        };
 
-    // Add optional fields
-    if (args.sharePermissions) {
-      filterData.sharePermissions = args.sharePermissions;
-    }
-    if (args.editPermissions) {
-      filterData.editPermissions = args.editPermissions;
-    }
+        // Add optional fields
+        if (toolArgs.sharePermissions) {
+          filterData.sharePermissions = toolArgs.sharePermissions;
+        }
+        if (toolArgs.editPermissions) {
+          filterData.editPermissions = toolArgs.editPermissions;
+        }
 
     const response = await axiosInstance.post(
       `/rest/api/3/filter`,
@@ -40,11 +42,11 @@ export async function handleCreateFilter(
 
     const filterDetails = detailsResponse.data;
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: `# Filter Created Successfully
+        return {
+          content: [
+            {
+              type: "text",
+              text: `# Filter Created Successfully
 
 ## 🔍 Filter Details
 - **Name**: ${filterDetails.name}
@@ -91,18 +93,20 @@ ${filterDetails.editPermissions && filterDetails.editPermissions.length > 0 ?
 4. Use in dashboard gadgets for project visibility
 
 Filter is ready for use in project tracking and reporting!`,
-        },
-      ],
-    };
-  } catch (error: any) {
-    return {
-      content: [
-        {
-          type: "text",
-          text: `Error creating filter: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
-        },
-      ],
-      isError: true,
-    };
-  }
+            },
+          ],
+        };
+      } catch (error: any) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error creating filter: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
 }

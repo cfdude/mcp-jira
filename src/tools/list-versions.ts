@@ -1,17 +1,18 @@
 /**
  * List project versions for release planning
  */
-import { AxiosInstance } from "axios";
+import { withJiraContext } from "../utils/tool-wrapper.js";
+import { ListVersionsArgs } from "../types.js";
 
-export async function handleListVersions(
-  axiosInstance: AxiosInstance,
-  projectKey: string,
-  args: any
-) {
-  try {
-    const response = await axiosInstance.get(
-      `/rest/api/3/project/${projectKey}/versions`
-    );
+export async function handleListVersions(args: ListVersionsArgs) {
+  return withJiraContext(
+    args,
+    { requiresProject: true },
+    async (toolArgs, { axiosInstance, projectKey }) => {
+      try {
+        const response = await axiosInstance.get(
+          `/rest/api/3/project/${projectKey}/versions`
+        );
 
     const versions = response.data;
     
@@ -36,11 +37,11 @@ export async function handleListVersions(
     const releasedVersions = formattedVersions.filter((v: any) => v.released);
     const archivedVersions = formattedVersions.filter((v: any) => v.archived);
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: `# Project Versions for ${projectKey}
+        return {
+          content: [
+            {
+              type: "text",
+              text: `# Project Versions for ${projectKey}
 
 ## Active Versions (${activeVersions.length})
 ${activeVersions.length > 0 ? 
@@ -69,18 +70,20 @@ ${archivedVersions.length > 0 ?
 }
 
 Total versions: ${formattedVersions.length}`,
-        },
-      ],
-    };
-  } catch (error: any) {
-    return {
-      content: [
-        {
-          type: "text",
-          text: `Error listing versions: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
-        },
-      ],
-      isError: true,
-    };
-  }
+            },
+          ],
+        };
+      } catch (error: any) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error listing versions: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
 }

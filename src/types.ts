@@ -248,6 +248,51 @@ export interface EstimateIssueArgs extends BaseArgs {
   value: string;
 }
 
+export interface CreateFilterArgs extends BaseArgs {
+  name: string;
+  description?: string;
+  jql: string;
+  favourite?: boolean;
+  sharePermissions?: Array<{
+    type: string;
+    projectId?: string;
+    groupname?: string;
+    projectRoleId?: string;
+  }>;
+  editPermissions?: Array<{
+    type: string;
+    projectId?: string;
+    groupname?: string;
+    projectRoleId?: string;
+  }>;
+}
+
+export interface CreateVersionArgs extends BaseArgs {
+  name: string;
+  description?: string;
+  startDate?: string;
+  releaseDate?: string;
+  archived?: boolean;
+  released?: boolean;
+}
+
+export interface ListVersionsArgs extends BaseArgs {
+  projectKey?: string;
+}
+
+export interface SearchProjectsArgs extends BaseArgs {
+  query?: string;
+  typeKey?: string;
+  categoryId?: string;
+  action?: string;
+  expand?: string;
+  status?: string;
+  properties?: string;
+  propertyQuery?: string;
+  startAt?: number;
+  maxResults?: number;
+}
+
 // Reporting & Analytics Args
 export interface GetSprintReportArgs extends BaseArgs {
   boardId: number;

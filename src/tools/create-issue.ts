@@ -1,52 +1,42 @@
 /**
  * Handler for the create_issue tool with multi-instance support
  */
-import { AxiosInstance } from "axios";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import { withJiraContext } from "../utils/tool-wrapper.js";
 import { CreateIssueArgs } from "../types.js";
-import { getBoardId, createJiraApiInstances } from "../utils/jira-api.js";
+import { getBoardId } from "../utils/jira-api.js";
 import { formatCreatedIssue } from "../utils/formatting.js";
-import { getInstanceForProject } from "../config.js";
 
-export async function handleCreateIssue(
-  args: CreateIssueArgs
-) {
-  const { summary, description, type, epic_link, sprint, priority, story_points, labels, projectKey, working_dir, instance } = args;
-  
-  // Determine which project key to use
-  const effectiveProjectKey = projectKey || "UNKNOWN";
-  
-  if (effectiveProjectKey === "UNKNOWN") {
-    throw new McpError(
-      ErrorCode.InvalidRequest,
-      "projectKey is required when creating issues. Either provide it as a parameter or configure a default project in .jira-config.json"
-    );
-  }
+export async function handleCreateIssue(args: CreateIssueArgs) {
+  return withJiraContext(
+    args,
+    { requiresProject: true },
+    async (toolArgs, { axiosInstance, agileAxiosInstance, instanceConfig, projectConfig }) => {
+      const { summary, description, type, epic_link, sprint, priority, story_points, labels, projectKey } = toolArgs;
+      
+      const effectiveProjectKey = projectKey || "UNKNOWN";
+      
+      if (effectiveProjectKey === "UNKNOWN") {
+        throw new McpError(
+          ErrorCode.InvalidRequest,
+          "projectKey is required when creating issues. Either provide it as a parameter or configure a default project in .jira-config.json"
+        );
+      }
+      
+      console.error(`Creating issue in project ${effectiveProjectKey} using instance: ${instanceConfig.domain}`);
 
-  // Get the appropriate instance and project configuration
-  const { instance: instanceConfig, projectConfig } = await getInstanceForProject(
-    working_dir, 
-    effectiveProjectKey, 
-    instance
-  );
-  
-  // Create API instances for this specific Jira instance
-  const { axiosInstance, agileAxiosInstance } = createJiraApiInstances(instanceConfig);
-  
-  console.error(`Creating issue in project ${effectiveProjectKey} using instance: ${instanceConfig.domain}`);
-
-  console.error("Creating issue with:", {
-    projectKey: effectiveProjectKey,
-    summary,
-    description,
-    type,
-    epic_link,
-    sprint,
-    priority,
-    story_points,
-    labels,
-    instance: instanceConfig.domain
-  });
+      console.error("Creating issue with:", {
+        projectKey: effectiveProjectKey,
+        summary,
+        description,
+        type,
+        epic_link,
+        sprint,
+        priority,
+        story_points,
+        labels,
+        instance: instanceConfig.domain
+      });
 
   // First, get project metadata to verify it exists and get available issue types
   const metaResponse = await axiosInstance.get(
@@ -196,12 +186,14 @@ export async function handleCreateIssue(
     fields,
   });
 
-  return {
-    content: [
-      {
-        type: "text",
-        text: formatCreatedIssue(createResponse.data, instanceConfig.domain),
-      },
-    ],
-  };
+      return {
+        content: [
+          {
+            type: "text",
+            text: formatCreatedIssue(createResponse.data, instanceConfig.domain),
+          },
+        ],
+      };
+    }
+  );
 }
