@@ -31,7 +31,7 @@ export async function loadMultiInstanceConfig(workingDir: string): Promise<Multi
   const configLocations = [
     workingDir,
     process.cwd(),
-    "/Users/robsherman/Servers/mcp-jira-server",
+    path.resolve(path.dirname(new URL(import.meta.url).pathname), ".."),
     path.join(process.cwd(), "..")
   ];
   
