@@ -1,5 +1,7 @@
 # Jira MCP Server
 
+[![smithery badge](https://smithery.ai/badge/jira-server)](https://smithery.ai/server/jira-server)
+
 A comprehensive Model Context Protocol server that provides enterprise-level integration with Jira's REST API, enabling AI assistants to perform advanced project management, analytics, and strategic planning tasks.
 
 > **Note**: This is a maintained fork of [1broseidon/mcp-jira-server](https://github.com/1broseidon/mcp-jira-server). We are grateful for the original work and continue to develop and enhance this project independently. All credit for the initial implementation goes to the original authors.
@@ -201,6 +203,19 @@ Advanced sprint and team performance analytics
 3. **Project Access**: Read/write permissions for target projects
 
 ### Installation
+
+
+#### Installing via Smithery
+
+To install Jira Server for Claude Desktop automatically via [Smithery](https://smithery.ai/server/jira-server):
+
+```bash
+npx -y @smithery/cli install jira-server --client claude
+```
+
+#### Manual Installation
+1. Install dependencies:
+
 
 ```bash
 # Clone and install dependencies
