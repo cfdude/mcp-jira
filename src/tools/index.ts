@@ -1439,7 +1439,21 @@ export function setupToolHandlers(
       const { working_dir, ...args } = request.params.arguments as any;
       
       // Tools that use new multi-instance approach
-      const multiInstanceTools = ["create_issue", "update_issue", "get_issue", "delete_issue", "add_comment", "list_issues", "list_instances"];
+      const multiInstanceTools = [
+        "create_issue", "update_issue", "get_issue", "delete_issue", "add_comment", "list_issues", "list_instances",
+        // Sprint Management
+        "create_sprint", "update_sprint", "get_sprint_details", "move_issues_to_sprint", "complete_sprint",
+        // Board Management  
+        "list_boards", "get_board_configuration", "get_board_reports", "manage_board_quickfilters",
+        // Epic Management
+        "create_epic", "update_epic_details", "rank_epics", "list_epic_issues", "move_issues_to_epic",
+        // Advanced Issue Operations
+        "bulk_update_issues", "rank_issues", "estimate_issue",
+        // Reporting & Analytics
+        "get_sprint_report", 
+        // Project Planning Tools
+        "list_versions", "create_version", "search_projects", "create_filter"
+      ];
       
       // Route to the appropriate handler based on the tool name
       switch (request.params.name) {
@@ -1463,6 +1477,62 @@ export function setupToolHandlers(
         
         case "list_instances":
           return handleListInstances({ ...args, working_dir });
+        
+        // Sprint Management
+        case "create_sprint":
+          return handleCreateSprint({ ...args, working_dir });
+        case "update_sprint":
+          return handleUpdateSprint({ ...args, working_dir });
+        case "get_sprint_details":
+          return handleGetSprintDetails({ ...args, working_dir });
+        case "move_issues_to_sprint":
+          return handleMoveIssuesToSprint({ ...args, working_dir });
+        case "complete_sprint":
+          return handleCompleteSprint({ ...args, working_dir });
+        
+        // Board Management
+        case "list_boards":
+          return handleListBoards({ ...args, working_dir });
+        case "get_board_configuration":
+          return handleGetBoardConfiguration({ ...args, working_dir });
+        case "get_board_reports":
+          return handleGetBoardReports({ ...args, working_dir });
+        case "manage_board_quickfilters":
+          return handleManageBoardQuickfilters({ ...args, working_dir });
+        
+        // Epic Management
+        case "create_epic":
+          return handleCreateEpic({ ...args, working_dir });
+        case "update_epic_details":
+          return handleUpdateEpicDetails({ ...args, working_dir });
+        case "rank_epics":
+          return handleRankEpics({ ...args, working_dir });
+        case "list_epic_issues":
+          return handleListEpicIssues({ ...args, working_dir });
+        case "move_issues_to_epic":
+          return handleMoveIssuesToEpic({ ...args, working_dir });
+        
+        // Advanced Issue Operations
+        case "bulk_update_issues":
+          return handleBulkUpdateIssues({ ...args, working_dir });
+        case "rank_issues":
+          return handleRankIssues({ ...args, working_dir });
+        case "estimate_issue":
+          return handleEstimateIssue({ ...args, working_dir });
+        
+        // Reporting & Analytics
+        case "get_sprint_report":
+          return handleGetSprintReport({ ...args, working_dir });
+        
+        // Project Planning Tools
+        case "list_versions":
+          return handleListVersions({ ...args, working_dir });
+        case "create_version":
+          return handleCreateVersion({ ...args, working_dir });
+        case "search_projects":
+          return handleSearchProjects({ ...args, working_dir });
+        case "create_filter":
+          return handleCreateFilter({ ...args, working_dir });
         
         default:
           throw new McpError(
