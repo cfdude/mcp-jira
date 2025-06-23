@@ -1,0 +1,29 @@
+# Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
+
+startCommand:
+  type: stdio
+  configSchema:
+    # JSON Schema defining the configuration options for the MCP.
+    type: object
+    required:
+      - jiraEmail
+      - jiraApiToken
+      - jiraDomain
+      - projectKey
+    properties:
+      jiraEmail:
+        type: string
+        description: Your Jira account email.
+      jiraApiToken:
+        type: string
+        description: API token for Jira access.
+      jiraDomain:
+        type: string
+        description: Your Jira domain.
+      projectKey:
+        type: string
+        description: Jira project key.
+  commandFunction:
+    # A function that produces the CLI command to start the MCP on stdio.
+    |-
+    config => ({command: 'node', args: ['build/index.js'], env: {JIRA_EMAIL: config.jiraEmail, JIRA_API_TOKEN: config.jiraApiToken, JIRA_DOMAIN: config.jiraDomain}, cwd: process.cwd()})
