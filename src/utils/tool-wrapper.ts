@@ -24,7 +24,7 @@ export interface ToolOptions {
 /**
  * Extract project key from various sources
  */
-function extractProjectKey(args: any, options: ToolOptions): string {
+function extractProjectKey(args: any, options: ToolOptions): string | undefined {
   // 1. Use explicit projectKey if provided
   if (args.projectKey) {
     return args.projectKey;
@@ -45,7 +45,12 @@ function extractProjectKey(args: any, options: ToolOptions): string {
     return options.defaultProjectKey;
   }
   
-  // 5. Require explicit project key
+  // 5. Return undefined if no project key can be determined (for tools that don't require it)
+  if (!options.requiresProject) {
+    return undefined;
+  }
+  
+  // 6. Require explicit project key
   throw new Error(
     "Project key is required. Either provide 'projectKey' parameter or use a tool that can extract it from issue keys."
   );
@@ -65,16 +70,16 @@ export async function withJiraContext<TArgs extends BaseArgs, TResult>(
   
   // Extract project key using smart resolution
   const projectKey = extractProjectKey(args, options);
-  console.error(`[Tool Wrapper] Resolved project key: ${projectKey}`);
+  console.error(`[Tool Wrapper] Resolved project key: ${projectKey || 'none'}`);
   
   // Get the appropriate instance and project configuration
   const { instance: instanceConfig, projectConfig } = await getInstanceForProject(
     working_dir,
-    projectKey,
+    projectKey || undefined,
     instance
   );
   
-  console.error(`[Tool Wrapper] Using instance: ${instanceConfig.domain} for project: ${projectKey}`);
+  console.error(`[Tool Wrapper] Using instance: ${instanceConfig.domain} for project: ${projectKey || 'global'}`);
   
   // Create API instances for this specific Jira instance
   const { axiosInstance, agileAxiosInstance } = createJiraApiInstances(instanceConfig);
@@ -85,7 +90,7 @@ export async function withJiraContext<TArgs extends BaseArgs, TResult>(
     agileAxiosInstance,
     instanceConfig,
     projectConfig,
-    projectKey
+    projectKey: projectKey || ''
   };
   
   // Call the actual tool handler with clean context
