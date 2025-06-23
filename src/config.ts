@@ -136,7 +136,7 @@ export async function loadMultiInstanceConfig(workingDir: string): Promise<Multi
  */
 export async function getInstanceForProject(
   workingDir: string, 
-  projectKey: string, 
+  projectKey?: string, 
   instanceOverride?: string
 ): Promise<{ instance: JiraInstanceConfig; projectConfig: JiraConfig }> {
   const multiConfig = await loadMultiInstanceConfig(workingDir);
@@ -153,12 +153,12 @@ export async function getInstanceForProject(
     }
     
     // Get project config or create default
-    const projectConfig = multiConfig.projects[projectKey] || { instance: instanceOverride };
+    const projectConfig = (projectKey ? multiConfig.projects[projectKey] : undefined) || { instance: instanceOverride };
     
     return {
       instance,
       projectConfig: {
-        projectKey,
+        projectKey: projectKey || '',
         storyPointsField: projectConfig.storyPointsField,
         sprintField: projectConfig.sprintField,
         epicLinkField: projectConfig.epicLinkField
@@ -167,43 +167,45 @@ export async function getInstanceForProject(
   }
   
   // Check if project is explicitly configured
-  const projectConfig = multiConfig.projects[projectKey];
-  if (projectConfig) {
-    console.error(`Found configured project ${projectKey} using instance: ${projectConfig.instance}`);
-    const instance = multiConfig.instances[projectConfig.instance];
-    if (!instance) {
-      throw new McpError(
-        ErrorCode.InvalidRequest,
-        `Instance '${projectConfig.instance}' configured for project '${projectKey}' not found`
-      );
-    }
-    
-    return {
-      instance,
-      projectConfig: {
-        projectKey,
-        storyPointsField: projectConfig.storyPointsField,
-        sprintField: projectConfig.sprintField,
-        epicLinkField: projectConfig.epicLinkField
+  if (projectKey) {
+    const projectConfig = multiConfig.projects[projectKey];
+    if (projectConfig) {
+      console.error(`Found configured project ${projectKey} using instance: ${projectConfig.instance}`);
+      const instance = multiConfig.instances[projectConfig.instance];
+      if (!instance) {
+        throw new McpError(
+          ErrorCode.InvalidRequest,
+          `Instance '${projectConfig.instance}' configured for project '${projectKey}' not found`
+        );
       }
-    };
-  }
-  
-  // Try to auto-discover project in instances
-  console.error(`Project ${projectKey} not explicitly configured. Attempting auto-discovery...`);
-  
-  for (const [instanceName, instanceConfig] of Object.entries(multiConfig.instances)) {
-    if (instanceConfig.projects && instanceConfig.projects.includes(projectKey)) {
-      console.error(`Auto-discovered project ${projectKey} in instance: ${instanceName}`);
+      
       return {
-        instance: instanceConfig,
+        instance,
         projectConfig: {
           projectKey,
-          storyPointsField: undefined,
-          sprintField: undefined,
-          epicLinkField: undefined
+          storyPointsField: projectConfig.storyPointsField,
+          sprintField: projectConfig.sprintField,
+          epicLinkField: projectConfig.epicLinkField
         }
       };
+    }
+    
+    // Try to auto-discover project in instances
+    console.error(`Project ${projectKey} not explicitly configured. Attempting auto-discovery...`);
+    
+    for (const [instanceName, instanceConfig] of Object.entries(multiConfig.instances)) {
+      if (instanceConfig.projects && instanceConfig.projects.includes(projectKey)) {
+        console.error(`Auto-discovered project ${projectKey} in instance: ${instanceName}`);
+        return {
+          instance: instanceConfig,
+          projectConfig: {
+            projectKey,
+            storyPointsField: undefined,
+            sprintField: undefined,
+            epicLinkField: undefined
+          }
+        };
+      }
     }
   }
   
@@ -214,7 +216,7 @@ export async function getInstanceForProject(
     return {
       instance,
       projectConfig: {
-        projectKey,
+        projectKey: projectKey || '',
         storyPointsField: undefined,
         sprintField: undefined,
         epicLinkField: undefined
@@ -230,7 +232,7 @@ export async function getInstanceForProject(
     return {
       instance: multiConfig.instances[instanceName],
       projectConfig: {
-        projectKey,
+        projectKey: projectKey || '',
         storyPointsField: undefined,
         sprintField: undefined,
         epicLinkField: undefined

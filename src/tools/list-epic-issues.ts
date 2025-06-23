@@ -2,82 +2,78 @@
  * Handler for the list_epic_issues tool
  */
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
-import { getInstanceForProject } from "../config.js";
-import { createJiraApiInstances } from "../utils/jira-api.js";
+import { withJiraContext } from "../utils/tool-wrapper.js";
 import { ListEpicIssuesArgs } from "../types.js";
 
 export async function handleListEpicIssues(args: ListEpicIssuesArgs) {
-  const { working_dir, instance, epicKey, startAt = 0, maxResults = 50 } = args;
-  
-  // Extract project key from epic key (e.g., "MIG-123" -> "MIG")
-  const projectKey = epicKey.split('-')[0];
-  
-  // Get the instance configuration
-  const instanceConfig = await getInstanceForProject(working_dir, projectKey, instance);
-  const { agileAxiosInstance } = await createJiraApiInstances(instanceConfig);
-  
-  console.error("Listing epic issues:", {
-    epicKey,
-    startAt,
-    maxResults
-  });
+  return withJiraContext(
+    args,
+    { extractProjectFromIssueKey: true },
+    async (toolArgs, { agileAxiosInstance }) => {
+      const { epicKey, startAt = 0, maxResults = 50 } = toolArgs;
+      
+      console.error("Listing epic issues:", {
+        epicKey,
+        startAt,
+        maxResults
+      });
 
-  try {
-    const params = {
-      startAt,
-      maxResults
-    };
+      try {
+        const params = {
+          startAt,
+          maxResults
+        };
 
-    const response = await agileAxiosInstance.get(`/epic/${epicKey}/issue`, { params });
-    const issues = response.data.issues || [];
-    
-    if (issues.length === 0) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: `📋 **Issues in Epic ${epicKey}:**
+        const response = await agileAxiosInstance.get(`/epic/${epicKey}/issue`, { params });
+        const issues = response.data.issues || [];
+        
+        if (issues.length === 0) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `📋 **Issues in Epic ${epicKey}:**
 
 No issues found in this epic.
 
 Use \`move_issues_to_epic\` to add issues to this epic.`,
-          },
-        ],
-      };
-    }
-
-    // Calculate progress statistics
-    const totalIssues = response.data.total || issues.length;
-    const completedIssues = issues.filter((issue: any) => 
-      issue.fields.status.statusCategory.key === 'done'
-    ).length;
-    const inProgressIssues = issues.filter((issue: any) => 
-      issue.fields.status.statusCategory.key === 'indeterminate'
-    ).length;
-    const todoIssues = issues.filter((issue: any) => 
-      issue.fields.status.statusCategory.key === 'new'
-    ).length;
-
-    const completionPercentage = totalIssues > 0 ? Math.round((completedIssues / totalIssues) * 100) : 0;
-
-    // Calculate story points if available
-    let totalStoryPoints = 0;
-    let completedStoryPoints = 0;
-    issues.forEach((issue: any) => {
-      const storyPoints = issue.fields.customfield_10016 || issue.fields.customfield_10020 || 0;
-      if (storyPoints) {
-        totalStoryPoints += storyPoints;
-        if (issue.fields.status.statusCategory.key === 'done') {
-          completedStoryPoints += storyPoints;
+              },
+            ],
+          };
         }
-      }
-    });
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: `📋 **Issues in Epic ${epicKey}:**
+        // Calculate progress statistics
+        const totalIssues = response.data.total || issues.length;
+        const completedIssues = issues.filter((issue: any) => 
+          issue.fields.status.statusCategory.key === 'done'
+        ).length;
+        const inProgressIssues = issues.filter((issue: any) => 
+          issue.fields.status.statusCategory.key === 'indeterminate'
+        ).length;
+        const todoIssues = issues.filter((issue: any) => 
+          issue.fields.status.statusCategory.key === 'new'
+        ).length;
+
+        const completionPercentage = totalIssues > 0 ? Math.round((completedIssues / totalIssues) * 100) : 0;
+
+        // Calculate story points if available
+        let totalStoryPoints = 0;
+        let completedStoryPoints = 0;
+        issues.forEach((issue: any) => {
+          const storyPoints = issue.fields.customfield_10016 || issue.fields.customfield_10020 || 0;
+          if (storyPoints) {
+            totalStoryPoints += storyPoints;
+            if (issue.fields.status.statusCategory.key === 'done') {
+              completedStoryPoints += storyPoints;
+            }
+          }
+        });
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `📋 **Issues in Epic ${epicKey}:**
 
 **Progress Summary:**
 - **Total Issues:** ${totalIssues}
@@ -102,22 +98,24 @@ ${issues.map((issue: any) => {
 }).join('\n\n')}
 
 ${issues.length < totalIssues ? `\nShowing ${issues.length} of ${totalIssues} issues. Use startAt parameter for pagination.` : ''}`,
-        },
-      ],
-    };
-  } catch (error: any) {
-    console.error("Error listing epic issues:", error);
-    
-    if (error.response?.status === 404) {
-      throw new McpError(
-        ErrorCode.InvalidRequest,
-        `Epic ${epicKey} not found`
-      );
+            },
+          ],
+        };
+      } catch (error: any) {
+        console.error("Error listing epic issues:", error);
+        
+        if (error.response?.status === 404) {
+          throw new McpError(
+            ErrorCode.InvalidRequest,
+            `Epic ${epicKey} not found`
+          );
+        }
+        
+        throw new McpError(
+          ErrorCode.InternalError,
+          `Failed to list epic issues: ${error.response?.data?.message || error.message}`
+        );
+      }
     }
-    
-    throw new McpError(
-      ErrorCode.InternalError,
-      `Failed to list epic issues: ${error.response?.data?.message || error.message}`
-    );
-  }
+  );
 }

@@ -2,8 +2,7 @@
  * Handler for the get_board_configuration tool
  */
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
-import { getInstanceForProject } from "../config.js";
-import { createJiraApiInstances } from "../utils/jira-api.js";
+import { withJiraContext } from "../utils/tool-wrapper.js";
 import { BaseArgs } from "../types.js";
 
 export interface GetBoardConfigurationArgs extends BaseArgs {
@@ -11,39 +10,39 @@ export interface GetBoardConfigurationArgs extends BaseArgs {
 }
 
 export async function handleGetBoardConfiguration(args: GetBoardConfigurationArgs) {
-  const { working_dir, instance, boardId } = args;
-  
-  // Get the instance configuration
-  const instanceConfig = await getInstanceForProject(working_dir, undefined, instance);
-  const { agileAxiosInstance } = await createJiraApiInstances(instanceConfig);
-  
-  console.error("Getting board configuration for:", boardId);
+  return withJiraContext(
+    args,
+    { requiresProject: false },
+    async (toolArgs, { agileAxiosInstance }) => {
+      const { boardId } = toolArgs;
+      
+      console.error("Getting board configuration for:", boardId);
 
-  try {
-    // Get board details
-    const boardResponse = await agileAxiosInstance.get(`/board/${boardId}`);
-    const board = boardResponse.data;
-    
-    // Get board configuration
-    const configResponse = await agileAxiosInstance.get(`/board/${boardId}/configuration`);
-    const config = configResponse.data;
-    
-    // Get current sprints for the board
-    let currentSprints = [];
-    try {
-      const sprintsResponse = await agileAxiosInstance.get(`/board/${boardId}/sprint`, {
-        params: { state: 'active' }
-      });
-      currentSprints = sprintsResponse.data.values || [];
-    } catch (e) {
-      console.error("Could not fetch sprints for board:", e);
-    }
+      try {
+        // Get board details
+        const boardResponse = await agileAxiosInstance.get(`/board/${boardId}`);
+        const board = boardResponse.data;
+        
+        // Get board configuration
+        const configResponse = await agileAxiosInstance.get(`/board/${boardId}/configuration`);
+        const config = configResponse.data;
+        
+        // Get current sprints for the board
+        let currentSprints = [];
+        try {
+          const sprintsResponse = await agileAxiosInstance.get(`/board/${boardId}/sprint`, {
+            params: { state: 'active' }
+          });
+          currentSprints = sprintsResponse.data.values || [];
+        } catch (e) {
+          console.error("Could not fetch sprints for board:", e);
+        }
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: `⚙️ **Board Configuration: ${board.name}**
+        return {
+          content: [
+            {
+              type: "text",
+              text: `⚙️ **Board Configuration: ${board.name}**
 
 **Basic Information:**
 - **ID:** ${board.id}
@@ -81,22 +80,24 @@ ${currentSprints.map((sprint: any) =>
 ` : '**Active Sprints:** None'}
 
 Use \`list_boards\` to see all boards or \`get_board_reports\` for analytics.`,
-        },
-      ],
-    };
-  } catch (error: any) {
-    console.error("Error getting board configuration:", error);
-    
-    if (error.response?.status === 404) {
-      throw new McpError(
-        ErrorCode.InvalidRequest,
-        `Board ${boardId} not found`
-      );
+            },
+          ],
+        };
+      } catch (error: any) {
+        console.error("Error getting board configuration:", error);
+        
+        if (error.response?.status === 404) {
+          throw new McpError(
+            ErrorCode.InvalidRequest,
+            `Board ${boardId} not found`
+          );
+        }
+        
+        throw new McpError(
+          ErrorCode.InternalError,
+          `Failed to get board configuration: ${error.response?.data?.message || error.message}`
+        );
+      }
     }
-    
-    throw new McpError(
-      ErrorCode.InternalError,
-      `Failed to get board configuration: ${error.response?.data?.message || error.message}`
-    );
-  }
+  );
 }

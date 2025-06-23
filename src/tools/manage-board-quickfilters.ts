@@ -2,8 +2,7 @@
  * Handler for the manage_board_quickfilters tool
  */
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
-import { getInstanceForProject } from "../config.js";
-import { createJiraApiInstances } from "../utils/jira-api.js";
+import { withJiraContext } from "../utils/tool-wrapper.js";
 import { BaseArgs } from "../types.js";
 
 export interface ManageBoardQuickfiltersArgs extends BaseArgs {
@@ -13,42 +12,42 @@ export interface ManageBoardQuickfiltersArgs extends BaseArgs {
 }
 
 export async function handleManageBoardQuickfilters(args: ManageBoardQuickfiltersArgs) {
-  const { working_dir, instance, boardId, action, quickfilterId } = args;
-  
-  // Get the instance configuration
-  const instanceConfig = await getInstanceForProject(working_dir, undefined, instance);
-  const { agileAxiosInstance } = await createJiraApiInstances(instanceConfig);
-  
-  console.error("Managing board quickfilters:", {
-    boardId,
-    action,
-    quickfilterId
-  });
-
-  try {
-    if (action === 'list') {
-      // List all quickfilters for the board
-      const response = await agileAxiosInstance.get(`/board/${boardId}/quickfilter`);
-      const quickfilters = response.data.values || [];
+  return withJiraContext(
+    args,
+    { requiresProject: false },
+    async (toolArgs, { agileAxiosInstance }) => {
+      const { boardId, action, quickfilterId } = toolArgs;
       
-      if (quickfilters.length === 0) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: `📋 **Quickfilters for Board ${boardId}:**
+      console.error("Managing board quickfilters:", {
+        boardId,
+        action,
+        quickfilterId
+      });
+
+      try {
+        if (action === 'list') {
+          // List all quickfilters for the board
+          const response = await agileAxiosInstance.get(`/board/${boardId}/quickfilter`);
+          const quickfilters = response.data.values || [];
+          
+          if (quickfilters.length === 0) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: `📋 **Quickfilters for Board ${boardId}:**
 
 No quickfilters found for this board.`,
-            },
-          ],
-        };
-      }
+                },
+              ],
+            };
+          }
 
-      return {
-        content: [
-          {
-            type: "text",
-            text: `📋 **Quickfilters for Board ${boardId}:**
+          return {
+            content: [
+              {
+                type: "text",
+                text: `📋 **Quickfilters for Board ${boardId}:**
 
 ${quickfilters.map((filter: any) => {
   return `**${filter.name}** (ID: ${filter.id})
@@ -61,26 +60,26 @@ ${quickfilters.map((filter: any) => {
 **Total:** ${quickfilters.length} quickfilter(s)
 
 Use \`manage_board_quickfilters\` with action 'get' to view detailed filter information.`,
-          },
-        ],
-      };
-    } else if (action === 'get') {
-      if (!quickfilterId) {
-        throw new McpError(
-          ErrorCode.InvalidRequest,
-          "quickfilterId is required when action is 'get'"
-        );
-      }
+              },
+            ],
+          };
+        } else if (action === 'get') {
+          if (!quickfilterId) {
+            throw new McpError(
+              ErrorCode.InvalidRequest,
+              "quickfilterId is required when action is 'get'"
+            );
+          }
 
-      // Get specific quickfilter details
-      const response = await agileAxiosInstance.get(`/board/${boardId}/quickfilter/${quickfilterId}`);
-      const filter = response.data;
+          // Get specific quickfilter details
+          const response = await agileAxiosInstance.get(`/board/${boardId}/quickfilter/${quickfilterId}`);
+          const filter = response.data;
 
-      return {
-        content: [
-          {
-            type: "text",
-            text: `🔍 **Quickfilter Details:**
+          return {
+            content: [
+              {
+                type: "text",
+                text: `🔍 **Quickfilter Details:**
 
 **${filter.name}** (ID: ${filter.id})
 - **Board ID:** ${boardId}
@@ -89,35 +88,37 @@ Use \`manage_board_quickfilters\` with action 'get' to view detailed filter info
 - **Position:** ${filter.position || 'N/A'}
 
 This quickfilter can be used to filter issues on the board based on the JQL query above.`,
-          },
-        ],
-      };
-    } else {
-      throw new McpError(
-        ErrorCode.InvalidRequest,
-        `Invalid action: ${action}. Supported actions: list, get`
-      );
-    }
-  } catch (error: any) {
-    console.error("Error managing board quickfilters:", error);
-    
-    if (error.response?.status === 404) {
-      if (quickfilterId) {
+              },
+            ],
+          };
+        } else {
+          throw new McpError(
+            ErrorCode.InvalidRequest,
+            `Invalid action: ${action}. Supported actions: list, get`
+          );
+        }
+      } catch (error: any) {
+        console.error("Error managing board quickfilters:", error);
+        
+        if (error.response?.status === 404) {
+          if (quickfilterId) {
+            throw new McpError(
+              ErrorCode.InvalidRequest,
+              `Quickfilter ${quickfilterId} not found on board ${boardId}`
+            );
+          } else {
+            throw new McpError(
+              ErrorCode.InvalidRequest,
+              `Board ${boardId} not found`
+            );
+          }
+        }
+        
         throw new McpError(
-          ErrorCode.InvalidRequest,
-          `Quickfilter ${quickfilterId} not found on board ${boardId}`
-        );
-      } else {
-        throw new McpError(
-          ErrorCode.InvalidRequest,
-          `Board ${boardId} not found`
+          ErrorCode.InternalError,
+          `Failed to manage board quickfilters: ${error.response?.data?.message || error.message}`
         );
       }
     }
-    
-    throw new McpError(
-      ErrorCode.InternalError,
-      `Failed to manage board quickfilters: ${error.response?.data?.message || error.message}`
-    );
-  }
+  );
 }

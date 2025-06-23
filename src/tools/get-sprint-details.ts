@@ -2,20 +2,14 @@
  * Handler for the get_sprint_details tool
  */
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
-import { getInstanceForProject } from "../config.js";
-import { createJiraApiInstances } from "../utils/jira-api.js";
-import { BaseArgs } from "../types.js";
-
-export interface GetSprintDetailsArgs extends BaseArgs {
-  sprintId: number;
-}
+import { withJiraContext } from "../utils/tool-wrapper.js";
+import { GetSprintDetailsArgs } from "../types.js";
 
 export async function handleGetSprintDetails(args: GetSprintDetailsArgs) {
-  const { working_dir, instance, sprintId } = args;
-  
-  // Get the instance configuration
-  const instanceConfig = await getInstanceForProject(working_dir, undefined, instance);
-  const { agileAxiosInstance } = await createJiraApiInstances(instanceConfig);
+  return withJiraContext(
+    args,
+    { requiresProject: false },
+    async ({ sprintId }, { agileAxiosInstance }) => {
   
   console.error("Getting sprint details for:", sprintId);
 
@@ -89,11 +83,13 @@ ${issues.length > 10 ? `\n... and ${issues.length - 10} more issues` : ''}`,
         },
       ],
     };
-  } catch (error: any) {
-    console.error("Error getting sprint details:", error);
-    throw new McpError(
-      ErrorCode.InternalError,
-      `Failed to get sprint details: ${error.response?.data?.message || error.message}`
-    );
-  }
+      } catch (error: any) {
+        console.error("Error getting sprint details:", error);
+        throw new McpError(
+          ErrorCode.InternalError,
+          `Failed to get sprint details: ${error.response?.data?.message || error.message}`
+        );
+      }
+    }
+  );
 }

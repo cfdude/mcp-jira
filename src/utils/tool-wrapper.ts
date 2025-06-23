@@ -35,8 +35,8 @@ function extractProjectKey(args: any, options: ToolOptions): string | undefined 
     return args.issue_key.split('-')[0];
   }
   
-  // 3. Extract from epic key if available
-  if (args.epicKey) {
+  // 3. Extract from epic key if available (and if extractProjectFromIssueKey is enabled)
+  if (options.extractProjectFromIssueKey && args.epicKey) {
     return args.epicKey.split('-')[0];
   }
   
@@ -75,7 +75,7 @@ export async function withJiraContext<TArgs extends BaseArgs, TResult>(
   // Get the appropriate instance and project configuration
   const { instance: instanceConfig, projectConfig } = await getInstanceForProject(
     working_dir,
-    projectKey || undefined,
+    projectKey,
     instance
   );
   

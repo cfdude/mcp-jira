@@ -2,9 +2,7 @@
  * Handler for the create_epic tool
  */
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
-import { formatCreatedIssue } from "../utils/formatting.js";
-import { getInstanceForProject } from "../config.js";
-import { createJiraApiInstances } from "../utils/jira-api.js";
+import { withJiraContext } from "../utils/tool-wrapper.js";
 import { BaseArgs } from "../types.js";
 
 export interface CreateEpicArgs extends BaseArgs {
@@ -17,93 +15,93 @@ export interface CreateEpicArgs extends BaseArgs {
 }
 
 export async function handleCreateEpic(args: CreateEpicArgs) {
-  const { working_dir, instance, name, summary, description, priority, labels, projectKey } = args;
-  
-  // Get the instance configuration
-  const instanceConfig = await getInstanceForProject(working_dir, projectKey, instance);
-  const { axiosInstance } = await createJiraApiInstances(instanceConfig);
-  
-  const effectiveProjectKey = projectKey || instanceConfig.config.projectKey;
-  
-  console.error("Creating epic with:", {
-    projectKey: effectiveProjectKey,
-    name,
-    summary,
-    description,
-    priority,
-    labels
-  });
+  return withJiraContext(
+    args,
+    { requiresProject: true },
+    async (toolArgs, { axiosInstance, projectKey: contextProjectKey, instanceConfig }) => {
+      const { name, summary, description, priority, labels, projectKey } = toolArgs;
+      
+      const effectiveProjectKey = projectKey || contextProjectKey;
+      
+      console.error("Creating epic with:", {
+        projectKey: effectiveProjectKey,
+        name,
+        summary,
+        description,
+        priority,
+        labels
+      });
 
-  // First, get project metadata to verify Epic issue type exists
-  const metaResponse = await axiosInstance.get(
-    "/issue/createmeta",
-    {
-      params: {
-        projectKeys: effectiveProjectKey,
-        expand: "projects.issuetypes",
-      },
-    }
-  );
-
-  const project = metaResponse.data.projects[0];
-  if (!project) {
-    throw new McpError(
-      ErrorCode.InvalidRequest,
-      `Project ${effectiveProjectKey} not found`
-    );
-  }
-
-  const epicIssueType = project.issuetypes.find(
-    (t: any) => t.name.toLowerCase() === 'epic'
-  );
-  if (!epicIssueType) {
-    throw new McpError(
-      ErrorCode.InvalidRequest,
-      `Epic issue type not found. Available types: ${project.issuetypes
-        .map((t: any) => t.name)
-        .join(", ")}`
-    );
-  }
-
-  const fields: any = {
-    project: {
-      key: effectiveProjectKey,
-    },
-    summary,
-    issuetype: {
-      name: 'Epic'
-    },
-    labels: labels || []
-  };
-
-  // Add description if provided
-  if (description) {
-    fields.description = description;
-  }
-
-  // Add Epic Name (usually customfield_10011 but may vary)
-  // Try common Epic Name field IDs
-  const epicNameFieldIds = ['customfield_10011', 'customfield_10004', 'customfield_10014'];
-  // For now, we'll use the most common one
-  fields.customfield_10011 = name;
-
-  // Add priority if specified
-  if (priority) {
-    fields.priority = {
-      name: priority
-    };
-  }
-
-  try {
-    const createResponse = await axiosInstance.post("/issue", {
-      fields,
-    });
-
-    return {
-      content: [
+      // First, get project metadata to verify Epic issue type exists
+      const metaResponse = await axiosInstance.get(
+        "/issue/createmeta",
         {
-          type: "text",
-          text: `✅ Epic created successfully!
+          params: {
+            projectKeys: effectiveProjectKey,
+            expand: "projects.issuetypes",
+          },
+        }
+      );
+
+      const project = metaResponse.data.projects[0];
+      if (!project) {
+        throw new McpError(
+          ErrorCode.InvalidRequest,
+          `Project ${effectiveProjectKey} not found`
+        );
+      }
+
+      const epicIssueType = project.issuetypes.find(
+        (t: any) => t.name.toLowerCase() === 'epic'
+      );
+      if (!epicIssueType) {
+        throw new McpError(
+          ErrorCode.InvalidRequest,
+          `Epic issue type not found. Available types: ${project.issuetypes
+            .map((t: any) => t.name)
+            .join(", ")}`
+        );
+      }
+
+      const fields: any = {
+        project: {
+          key: effectiveProjectKey,
+        },
+        summary,
+        issuetype: {
+          name: 'Epic'
+        },
+        labels: labels || []
+      };
+
+      // Add description if provided
+      if (description) {
+        fields.description = description;
+      }
+
+      // Add Epic Name (usually customfield_10011 but may vary)
+      // Try common Epic Name field IDs
+      const epicNameFieldIds = ['customfield_10011', 'customfield_10004', 'customfield_10014'];
+      // For now, we'll use the most common one
+      fields.customfield_10011 = name;
+
+      // Add priority if specified
+      if (priority) {
+        fields.priority = {
+          name: priority
+        };
+      }
+
+      try {
+        const createResponse = await axiosInstance.post("/issue", {
+          fields,
+        });
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `✅ Epic created successfully!
 
 📊 **Epic Details:**
 - **Key:** ${createResponse.data.key}
@@ -116,27 +114,27 @@ ${labels && labels.length > 0 ? `- **Labels:** ${labels.join(', ')}` : ''}
 🔗 **Link:** https://${instanceConfig.domain}/browse/${createResponse.data.key}
 
 Use \`list_epic_issues\` to view issues in this epic or \`move_issues_to_epic\` to add issues.`,
-        },
-      ],
-    };
-  } catch (error: any) {
-    console.error("Error creating epic:", error);
-    
-    // If epic name field fails, try without it
-    if (error.response?.status === 400 && error.response?.data?.errors?.customfield_10011) {
-      console.error("Epic name field not available, trying without it...");
-      delete fields.customfield_10011;
-      
-      try {
-        const createResponse = await axiosInstance.post("/issue", {
-          fields,
-        });
+            },
+          ],
+        };
+      } catch (error: any) {
+        console.error("Error creating epic:", error);
+        
+        // If epic name field fails, try without it
+        if (error.response?.status === 400 && error.response?.data?.errors?.customfield_10011) {
+          console.error("Epic name field not available, trying without it...");
+          delete fields.customfield_10011;
+          
+          try {
+            const createResponse = await axiosInstance.post("/issue", {
+              fields,
+            });
 
-        return {
-          content: [
-            {
-              type: "text",
-              text: `✅ Epic created successfully! (Note: Epic name field not available in this project)
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: `✅ Epic created successfully! (Note: Epic name field not available in this project)
 
 📊 **Epic Details:**
 - **Key:** ${createResponse.data.key}
@@ -148,20 +146,22 @@ ${labels && labels.length > 0 ? `- **Labels:** ${labels.join(', ')}` : ''}
 🔗 **Link:** https://${instanceConfig.domain}/browse/${createResponse.data.key}
 
 Use \`update_issue\` to modify the epic or \`move_issues_to_epic\` to add issues.`,
-            },
-          ],
-        };
-      } catch (retryError: any) {
+                },
+              ],
+            };
+          } catch (retryError: any) {
+            throw new McpError(
+              ErrorCode.InternalError,
+              `Failed to create epic: ${retryError.response?.data?.message || retryError.message}`
+            );
+          }
+        }
+        
         throw new McpError(
           ErrorCode.InternalError,
-          `Failed to create epic: ${retryError.response?.data?.message || retryError.message}`
+          `Failed to create epic: ${error.response?.data?.message || error.message}`
         );
       }
     }
-    
-    throw new McpError(
-      ErrorCode.InternalError,
-      `Failed to create epic: ${error.response?.data?.message || error.message}`
-    );
-  }
+  );
 }
