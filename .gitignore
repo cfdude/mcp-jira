@@ -3,3 +3,6 @@ build/
 *.log
 .env*
 .jira-config.json
+.claude/*
+CLAUDE.md
+.claude/settings.local.json
