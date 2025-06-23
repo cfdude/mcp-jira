@@ -1,31 +1,33 @@
 /**
  * Handler for the get_burndown_chart_data tool
  */
-import { AxiosInstance } from "axios";
+import { withJiraContext } from "../utils/tool-wrapper.js";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 
 interface GetBurndownChartDataArgs {
   working_dir: string;
+  instance?: string;
   sprintId: number;
 }
 
-export async function handleGetBurndownChartData(
-  agileAxiosInstance: AxiosInstance,
-  args: GetBurndownChartDataArgs
-) {
-  const { sprintId } = args;
-  
-  console.error("Getting burndown chart data:", {
-    sprintId
-  });
+export async function handleGetBurndownChartData(args: GetBurndownChartDataArgs) {
+  return withJiraContext(
+    args,
+    { requiresProject: false },
+    async (toolArgs, { agileAxiosInstance }) => {
+      const { sprintId } = toolArgs;
+      
+      console.error("Getting burndown chart data:", {
+        sprintId
+      });
 
-  try {
-    // Get sprint details
-    const sprintResponse = await agileAxiosInstance.get(`/sprint/${sprintId}`);
+      try {
+        // Get sprint details
+        const sprintResponse = await agileAxiosInstance.get(`/sprint/${sprintId}`);
     const sprint = sprintResponse.data;
     
     // Get sprint issues
-    const issuesResponse = await agileAxiosInstance.get(`/sprint/${sprintId}/issue`);
+        const issuesResponse = await agileAxiosInstance.get(`/sprint/${sprintId}/issue`);
     const issues = issuesResponse.data.issues || [];
 
     if (!sprint.startDate) {
@@ -153,19 +155,21 @@ ${totalDays > 15 ? '\n... (showing first 15 days)' : ''}
         },
       ],
     };
-  } catch (error: any) {
-    console.error("Error getting burndown chart data:", error);
-    
-    if (error.response?.status === 404) {
-      throw new McpError(
-        ErrorCode.InvalidRequest,
-        `Sprint ${sprintId} not found`
-      );
+      } catch (error: any) {
+        console.error("Error getting burndown chart data:", error);
+        
+        if (error.response?.status === 404) {
+          throw new McpError(
+            ErrorCode.InvalidRequest,
+            `Sprint ${sprintId} not found`
+          );
+        }
+        
+        throw new McpError(
+          ErrorCode.InternalError,
+          `Failed to get burndown chart data: ${error.response?.data?.message || error.message}`
+        );
+      }
     }
-    
-    throw new McpError(
-      ErrorCode.InternalError,
-      `Failed to get burndown chart data: ${error.response?.data?.message || error.message}`
-    );
-  }
+  );
 }

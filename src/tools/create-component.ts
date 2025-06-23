@@ -1,29 +1,45 @@
 /**
  * Create a new project component for feature organization
  */
-import { AxiosInstance } from "axios";
+import { withJiraContext } from "../utils/tool-wrapper.js";
 
-export async function handleCreateComponent(
-  axiosInstance: AxiosInstance,
-  projectKey: string,
-  args: any
-) {
-  try {
-    const componentData: any = {
-      name: args.name,
-      project: projectKey,
-    };
+interface CreateComponentArgs {
+  working_dir: string;
+  instance?: string;
+  projectKey?: string;
+  name: string;
+  description?: string;
+  leadAccountId?: string;
+  assigneeType?: string;
+}
 
-    // Add optional fields if provided
-    if (args.description) {
-      componentData.description = args.description;
-    }
-    if (args.leadAccountId) {
-      componentData.leadAccountId = args.leadAccountId;
-    }
-    if (args.assigneeType) {
-      componentData.assigneeType = args.assigneeType;
-    }
+export async function handleCreateComponent(args: CreateComponentArgs) {
+  return withJiraContext(
+    args,
+    { requiresProject: false },
+    async (toolArgs, { axiosInstance, projectKey: resolvedProjectKey }) => {
+      const projectKey = toolArgs.projectKey || resolvedProjectKey;
+      
+      if (!projectKey) {
+        throw new Error("projectKey is required for creating component");
+      }
+      
+      try {
+        const componentData: any = {
+          name: toolArgs.name,
+          project: projectKey,
+        };
+
+        // Add optional fields if provided
+        if (toolArgs.description) {
+          componentData.description = toolArgs.description;
+        }
+        if (toolArgs.leadAccountId) {
+          componentData.leadAccountId = toolArgs.leadAccountId;
+        }
+        if (toolArgs.assigneeType) {
+          componentData.assigneeType = toolArgs.assigneeType;
+        }
 
     const response = await axiosInstance.post(
       `/rest/api/3/component`,
@@ -55,15 +71,17 @@ Component is ready for use in project organization and issue assignment.`,
         },
       ],
     };
-  } catch (error: any) {
-    return {
-      content: [
-        {
-          type: "text",
-          text: `Error creating component: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
-        },
-      ],
-      isError: true,
-    };
-  }
+      } catch (error: any) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error creating component: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
 }

@@ -1,14 +1,26 @@
 /**
  * Get project-specific statuses for workflow understanding
  */
-import { AxiosInstance } from "axios";
+import { withJiraContext } from "../utils/tool-wrapper.js";
 
-export async function handleGetProjectStatuses(
-  axiosInstance: AxiosInstance,
-  projectKey: string,
-  args: any
-) {
-  try {
+interface GetProjectStatusesArgs {
+  working_dir: string;
+  instance?: string;
+  projectKey?: string;
+}
+
+export async function handleGetProjectStatuses(args: GetProjectStatusesArgs) {
+  return withJiraContext(
+    args,
+    { requiresProject: false },
+    async (toolArgs, { axiosInstance, projectKey: resolvedProjectKey }) => {
+      const projectKey = toolArgs.projectKey || resolvedProjectKey;
+      
+      if (!projectKey) {
+        throw new Error("projectKey is required for getting project statuses");
+      }
+      
+      try {
     // Get project statuses
     const response = await axiosInstance.get(
       `/rest/api/3/project/${projectKey}/statuses`
@@ -152,15 +164,17 @@ ${Array.from(allStatuses).sort().map(statusName => {
         },
       ],
     };
-  } catch (error: any) {
-    return {
-      content: [
-        {
-          type: "text",
-          text: `Error getting project statuses: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
-        },
-      ],
-      isError: true,
-    };
-  }
+      } catch (error: any) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting project statuses: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
 }

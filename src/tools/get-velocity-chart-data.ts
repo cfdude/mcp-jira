@@ -1,33 +1,35 @@
 /**
  * Handler for the get_velocity_chart_data tool
  */
-import { AxiosInstance } from "axios";
+import { withJiraContext } from "../utils/tool-wrapper.js";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 
 interface GetVelocityChartDataArgs {
   working_dir: string;
+  instance?: string;
   boardId: number;
   numberOfSprints?: number;
 }
 
-export async function handleGetVelocityChartData(
-  agileAxiosInstance: AxiosInstance,
-  args: GetVelocityChartDataArgs
-) {
-  const { boardId, numberOfSprints = 10 } = args;
-  
-  console.error("Getting velocity chart data:", {
-    boardId,
-    numberOfSprints
-  });
+export async function handleGetVelocityChartData(args: GetVelocityChartDataArgs) {
+  return withJiraContext(
+    args,
+    { requiresProject: false },
+    async (toolArgs, { agileAxiosInstance }) => {
+      const { boardId, numberOfSprints = 10 } = toolArgs;
+      
+      console.error("Getting velocity chart data:", {
+        boardId,
+        numberOfSprints
+      });
 
-  try {
-    // Get board details
-    const boardResponse = await agileAxiosInstance.get(`/board/${boardId}`);
+      try {
+        // Get board details
+        const boardResponse = await agileAxiosInstance.get(`/board/${boardId}`);
     const board = boardResponse.data;
     
     // Get recent sprints (closed ones for velocity calculation)
-    const sprintsResponse = await agileAxiosInstance.get(`/board/${boardId}/sprint`, {
+        const sprintsResponse = await agileAxiosInstance.get(`/board/${boardId}/sprint`, {
       params: { 
         state: 'closed',
         maxResults: numberOfSprints
@@ -149,19 +151,21 @@ ${velocityData.length >= 3 ? (() => {
         },
       ],
     };
-  } catch (error: any) {
-    console.error("Error getting velocity chart data:", error);
-    
-    if (error.response?.status === 404) {
-      throw new McpError(
-        ErrorCode.InvalidRequest,
-        `Board ${boardId} not found`
-      );
+      } catch (error: any) {
+        console.error("Error getting velocity chart data:", error);
+        
+        if (error.response?.status === 404) {
+          throw new McpError(
+            ErrorCode.InvalidRequest,
+            `Board ${boardId} not found`
+          );
+        }
+        
+        throw new McpError(
+          ErrorCode.InternalError,
+          `Failed to get velocity chart data: ${error.response?.data?.message || error.message}`
+        );
+      }
     }
-    
-    throw new McpError(
-      ErrorCode.InternalError,
-      `Failed to get velocity chart data: ${error.response?.data?.message || error.message}`
-    );
-  }
+  );
 }

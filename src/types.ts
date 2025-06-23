@@ -311,3 +311,12 @@ export interface GetBurndownChartDataArgs extends BaseArgs {
 export interface GetBoardCumulativeFlowArgs extends BaseArgs {
   boardId: number;
 }
+
+export interface SearchIssuesJqlArgs extends BaseArgs {
+  jql: string;
+  startAt?: number;
+  maxResults?: number;
+  fields?: string;
+  expand?: string;
+  validateQuery?: boolean;
+}

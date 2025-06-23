@@ -1,13 +1,24 @@
 /**
  * Get available issue types for work categorization and project planning
  */
-import { AxiosInstance } from "axios";
+import { withJiraContext } from "../utils/tool-wrapper.js";
 
-export async function handleGetIssueTypes(
-  axiosInstance: AxiosInstance,
-  projectKey: string,
-  args: any
-) {
+interface GetIssueTypesArgs {
+  working_dir: string;
+  instance?: string;
+  projectKey?: string;
+}
+
+export async function handleGetIssueTypes(args: GetIssueTypesArgs) {
+  return withJiraContext(
+    args,
+    { requiresProject: false },
+    async (toolArgs, { axiosInstance, projectKey: resolvedProjectKey }) => {
+      const projectKey = toolArgs.projectKey || resolvedProjectKey;
+      
+      if (!projectKey) {
+        throw new Error("projectKey is required for getting issue types");
+      }
   try {
     // Get issue types for the project
     const response = await axiosInstance.get(
@@ -175,15 +186,17 @@ Use these issue types strategically to categorize and organize your project work
         },
       ],
     };
-  } catch (error: any) {
-    return {
-      content: [
-        {
-          type: "text",
-          text: `Error getting issue types: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
-        },
-      ],
-      isError: true,
-    };
-  }
+      } catch (error: any) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting issue types: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
 }

@@ -1,23 +1,36 @@
 /**
  * Get version progress with issue counts and status breakdown
  */
-import { AxiosInstance } from "axios";
+import { withJiraContext } from "../utils/tool-wrapper.js";
 
-export async function handleGetVersionProgress(
-  axiosInstance: AxiosInstance,
-  projectKey: string,
-  args: any
-) {
-  try {
-    // Get version details
-    const versionResponse = await axiosInstance.get(
-      `/rest/api/3/version/${args.versionId}`
-    );
+interface GetVersionProgressArgs {
+  working_dir: string;
+  instance?: string;
+  projectKey?: string;
+  versionId: string;
+}
+
+export async function handleGetVersionProgress(args: GetVersionProgressArgs) {
+  return withJiraContext(
+    args,
+    { requiresProject: false },
+    async (toolArgs, { axiosInstance, projectKey: resolvedProjectKey }) => {
+      const projectKey = toolArgs.projectKey || resolvedProjectKey;
+      
+      if (!projectKey) {
+        throw new Error("projectKey is required for getting version progress");
+      }
+      
+      try {
+        // Get version details
+        const versionResponse = await axiosInstance.get(
+          `/rest/api/3/version/${toolArgs.versionId}`
+        );
     const version = versionResponse.data;
 
     // Get issue counts for this version
     const issueCountsResponse = await axiosInstance.get(
-      `/rest/api/3/version/${args.versionId}/relatedIssueCounts`
+      `/rest/api/3/version/${toolArgs.versionId}/relatedIssueCounts`
     );
     const issueCounts = issueCountsResponse.data;
 
@@ -115,15 +128,17 @@ ${daysUntilRelease !== null && daysUntilRelease <= 7 && daysUntilRelease > 0 ? "
         },
       ],
     };
-  } catch (error: any) {
-    return {
-      content: [
-        {
-          type: "text",
-          text: `Error getting version progress: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
-        },
-      ],
-      isError: true,
-    };
-  }
+      } catch (error: any) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting version progress: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
 }

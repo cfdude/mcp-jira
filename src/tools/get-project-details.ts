@@ -1,15 +1,23 @@
 /**
  * Get comprehensive project details
  */
-import { AxiosInstance } from "axios";
+import { withJiraContext } from "../utils/tool-wrapper.js";
 
-export async function handleGetProjectDetails(
-  axiosInstance: AxiosInstance,
-  args: any
-) {
+interface GetProjectDetailsArgs {
+  working_dir: string;
+  instance?: string;
+  projectKey: string;
+  expand?: string;
+}
+
+export async function handleGetProjectDetails(args: GetProjectDetailsArgs) {
+  return withJiraContext(
+    args,
+    { requiresProject: false },
+    async (toolArgs, { axiosInstance }) => {
   try {
-    const projectKey = args.projectKey;
-    const expand = args.expand || "description,lead,url,projectKeys,permissions,insight,features";
+    const projectKey = toolArgs.projectKey;
+    const expand = toolArgs.expand || "description,lead,url,projectKeys,permissions,insight,features";
 
     // Get project details
     const response = await axiosInstance.get(
@@ -172,15 +180,17 @@ ${project.deleted ? "🗑️ **This project is deleted**" : ""}`,
         },
       ],
     };
-  } catch (error: any) {
-    return {
-      content: [
-        {
-          type: "text",
-          text: `Error getting project details: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
-        },
-      ],
-      isError: true,
-    };
-  }
+      } catch (error: any) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting project details: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
 }

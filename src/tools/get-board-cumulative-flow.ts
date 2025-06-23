@@ -1,31 +1,33 @@
 /**
  * Handler for the get_board_cumulative_flow tool
  */
-import { AxiosInstance } from "axios";
+import { withJiraContext } from "../utils/tool-wrapper.js";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 
 interface GetBoardCumulativeFlowArgs {
   working_dir: string;
+  instance?: string;
   boardId: number;
 }
 
-export async function handleGetBoardCumulativeFlow(
-  agileAxiosInstance: AxiosInstance,
-  args: GetBoardCumulativeFlowArgs
-) {
-  const { boardId } = args;
-  
-  console.error("Getting board cumulative flow data:", {
-    boardId
-  });
+export async function handleGetBoardCumulativeFlow(args: GetBoardCumulativeFlowArgs) {
+  return withJiraContext(
+    args,
+    { requiresProject: false },
+    async (toolArgs, { agileAxiosInstance }) => {
+      const { boardId } = toolArgs;
+      
+      console.error("Getting board cumulative flow data:", {
+        boardId
+      });
 
-  try {
-    // Get board details
-    const boardResponse = await agileAxiosInstance.get(`/board/${boardId}`);
+      try {
+        // Get board details
+        const boardResponse = await agileAxiosInstance.get(`/board/${boardId}`);
     const board = boardResponse.data;
     
     // Get board configuration to understand columns
-    const configResponse = await agileAxiosInstance.get(`/board/${boardId}/configuration`);
+        const configResponse = await agileAxiosInstance.get(`/board/${boardId}/configuration`);
     const config = configResponse.data;
     
     // Get all issues on the board
@@ -174,19 +176,21 @@ ${columns.map((column: any) => {
         },
       ],
     };
-  } catch (error: any) {
-    console.error("Error getting board cumulative flow data:", error);
-    
-    if (error.response?.status === 404) {
-      throw new McpError(
-        ErrorCode.InvalidRequest,
-        `Board ${boardId} not found`
-      );
+      } catch (error: any) {
+        console.error("Error getting board cumulative flow data:", error);
+        
+        if (error.response?.status === 404) {
+          throw new McpError(
+            ErrorCode.InvalidRequest,
+            `Board ${boardId} not found`
+          );
+        }
+        
+        throw new McpError(
+          ErrorCode.InternalError,
+          `Failed to get board cumulative flow data: ${error.response?.data?.message || error.message}`
+        );
+      }
     }
-    
-    throw new McpError(
-      ErrorCode.InternalError,
-      `Failed to get board cumulative flow data: ${error.response?.data?.message || error.message}`
-    );
-  }
+  );
 }

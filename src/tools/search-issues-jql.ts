@@ -1,24 +1,26 @@
 /**
  * Advanced issue search using JQL for custom project queries
  */
-import { AxiosInstance } from "axios";
+import { withJiraContext } from "../utils/tool-wrapper.js";
+import { SearchIssuesJqlArgs } from "../types.js";
 
-export async function handleSearchIssuesJql(
-  axiosInstance: AxiosInstance,
-  args: any
-) {
-  try {
-    const params: any = {
-      jql: args.jql,
-      startAt: args.startAt || 0,
-      maxResults: args.maxResults || 50,
-      fields: args.fields || "summary,status,priority,assignee,created,updated,components,fixVersions,labels,issueType,epic,sprint",
-      expand: args.expand || "names,schema"
-    };
+export async function handleSearchIssuesJql(args: SearchIssuesJqlArgs) {
+  return withJiraContext(
+    args,
+    { requiresProject: false },
+    async (toolArgs, { axiosInstance }) => {
+      try {
+        const params: any = {
+          jql: toolArgs.jql,
+          startAt: toolArgs.startAt || 0,
+          maxResults: toolArgs.maxResults || 50,
+          fields: toolArgs.fields || "summary,status,priority,assignee,created,updated,components,fixVersions,labels,issueType,epic,sprint",
+          expand: toolArgs.expand || "names,schema"
+        };
 
-    if (args.validateQuery !== undefined) {
-      params.validateQuery = args.validateQuery;
-    }
+        if (toolArgs.validateQuery !== undefined) {
+          params.validateQuery = toolArgs.validateQuery;
+        }
 
     const response = await axiosInstance.get(
       `/rest/api/3/search`,
@@ -82,17 +84,17 @@ export async function handleSearchIssuesJql(
       analytics.issueTypeBreakdown[issue.issueType] = (analytics.issueTypeBreakdown[issue.issueType] || 0) + 1;
     });
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: `# JQL Search Results
+        return {
+          content: [
+            {
+              type: "text",
+              text: `# JQL Search Results
 
 ## 🔍 Query Information
-- **JQL**: \`${args.jql}\`
+- **JQL**: \`${toolArgs.jql}\`
 - **Total Found**: ${analytics.totalIssues}
 - **Showing**: ${formattedIssues.length} issues
-- **Page**: ${Math.floor((args.startAt || 0) / (args.maxResults || 50)) + 1}
+- **Page**: ${Math.floor((toolArgs.startAt || 0) / (toolArgs.maxResults || 50)) + 1}
 
 ## 📊 Quick Analytics
 
@@ -147,18 +149,20 @@ ${data.total > formattedIssues.length ?
   `\n**Note**: Showing ${formattedIssues.length} of ${data.total} total results. Use pagination parameters to see more.` : 
   ""
 }`,
-        },
-      ],
-    };
-  } catch (error: any) {
-    return {
-      content: [
-        {
-          type: "text",
-          text: `Error executing JQL search: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
-        },
-      ],
-      isError: true,
-    };
-  }
+            },
+          ],
+        };
+      } catch (error: any) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error executing JQL search: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
 }

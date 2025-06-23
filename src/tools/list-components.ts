@@ -1,14 +1,26 @@
 /**
  * List project components for feature organization
  */
-import { AxiosInstance } from "axios";
+import { withJiraContext } from "../utils/tool-wrapper.js";
 
-export async function handleListComponents(
-  axiosInstance: AxiosInstance,
-  projectKey: string,
-  args: any
-) {
-  try {
+interface ListComponentsArgs {
+  working_dir: string;
+  instance?: string;
+  projectKey?: string;
+}
+
+export async function handleListComponents(args: ListComponentsArgs) {
+  return withJiraContext(
+    args,
+    { requiresProject: false },
+    async (toolArgs, { axiosInstance, projectKey: resolvedProjectKey }) => {
+      const projectKey = toolArgs.projectKey || resolvedProjectKey;
+      
+      if (!projectKey) {
+        throw new Error("projectKey is required for listing components");
+      }
+      
+      try {
     const response = await axiosInstance.get(
       `/rest/api/3/project/${projectKey}/components`
     );
@@ -60,15 +72,17 @@ ${formattedComponents.length > 0 ?
         },
       ],
     };
-  } catch (error: any) {
-    return {
-      content: [
-        {
-          type: "text",
-          text: `Error listing components: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
-        },
-      ],
-      isError: true,
-    };
-  }
+      } catch (error: any) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error listing components: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
 }

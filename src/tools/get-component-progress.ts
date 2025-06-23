@@ -1,23 +1,36 @@
 /**
  * Get component progress with issue counts and work distribution
  */
-import { AxiosInstance } from "axios";
+import { withJiraContext } from "../utils/tool-wrapper.js";
 
-export async function handleGetComponentProgress(
-  axiosInstance: AxiosInstance,
-  projectKey: string,
-  args: any
-) {
-  try {
-    // Get component details
-    const componentResponse = await axiosInstance.get(
-      `/rest/api/3/component/${args.componentId}`
-    );
+interface GetComponentProgressArgs {
+  working_dir: string;
+  instance?: string;
+  projectKey?: string;
+  componentId: string;
+}
+
+export async function handleGetComponentProgress(args: GetComponentProgressArgs) {
+  return withJiraContext(
+    args,
+    { requiresProject: false },
+    async (toolArgs, { axiosInstance, projectKey: resolvedProjectKey }) => {
+      const projectKey = toolArgs.projectKey || resolvedProjectKey;
+      
+      if (!projectKey) {
+        throw new Error("projectKey is required for getting component progress");
+      }
+      
+      try {
+        // Get component details
+        const componentResponse = await axiosInstance.get(
+          `/rest/api/3/component/${toolArgs.componentId}`
+        );
     const component = componentResponse.data;
 
     // Get issue counts for this component
     const issueCountsResponse = await axiosInstance.get(
-      `/rest/api/3/component/${args.componentId}/relatedIssueCounts`
+      `/rest/api/3/component/${toolArgs.componentId}/relatedIssueCounts`
     );
     const issueCounts = issueCountsResponse.data;
 
@@ -133,15 +146,17 @@ ${recentIssues.length === 0 ? "⚠️ No recent activity. Component may need att
         },
       ],
     };
-  } catch (error: any) {
-    return {
-      content: [
-        {
-          type: "text",
-          text: `Error getting component progress: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
-        },
-      ],
-      isError: true,
-    };
-  }
+      } catch (error: any) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting component progress: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
 }

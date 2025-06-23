@@ -1450,9 +1450,11 @@ export function setupToolHandlers(
         // Advanced Issue Operations
         "bulk_update_issues", "rank_issues", "estimate_issue",
         // Reporting & Analytics
-        "get_sprint_report", 
+        "get_sprint_report", "get_velocity_chart_data", "get_burndown_chart_data", "get_board_cumulative_flow",
         // Project Planning Tools
-        "list_versions", "create_version", "search_projects", "create_filter"
+        "list_versions", "create_version", "get_version_progress", "list_components", "create_component", "get_component_progress",
+        "search_projects", "get_project_details", "search_issues_jql", "create_filter", "list_plans", 
+        "get_project_statuses", "get_issue_types"
       ];
       
       // Route to the appropriate handler based on the tool name
@@ -1523,16 +1525,40 @@ export function setupToolHandlers(
         // Reporting & Analytics
         case "get_sprint_report":
           return handleGetSprintReport({ ...args, working_dir });
+        case "get_velocity_chart_data":
+          return handleGetVelocityChartData({ ...args, working_dir });
+        case "get_burndown_chart_data":
+          return handleGetBurndownChartData({ ...args, working_dir });
+        case "get_board_cumulative_flow":
+          return handleGetBoardCumulativeFlow({ ...args, working_dir });
         
         // Project Planning Tools
         case "list_versions":
           return handleListVersions({ ...args, working_dir });
         case "create_version":
           return handleCreateVersion({ ...args, working_dir });
+        case "get_version_progress":
+          return handleGetVersionProgress({ ...args, working_dir });
+        case "list_components":
+          return handleListComponents({ ...args, working_dir });
+        case "create_component":
+          return handleCreateComponent({ ...args, working_dir });
+        case "get_component_progress":
+          return handleGetComponentProgress({ ...args, working_dir });
         case "search_projects":
           return handleSearchProjects({ ...args, working_dir });
+        case "get_project_details":
+          return handleGetProjectDetails({ ...args, working_dir });
+        case "search_issues_jql":
+          return handleSearchIssuesJql({ ...args, working_dir });
         case "create_filter":
           return handleCreateFilter({ ...args, working_dir });
+        case "list_plans":
+          return handleListPlans({ ...args, working_dir });
+        case "get_project_statuses":
+          return handleGetProjectStatuses({ ...args, working_dir });
+        case "get_issue_types":
+          return handleGetIssueTypes({ ...args, working_dir });
         
         default:
           throw new McpError(

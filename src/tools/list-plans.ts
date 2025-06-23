@@ -1,27 +1,35 @@
 /**
  * List strategic plans for high-level roadmap management (Jira Premium feature)
  */
-import { AxiosInstance } from "axios";
+import { withJiraContext } from "../utils/tool-wrapper.js";
 
-export async function handleListPlans(
-  axiosInstance: AxiosInstance,
-  args: any
-) {
-  try {
-    const params: any = {};
-    
-    // Add optional parameters
-    if (args.startAt) {
-      params.startAt = args.startAt;
-    }
-    if (args.maxResults) {
-      params.maxResults = args.maxResults;
-    }
+interface ListPlansArgs {
+  working_dir: string;
+  instance?: string;
+  startAt?: number;
+  maxResults?: number;
+}
 
-    const response = await axiosInstance.get(
-      `/rest/api/3/plans/plan`,
-      { params }
-    );
+export async function handleListPlans(args: ListPlansArgs) {
+  return withJiraContext(
+    args,
+    { requiresProject: false },
+    async (toolArgs, { axiosInstance }) => {
+      try {
+        const params: any = {};
+        
+        // Add optional parameters
+        if (toolArgs.startAt) {
+          params.startAt = toolArgs.startAt;
+        }
+        if (toolArgs.maxResults) {
+          params.maxResults = toolArgs.maxResults;
+        }
+
+        const response = await axiosInstance.get(
+          `/rest/api/3/plans/plan`,
+          { params }
+        );
 
     const data = response.data;
     const plans = data.values || [];
@@ -140,14 +148,14 @@ ${data.total > formattedPlans.length ?
         },
       ],
     };
-  } catch (error: any) {
-    // Check if it's a 404 or permission error (feature not available)
-    if (error.response?.status === 404 || error.response?.status === 403) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: `# Plans Feature Not Available
+      } catch (error: any) {
+        // Check if it's a 404 or permission error (feature not available)
+        if (error.response?.status === 404 || error.response?.status === 403) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `# Plans Feature Not Available
 
 The Plans feature is not available in this Jira instance. This could be due to:
 
@@ -164,19 +172,21 @@ Consider using these alternatives for strategic planning:
 - **Dashboards**: Create custom dashboards to track progress across projects
 
 Contact your Jira administrator if you need access to the Plans feature.`,
-          },
-        ],
-      };
-    }
+              },
+            ],
+          };
+        }
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: `Error listing plans: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
-        },
-      ],
-      isError: true,
-    };
-  }
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error listing plans: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
 }
