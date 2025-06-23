@@ -19,7 +19,8 @@
       "mcp__jira__update_issue",
       "mcp__jira__create_issue",
       "Bash(timeout:*)",
-      "Bash(gtimeout:*)"
+      "Bash(gtimeout:*)",
+      "Bash(git remote remove:*)"
     ],
     "deny": []
   }

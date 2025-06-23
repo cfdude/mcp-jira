@@ -2,6 +2,8 @@
 
 A comprehensive Model Context Protocol server that provides enterprise-level integration with Jira's REST API, enabling AI assistants to perform advanced project management, analytics, and strategic planning tasks.
 
+> **Note**: This is a maintained fork of [1broseidon/mcp-jira-server](https://github.com/1broseidon/mcp-jira-server). We are grateful for the original work and continue to develop and enhance this project independently. All credit for the initial implementation goes to the original authors.
+
 ## 🚀 Features Overview
 
 This server transforms basic Jira functionality into a complete project management platform with:
