@@ -2,7 +2,8 @@
  * Handler for the get_sprint_details tool
  */
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
-import { getInstanceForProject, createJiraApiInstances } from "../config.js";
+import { getInstanceForProject } from "../config.js";
+import { createJiraApiInstances } from "../utils/jira-api.js";
 import { BaseArgs } from "../types.js";
 
 export interface GetSprintDetailsArgs extends BaseArgs {

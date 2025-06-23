@@ -2,7 +2,8 @@
  * Handler for the update_epic_details tool
  */
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
-import { getInstanceForProject, createJiraApiInstances } from "../config.js";
+import { getInstanceForProject } from "../config.js";
+import { createJiraApiInstances } from "../utils/jira-api.js";
 import { UpdateEpicDetailsArgs } from "../types.js";
 
 export async function handleUpdateEpicDetails(args: UpdateEpicDetailsArgs) {

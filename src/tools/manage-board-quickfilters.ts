@@ -2,7 +2,8 @@
  * Handler for the manage_board_quickfilters tool
  */
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
-import { getInstanceForProject, createJiraApiInstances } from "../config.js";
+import { getInstanceForProject } from "../config.js";
+import { createJiraApiInstances } from "../utils/jira-api.js";
 import { BaseArgs } from "../types.js";
 
 export interface ManageBoardQuickfiltersArgs extends BaseArgs {

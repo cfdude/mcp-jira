@@ -3,7 +3,8 @@
  */
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { formatCreatedIssue } from "../utils/formatting.js";
-import { getInstanceForProject, createJiraApiInstances } from "../config.js";
+import { getInstanceForProject } from "../config.js";
+import { createJiraApiInstances } from "../utils/jira-api.js";
 import { BaseArgs } from "../types.js";
 
 export interface CreateEpicArgs extends BaseArgs {

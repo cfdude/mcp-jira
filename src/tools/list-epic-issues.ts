@@ -2,7 +2,8 @@
  * Handler for the list_epic_issues tool
  */
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
-import { getInstanceForProject, createJiraApiInstances } from "../config.js";
+import { getInstanceForProject } from "../config.js";
+import { createJiraApiInstances } from "../utils/jira-api.js";
 import { ListEpicIssuesArgs } from "../types.js";
 
 export async function handleListEpicIssues(args: ListEpicIssuesArgs) {

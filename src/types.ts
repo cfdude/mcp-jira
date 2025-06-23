@@ -247,3 +247,22 @@ export interface EstimateIssueArgs extends BaseArgs {
   issueKey: string;
   value: string;
 }
+
+// Reporting & Analytics Args
+export interface GetSprintReportArgs extends BaseArgs {
+  boardId: number;
+  sprintId: number;
+}
+
+export interface GetVelocityChartDataArgs extends BaseArgs {
+  boardId: number;
+  numberOfSprints?: number;
+}
+
+export interface GetBurndownChartDataArgs extends BaseArgs {
+  sprintId: number;
+}
+
+export interface GetBoardCumulativeFlowArgs extends BaseArgs {
+  boardId: number;
+}

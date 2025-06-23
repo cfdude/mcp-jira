@@ -2,7 +2,8 @@
  * Handler for the bulk_update_issues tool
  */
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
-import { getInstanceForProject, createJiraApiInstances } from "../config.js";
+import { getInstanceForProject } from "../config.js";
+import { createJiraApiInstances } from "../utils/jira-api.js";
 import { resolveAssigneeValue } from "../utils/user-resolver.js";
 import { BulkUpdateIssuesArgs } from "../types.js";
 
