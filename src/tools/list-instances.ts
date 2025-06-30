@@ -1,28 +1,12 @@
 /**
  * Tool to list available Jira instances and their configurations
  */
-import { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { listAvailableInstances } from "../config.js";
-import { BaseArgs } from "../types.js";
 
-interface ListInstancesArgs extends BaseArgs {
-  // No additional args needed
+interface ListInstancesArgs {
+  working_dir: string;
+  instance?: string;
 }
-
-export const listInstancesTool: Tool = {
-  name: "list_instances",
-  description: "Lists all available Jira instances and their configured projects. Useful for discovering which instances are available and how projects are mapped.",
-  inputSchema: {
-    type: "object",
-    properties: {
-      working_dir: {
-        type: "string",
-        description: "Working directory containing .jira-config.json"
-      }
-    },
-    required: ["working_dir"]
-  }
-};
 
 export async function handleListInstances(args: ListInstancesArgs) {
   try {
