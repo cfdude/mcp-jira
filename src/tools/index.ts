@@ -59,6 +59,17 @@ import { handleGetProjectStatuses } from "./get-project-statuses.js";
 import { handleGetIssueTypes } from "./get-issue-types.js";
 import { handleListInstances } from "./list-instances.js";
 
+// Plans Management
+import { handleCreatePlan } from "./create-plan.js";
+import { handleGetPlan } from "./get-plan.js";
+import { handleUpdatePlan } from "./update-plan.js";
+import { handleGetPlanTeams } from "./get-plan-teams.js";
+import { handleAddPlanTeam } from "./add-plan-team.js";
+import { handleRemovePlanTeam } from "./remove-plan-team.js";
+import { handleArchivePlan } from "./archive-plan.js";
+import { handleDuplicatePlan } from "./duplicate-plan.js";
+import { handleTrashPlan } from "./trash-plan.js";
+
 /**
  * Register all tool handlers with the server
  */
@@ -1385,6 +1396,446 @@ export function setupToolHandlers(
           required: ["working_dir"],
         },
       },
+      {
+        name: "create_plan",
+        description: "Create a new strategic plan for high-level roadmap management (Jira Premium feature)",
+        inputSchema: {
+          type: "object",
+          properties: {
+            working_dir: {
+              type: "string",
+              description: "Working directory containing .jira-config.json",
+            },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
+            name: {
+              type: "string",
+              description: "Plan name",
+            },
+            leadAccountId: {
+              type: "string",
+              description: "Account ID of the plan lead/owner",
+            },
+            issueSources: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  type: {
+                    type: "string",
+                    enum: ["Project", "Board", "Filter"],
+                    description: "Type of issue source",
+                  },
+                  value: {
+                    type: "number",
+                    description: "ID of the project, board, or filter",
+                  },
+                },
+                required: ["type", "value"],
+              },
+              description: "Array of issue sources (projects, boards, filters) to include in the plan",
+            },
+            scheduling: {
+              type: "object",
+              properties: {
+                estimation: {
+                  type: "string",
+                  enum: ["StoryPoints", "Days", "Hours"],
+                  description: "Estimation method for the plan",
+                },
+                startDate: {
+                  type: "object",
+                  properties: {
+                    type: {
+                      type: "string",
+                      enum: ["DueDate", "TargetStartDate", "TargetEndDate", "DateCustomField"],
+                      description: "Type of start date source",
+                    },
+                    dateCustomFieldId: {
+                      type: "number",
+                      description: "Custom field ID if using DateCustomField type",
+                    },
+                  },
+                  required: ["type"],
+                },
+                endDate: {
+                  type: "object",
+                  properties: {
+                    type: {
+                      type: "string",
+                      enum: ["DueDate", "TargetStartDate", "TargetEndDate", "DateCustomField"],
+                      description: "Type of end date source",
+                    },
+                    dateCustomFieldId: {
+                      type: "number",
+                      description: "Custom field ID if using DateCustomField type",
+                    },
+                  },
+                  required: ["type"],
+                },
+                inferredDates: {
+                  type: "string",
+                  enum: ["None", "SprintDates", "ReleaseDates"],
+                  description: "How to infer dates from sprints or releases",
+                },
+                dependencies: {
+                  type: "string",
+                  enum: ["Sequential", "Concurrent"],
+                  description: "How to handle dependencies between work items",
+                },
+              },
+              description: "Scheduling configuration for the plan",
+            },
+            exclusionRules: {
+              type: "object",
+              properties: {
+                numberOfDaysToShowCompletedIssues: {
+                  type: "number",
+                  description: "Number of days to show completed issues",
+                },
+                issueIds: {
+                  type: "array",
+                  items: { type: "number" },
+                  description: "Array of issue IDs to exclude",
+                },
+                workStatusIds: {
+                  type: "array",
+                  items: { type: "number" },
+                  description: "Array of work status IDs to exclude",
+                },
+                workStatusCategoryIds: {
+                  type: "array",
+                  items: { type: "number" },
+                  description: "Array of work status category IDs to exclude",
+                },
+                issueTypeIds: {
+                  type: "array",
+                  items: { type: "number" },
+                  description: "Array of issue type IDs to exclude",
+                },
+                releaseIds: {
+                  type: "array",
+                  items: { type: "number" },
+                  description: "Array of release IDs to exclude",
+                },
+              },
+              description: "Rules for excluding certain issues from the plan",
+            },
+            crossProjectReleases: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  name: {
+                    type: "string",
+                    description: "Name of the cross-project release",
+                  },
+                  releaseIds: {
+                    type: "array",
+                    items: { type: "number" },
+                    description: "Array of release IDs in this cross-project release",
+                  },
+                },
+                required: ["name", "releaseIds"],
+              },
+              description: "Cross-project releases to include in the plan",
+            },
+            customFields: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  customFieldId: {
+                    type: "number",
+                    description: "ID of the custom field",
+                  },
+                  filter: {
+                    type: "boolean",
+                    description: "Whether to enable filtering on this custom field",
+                  },
+                },
+                required: ["customFieldId", "filter"],
+              },
+              description: "Custom fields to include in the plan",
+            },
+            permissions: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  type: {
+                    type: "string",
+                    enum: ["View", "Edit"],
+                    description: "Type of permission",
+                  },
+                  holder: {
+                    type: "object",
+                    properties: {
+                      type: {
+                        type: "string",
+                        enum: ["Group", "AccountId"],
+                        description: "Type of permission holder",
+                      },
+                      value: {
+                        type: "string",
+                        description: "Group name or account ID",
+                      },
+                    },
+                    required: ["type", "value"],
+                  },
+                },
+                required: ["type", "holder"],
+              },
+              description: "Permission settings for the plan",
+            },
+            useGroupId: {
+              type: "boolean",
+              description: "Whether to use group ID instead of group name for permissions",
+            },
+          },
+          required: ["working_dir", "name", "issueSources"],
+        },
+      },
+      {
+        name: "get_plan",
+        description: "Get detailed information about a specific strategic plan (Jira Premium feature)",
+        inputSchema: {
+          type: "object",
+          properties: {
+            working_dir: {
+              type: "string",
+              description: "Working directory containing .jira-config.json",
+            },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
+            planId: {
+              type: "string",
+              description: "ID of the plan to retrieve",
+            },
+          },
+          required: ["working_dir", "planId"],
+        },
+      },
+      {
+        name: "update_plan",
+        description: "Update an existing strategic plan using JSON Patch operations (Jira Premium feature)",
+        inputSchema: {
+          type: "object",
+          properties: {
+            working_dir: {
+              type: "string",
+              description: "Working directory containing .jira-config.json",
+            },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
+            planId: {
+              type: "string",
+              description: "ID of the plan to update",
+            },
+            operations: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  op: {
+                    type: "string",
+                    enum: ["add", "remove", "replace", "move", "copy", "test"],
+                    description: "JSON Patch operation type",
+                  },
+                  path: {
+                    type: "string",
+                    description: "JSON path to the field to modify (e.g., '/name', '/issueSources/0')",
+                  },
+                  value: {
+                    description: "Value to set (required for add, replace, test operations)",
+                  },
+                  from: {
+                    type: "string",
+                    description: "Source path for move and copy operations",
+                  },
+                },
+                required: ["op", "path"],
+              },
+              description: "Array of JSON Patch operations to apply to the plan",
+            },
+            useGroupId: {
+              type: "boolean",
+              description: "Whether to use group ID instead of group name for permissions",
+            },
+          },
+          required: ["working_dir", "planId", "operations"],
+        },
+      },
+      {
+        name: "get_plan_teams",
+        description: "Get detailed information about teams assigned to a strategic plan (Jira Premium feature)",
+        inputSchema: {
+          type: "object",
+          properties: {
+            working_dir: {
+              type: "string",
+              description: "Working directory containing .jira-config.json",
+            },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
+            planId: {
+              type: "string",
+              description: "ID of the plan to get teams for",
+            },
+          },
+          required: ["working_dir", "planId"],
+        },
+      },
+      {
+        name: "add_plan_team",
+        description: "Add a team to a strategic plan (Jira Premium feature)",
+        inputSchema: {
+          type: "object",
+          properties: {
+            working_dir: {
+              type: "string",
+              description: "Working directory containing .jira-config.json",
+            },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
+            planId: {
+              type: "string",
+              description: "ID of the plan to add the team to",
+            },
+            teamId: {
+              type: "string",
+              description: "ID of the team to add to the plan",
+            },
+          },
+          required: ["working_dir", "planId", "teamId"],
+        },
+      },
+      {
+        name: "remove_plan_team",
+        description: "Remove a team from a strategic plan (Jira Premium feature)",
+        inputSchema: {
+          type: "object",
+          properties: {
+            working_dir: {
+              type: "string",
+              description: "Working directory containing .jira-config.json",
+            },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
+            planId: {
+              type: "string",
+              description: "ID of the plan to remove the team from",
+            },
+            teamId: {
+              type: "string",
+              description: "ID of the team to remove from the plan",
+            },
+          },
+          required: ["working_dir", "planId", "teamId"],
+        },
+      },
+      {
+        name: "archive_plan",
+        description: "Archive a strategic plan (Jira Premium feature)",
+        inputSchema: {
+          type: "object",
+          properties: {
+            working_dir: {
+              type: "string",
+              description: "Working directory containing .jira-config.json",
+            },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
+            planId: {
+              type: "string",
+              description: "ID of the plan to archive",
+            },
+          },
+          required: ["working_dir", "planId"],
+        },
+      },
+      {
+        name: "duplicate_plan",
+        description: "Duplicate a strategic plan to create a new plan based on existing configuration (Jira Premium feature)",
+        inputSchema: {
+          type: "object",
+          properties: {
+            working_dir: {
+              type: "string",
+              description: "Working directory containing .jira-config.json",
+            },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
+            planId: {
+              type: "string",
+              description: "ID of the source plan to duplicate",
+            },
+            newPlanName: {
+              type: "string",
+              description: "Name for the new duplicated plan",
+            },
+            copyTeams: {
+              type: "boolean",
+              description: "Whether to copy team assignments from the source plan",
+            },
+            copyScheduling: {
+              type: "boolean",
+              description: "Whether to copy scheduling configuration from the source plan",
+            },
+            copyExclusionRules: {
+              type: "boolean",
+              description: "Whether to copy exclusion rules from the source plan",
+            },
+            copyCustomFields: {
+              type: "boolean",
+              description: "Whether to copy custom field configurations from the source plan",
+            },
+            copyPermissions: {
+              type: "boolean",
+              description: "Whether to copy permission settings from the source plan",
+            },
+          },
+          required: ["working_dir", "planId", "newPlanName"],
+        },
+      },
+      {
+        name: "trash_plan",
+        description: "Move a strategic plan to trash (soft delete) (Jira Premium feature)",
+        inputSchema: {
+          type: "object",
+          properties: {
+            working_dir: {
+              type: "string",
+              description: "Working directory containing .jira-config.json",
+            },
+            instance: {
+              type: "string",
+              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
+            planId: {
+              type: "string",
+              description: "ID of the plan to move to trash",
+            },
+          },
+          required: ["working_dir", "planId"],
+        },
+      },
       
       // Project Planning Tools - Workflow Insight
       {
@@ -1454,7 +1905,10 @@ export function setupToolHandlers(
         // Project Planning Tools
         "list_versions", "create_version", "get_version_progress", "list_components", "create_component", "get_component_progress",
         "search_projects", "get_project_details", "search_issues_jql", "create_filter", "list_plans", 
-        "get_project_statuses", "get_issue_types"
+        "get_project_statuses", "get_issue_types",
+        // Plans Management
+        "create_plan", "get_plan", "update_plan", "get_plan_teams", "add_plan_team", "remove_plan_team", 
+        "archive_plan", "duplicate_plan", "trash_plan"
       ];
       
       // Route to the appropriate handler based on the tool name
@@ -1559,6 +2013,26 @@ export function setupToolHandlers(
           return handleGetProjectStatuses({ ...args, working_dir });
         case "get_issue_types":
           return handleGetIssueTypes({ ...args, working_dir });
+        
+        // Plans Management
+        case "create_plan":
+          return handleCreatePlan({ ...args, working_dir });
+        case "get_plan":
+          return handleGetPlan({ ...args, working_dir });
+        case "update_plan":
+          return handleUpdatePlan({ ...args, working_dir });
+        case "get_plan_teams":
+          return handleGetPlanTeams({ ...args, working_dir });
+        case "add_plan_team":
+          return handleAddPlanTeam({ ...args, working_dir });
+        case "remove_plan_team":
+          return handleRemovePlanTeam({ ...args, working_dir });
+        case "archive_plan":
+          return handleArchivePlan({ ...args, working_dir });
+        case "duplicate_plan":
+          return handleDuplicatePlan({ ...args, working_dir });
+        case "trash_plan":
+          return handleTrashPlan({ ...args, working_dir });
         
         default:
           throw new McpError(
