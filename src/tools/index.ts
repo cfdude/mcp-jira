@@ -81,7 +81,7 @@ export function setupToolHandlers(
     tools: [
       {
         name: "create_issue",
-        description: "Create a new Jira issue",
+        description: "Create a new Jira issue. IMPORTANT FOR AI: Always specify 'instance' and 'projectKey' parameters explicitly to avoid configuration errors. Example: {working_dir: '/path/to/project', instance: 'onvex', projectKey: 'JOB', summary: 'Fix login bug', type: 'Task'}",
         inputSchema: {
           type: "object",
           properties: {
@@ -91,11 +91,11 @@ export function setupToolHandlers(
             },
             projectKey: {
               type: "string",
-              description: "Optional project key to override the default from config (e.g., 'APA')",
+              description: "REQUIRED: Project key (e.g., 'JOB', 'CAO', 'MIG'). Always specify this parameter to ensure issues are created in the correct project.",
             },
             instance: {
-              type: "string",
-              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+              type: "string", 
+              description: "REQUIRED: Jira instance name (e.g., 'onvex', 'highway'). Always specify this parameter to avoid instance resolution errors. Use list_instances to see available instances.",
             },
             summary: {
               type: "string",
@@ -138,7 +138,7 @@ export function setupToolHandlers(
       },
       {
         name: "list_issues",
-        description: "List issues in the project",
+        description: "List issues in a specific Jira project. CRITICAL FOR AI: ALWAYS specify 'instance' and 'projectKey' parameters. Use this to see existing issues before creating new ones or to get issue keys for updates. Example: {working_dir: '/path', instance: 'onvex', projectKey: 'JOB'}",
         inputSchema: {
           type: "object",
           properties: {
@@ -148,11 +148,11 @@ export function setupToolHandlers(
             },
             projectKey: {
               type: "string",
-              description: "Optional project key to override the default from config (e.g., 'APA')",
+              description: "REQUIRED: Project key to list issues from (e.g., 'JOB', 'CAO'). Always specify to target the correct project.",
             },
             instance: {
               type: "string",
-              description: "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+              description: "REQUIRED: Jira instance name (e.g., 'onvex', 'highway'). Always specify to avoid errors. Use list_instances first.",
             },
             status: {
               type: "string",
@@ -178,7 +178,7 @@ export function setupToolHandlers(
       },
       {
         name: "update_issue",
-        description: "Update an existing issue",
+        description: "Update an existing Jira issue. CRITICAL FOR AI: ALWAYS specify 'instance' parameter and use exact issue key from list_issues. Commonly used to change status, assignee, or add comments. Example: {working_dir: '/path', instance: 'onvex', issue_key: 'JOB-123', status: 'In Progress'}",
         inputSchema: {
           type: "object",
           properties: {
@@ -251,7 +251,7 @@ export function setupToolHandlers(
       },
       {
         name: "get_issue",
-        description: "Get details of a specific issue",
+        description: "Get detailed information about a specific Jira issue. CRITICAL FOR AI: ALWAYS specify 'instance' parameter. Use this to get current status, description, and fields before updating. Example: {working_dir: '/path', instance: 'onvex', issue_key: 'JOB-123'}",
         inputSchema: {
           type: "object",
           properties: {
@@ -273,7 +273,7 @@ export function setupToolHandlers(
       },
       {
         name: "delete_issue",
-        description: "Delete a Jira issue",
+        description: "Delete a Jira issue. WARNING: Requires 'Delete Issues' permission. Only issue creators and project administrators can delete issues. Consider using status changes or labels instead of deletion.",
         inputSchema: {
           type: "object",
           properties: {
@@ -295,7 +295,7 @@ export function setupToolHandlers(
       },
       {
         name: "add_comment",
-        description: "Add a comment to an existing issue",
+        description: "Add a comment to an existing Jira issue. CRITICAL FOR AI: ALWAYS specify 'instance' parameter and use exact issue key from list_issues. Example: {working_dir: '/path', instance: 'onvex', issue_key: 'JOB-123', comment: 'Updated requirements'}",
         inputSchema: {
           type: "object",
           properties: {
@@ -321,7 +321,7 @@ export function setupToolHandlers(
       },
       {
         name: "list_instances",
-        description: "List all available Jira instances and their configured projects. Useful for discovering which instances are available and how projects are mapped.",
+        description: "List all configured Jira instances and their project mappings. CRITICAL FOR AI: Use this FIRST to discover available instances before any other operations. Shows which projects are mapped to which instances. No additional parameters needed besides working_dir. Example: {working_dir: '/path/to/project'}",
         inputSchema: {
           type: "object",
           properties: {
@@ -337,7 +337,7 @@ export function setupToolHandlers(
       // Sprint Management Tools
       {
         name: "create_sprint",
-        description: "Create a new sprint",
+        description: "Create a new sprint in a Jira board. CRITICAL FOR AI: ALWAYS specify 'instance' and 'projectKey'. Use list_boards first to verify board exists. Creates sprint in 'future' state - use update_sprint to start it. Example: {working_dir: '/path', instance: 'onvex', projectKey: 'JOB', name: 'Sprint 1', goal: 'MVP features'}",
         inputSchema: {
           type: "object",
           properties: {
@@ -379,7 +379,7 @@ export function setupToolHandlers(
       },
       {
         name: "update_sprint",
-        description: "Update an existing sprint",
+        description: "Update sprint details or change sprint state (future→active→closed). CRITICAL FOR AI: ALWAYS specify 'instance' parameter. To activate a sprint, MUST provide both startDate and endDate. Example: {working_dir: '/path', instance: 'onvex', sprintId: 123, state: 'active', startDate: '2025-07-29', endDate: '2025-08-12'}",
         inputSchema: {
           type: "object",
           properties: {
@@ -405,11 +405,11 @@ export function setupToolHandlers(
             },
             startDate: {
               type: "string",
-              description: "New start date in ISO format",
+              description: "New start date in ISO format (REQUIRED when activating sprint). Examples: '2025-07-29T00:00:00Z' or '2025-07-29'",
             },
             endDate: {
               type: "string",
-              description: "New end date in ISO format",
+              description: "New end date in ISO format (REQUIRED when activating sprint). Examples: '2025-08-12T23:59:59Z' or '2025-08-12'",
             },
             state: {
               type: "string",
@@ -422,7 +422,7 @@ export function setupToolHandlers(
       },
       {
         name: "get_sprint_details",
-        description: "Get detailed information about a sprint including progress and issues",
+        description: "Get detailed information about a sprint including progress and issues. CRITICAL FOR AI: ALWAYS specify 'instance' parameter and use sprintId from create_sprint or board reports. Example: {working_dir: '/path', instance: 'onvex', sprintId: 335}",
         inputSchema: {
           type: "object",
           properties: {
@@ -444,7 +444,7 @@ export function setupToolHandlers(
       },
       {
         name: "move_issues_to_sprint",
-        description: "Move issues to a specific sprint",
+        description: "Add issues to a sprint. CRITICAL FOR AI: ALWAYS specify 'instance' parameter. Use list_issues first to get issue keys, and ensure sprint exists. Example: {working_dir: '/path', instance: 'onvex', sprintId: 123, issueKeys: ['JOB-1', 'JOB-2']}",
         inputSchema: {
           type: "object",
           properties: {
@@ -473,7 +473,7 @@ export function setupToolHandlers(
       },
       {
         name: "complete_sprint",
-        description: "Complete/close an active sprint",
+        description: "Complete/close an active sprint. CRITICAL FOR AI: ALWAYS specify 'instance' parameter. Use get_sprint_details first to verify sprint is active. Example: {working_dir: '/path', instance: 'onvex', sprintId: 335}",
         inputSchema: {
           type: "object",
           properties: {
@@ -497,7 +497,7 @@ export function setupToolHandlers(
       // Board Management Tools
       {
         name: "list_boards",
-        description: "List all boards in the project or workspace",
+        description: "List all Jira boards for a project. CRITICAL FOR AI: ALWAYS specify 'instance' and usually 'projectKey' to filter results. Use this first to find board IDs for sprint operations. Example: {working_dir: '/path', instance: 'onvex', projectKey: 'JOB'}",
         inputSchema: {
           type: "object",
           properties: {
@@ -536,7 +536,7 @@ export function setupToolHandlers(
       },
       {
         name: "get_board_configuration",
-        description: "Get detailed configuration of a board including columns and settings",
+        description: "Get detailed configuration of a board including columns and settings. CRITICAL FOR AI: ALWAYS specify 'instance' and use boardId from list_boards. Example: {working_dir: '/path', instance: 'onvex', boardId: 102}",
         inputSchema: {
           type: "object",
           properties: {
@@ -558,7 +558,7 @@ export function setupToolHandlers(
       },
       {
         name: "get_board_reports",
-        description: "Get board reports and current metrics",
+        description: "Get board reports and current metrics. CRITICAL FOR AI: ALWAYS specify 'instance' and use boardId from list_boards. Example: {working_dir: '/path', instance: 'onvex', boardId: 102}",
         inputSchema: {
           type: "object",
           properties: {
@@ -580,7 +580,7 @@ export function setupToolHandlers(
       },
       {
         name: "manage_board_quickfilters",
-        description: "List or get details of board quickfilters",
+        description: "List or get details of board quickfilters. CRITICAL FOR AI: ALWAYS specify 'instance' and use boardId from list_boards. Example: {working_dir: '/path', instance: 'onvex', boardId: 102, action: 'list'}",
         inputSchema: {
           type: "object",
           properties: {
@@ -613,7 +613,7 @@ export function setupToolHandlers(
       // Epic Management Tools
       {
         name: "create_epic",
-        description: "Create a new epic",
+        description: "Create a new Epic issue. CRITICAL FOR AI: ALWAYS specify 'instance' and 'projectKey'. Epics organize related stories/tasks. Example: {working_dir: '/path', instance: 'onvex', projectKey: 'JOB', name: 'User Auth', summary: 'Authentication System Epic'}",
         inputSchema: {
           type: "object",
           properties: {
@@ -658,7 +658,7 @@ export function setupToolHandlers(
       },
       {
         name: "update_epic_details",
-        description: "Update epic details using Agile API",
+        description: "Update epic details using Agile API. CRITICAL FOR AI: ALWAYS specify 'instance' and use exact epicKey from list_epic_issues. Example: {working_dir: '/path', instance: 'onvex', epicKey: 'JOB-1', name: 'Updated Epic Name'}",
         inputSchema: {
           type: "object",
           properties: {
@@ -696,7 +696,7 @@ export function setupToolHandlers(
       },
       {
         name: "rank_epics",
-        description: "Rank epics relative to each other",
+        description: "Rank epics relative to each other. CRITICAL FOR AI: ALWAYS specify 'instance' and use exact epic keys. Example: {working_dir: '/path', instance: 'onvex', epicToRank: 'JOB-1', rankAfterEpic: 'JOB-2'}",
         inputSchema: {
           type: "object",
           properties: {
@@ -730,7 +730,7 @@ export function setupToolHandlers(
       },
       {
         name: "list_epic_issues",
-        description: "List all issues in an epic",
+        description: "List all issues in an epic. CRITICAL FOR AI: ALWAYS specify 'instance' and use exact epicKey from create_epic. Example: {working_dir: '/path', instance: 'onvex', epicKey: 'JOB-1'}",
         inputSchema: {
           type: "object",
           properties: {
@@ -760,7 +760,7 @@ export function setupToolHandlers(
       },
       {
         name: "move_issues_to_epic",
-        description: "Move issues to an epic",
+        description: "Move issues to an epic. CRITICAL FOR AI: ALWAYS specify 'instance' and use exact keys from list_issues and create_epic. Example: {working_dir: '/path', instance: 'onvex', epicKey: 'JOB-1', issueKeys: ['JOB-5', 'JOB-6']}",
         inputSchema: {
           type: "object",
           properties: {
@@ -791,7 +791,7 @@ export function setupToolHandlers(
       // Advanced Issue Operations
       {
         name: "bulk_update_issues",
-        description: "Update multiple issues at once",
+        description: "Update multiple issues at once. CRITICAL FOR AI: ALWAYS specify 'instance' and use exact issue keys from list_issues. Example: {working_dir: '/path', instance: 'onvex', issueKeys: ['JOB-1', 'JOB-2'], updates: {status: 'In Progress'}}",
         inputSchema: {
           type: "object",
           properties: {
@@ -849,7 +849,7 @@ export function setupToolHandlers(
       },
       {
         name: "rank_issues",
-        description: "Rank multiple issues relative to other issues",
+        description: "Rank multiple issues relative to other issues. CRITICAL FOR AI: ALWAYS specify 'instance' and use exact issue keys. Example: {working_dir: '/path', instance: 'onvex', issues: ['JOB-1'], rankAfterIssue: 'JOB-2'}",
         inputSchema: {
           type: "object",
           properties: {
@@ -886,7 +886,7 @@ export function setupToolHandlers(
       },
       {
         name: "estimate_issue",
-        description: "Set estimation value for an issue",
+        description: "Set estimation value for an issue. CRITICAL FOR AI: ALWAYS specify 'instance' and use exact issue key. Example: {working_dir: '/path', instance: 'onvex', issueKey: 'JOB-1', value: '5'}",
         inputSchema: {
           type: "object",
           properties: {
@@ -914,7 +914,7 @@ export function setupToolHandlers(
       // Reporting & Analytics Tools
       {
         name: "get_sprint_report",
-        description: "Get comprehensive sprint report with metrics and analysis",
+        description: "Get comprehensive sprint report with metrics and analysis. CRITICAL FOR AI: ALWAYS specify 'instance' and use boardId from list_boards. Example: {working_dir: '/path', instance: 'onvex', boardId: 102, sprintId: 335}",
         inputSchema: {
           type: "object",
           properties: {
@@ -940,7 +940,7 @@ export function setupToolHandlers(
       },
       {
         name: "get_velocity_chart_data",
-        description: "Get velocity chart data for team performance analysis",
+        description: "Get velocity chart data for team performance analysis. CRITICAL FOR AI: ALWAYS specify 'instance' and use boardId from list_boards. Example: {working_dir: '/path', instance: 'onvex', boardId: 102}",
         inputSchema: {
           type: "object",
           properties: {
@@ -966,7 +966,7 @@ export function setupToolHandlers(
       },
       {
         name: "get_burndown_chart_data",
-        description: "Get burndown chart data for a specific sprint",
+        description: "Get burndown chart data for a specific sprint. CRITICAL FOR AI: ALWAYS specify 'instance' and use sprintId from create_sprint. Example: {working_dir: '/path', instance: 'onvex', sprintId: 335}",
         inputSchema: {
           type: "object",
           properties: {
@@ -988,7 +988,7 @@ export function setupToolHandlers(
       },
       {
         name: "get_board_cumulative_flow",
-        description: "Get cumulative flow diagram data for a board",
+        description: "Get cumulative flow diagram data for a board. CRITICAL FOR AI: ALWAYS specify 'instance' and use boardId from list_boards. Example: {working_dir: '/path', instance: 'onvex', boardId: 102}",
         inputSchema: {
           type: "object",
           properties: {
@@ -1012,7 +1012,7 @@ export function setupToolHandlers(
       // Project Planning Tools - Version Management
       {
         name: "list_versions",
-        description: "List project versions for release planning and milestone tracking. Shows active, released, and archived versions with timeline information. Use first to discover available versions, then follow with get_version_progress for detailed tracking.",
+        description: "List project versions for release planning and milestone tracking. CRITICAL FOR AI: ALWAYS specify 'instance' and usually 'projectKey'. Example: {working_dir: '/path', instance: 'onvex', projectKey: 'JOB'}",
         inputSchema: {
           type: "object",
           properties: {
@@ -1034,7 +1034,7 @@ export function setupToolHandlers(
       },
       {
         name: "create_version",
-        description: "Create a new project version/release for organizing work by milestones. Typically used before sprint planning to establish release targets. Follow with list_versions to confirm creation.",
+        description: "Create a new project version/release for organizing work by milestones. CRITICAL FOR AI: ALWAYS specify 'instance' and 'projectKey'. Example: {working_dir: '/path', instance: 'onvex', projectKey: 'JOB', name: 'v1.0.0'}",
         inputSchema: {
           type: "object",
           properties: {
@@ -1080,7 +1080,7 @@ export function setupToolHandlers(
       },
       {
         name: "get_version_progress",
-        description: "Get detailed version progress including issue counts, status breakdown, and timeline analysis. Essential for release planning and stakeholder reporting. Use version ID from list_versions output.",
+        description: "Get detailed version progress including issue counts, status breakdown, and timeline analysis. CRITICAL FOR AI: ALWAYS specify 'instance' and use versionId from list_versions. Example: {working_dir: '/path', instance: 'onvex', versionId: '10123'}",
         inputSchema: {
           type: "object",
           properties: {
@@ -1108,7 +1108,7 @@ export function setupToolHandlers(
       // Project Planning Tools - Component Management
       {
         name: "list_components",
-        description: "List project components for feature-based work organization. Components help categorize issues by system areas, features, or teams. Use first to discover existing components, then follow with get_component_progress for detailed tracking.",
+        description: "List project components for feature-based work organization. CRITICAL FOR AI: ALWAYS specify 'instance' and usually 'projectKey'. Example: {working_dir: '/path', instance: 'onvex', projectKey: 'JOB'}",
         inputSchema: {
           type: "object",
           properties: {
@@ -1130,7 +1130,7 @@ export function setupToolHandlers(
       },
       {
         name: "create_component",
-        description: "Create a new project component for organizing work by feature areas, system modules, or team ownership. Essential for structured project organization and workload distribution. Use after project setup and before issue creation.",
+        description: "Create a new project component for organizing work by feature areas. CRITICAL FOR AI: ALWAYS specify 'instance' and 'projectKey'. Example: {working_dir: '/path', instance: 'onvex', projectKey: 'JOB', name: 'Frontend UI'}",
         inputSchema: {
           type: "object",
           properties: {
@@ -1168,7 +1168,7 @@ export function setupToolHandlers(
       },
       {
         name: "get_component_progress",
-        description: "Get detailed component progress with issue distribution, team workload, and completion metrics. Critical for feature-based planning and team performance tracking. Use component ID from list_components output.",
+        description: "Get detailed component progress with issue distribution and completion metrics. CRITICAL FOR AI: ALWAYS specify 'instance' and use componentId from list_components. Example: {working_dir: '/path', instance: 'onvex', componentId: '10456'}",
         inputSchema: {
           type: "object",
           properties: {
@@ -1196,7 +1196,7 @@ export function setupToolHandlers(
       // Project Planning Tools - Project Search
       {
         name: "search_projects",
-        description: "Search and discover projects across the Jira instance with advanced filtering. Essential for cross-project planning, finding related projects, and project portfolio management. Use before detailed project analysis.",
+        description: "Search and discover projects across the Jira instance with advanced filtering. CRITICAL FOR AI: ALWAYS specify 'instance'. Example: {working_dir: '/path', instance: 'onvex', query: 'mobile'}",
         inputSchema: {
           type: "object",
           properties: {
@@ -1242,7 +1242,7 @@ export function setupToolHandlers(
       },
       {
         name: "get_project_details",
-        description: "Get comprehensive project information including components, versions, roles, and features. Essential for project analysis, planning context, and understanding project structure. Use project key from search_projects or known project.",
+        description: "Get comprehensive project information including components, versions, and features. CRITICAL FOR AI: ALWAYS specify 'instance' and 'projectKey'. Example: {working_dir: '/path', instance: 'onvex', projectKey: 'JOB'}",
         inputSchema: {
           type: "object",
           properties: {
@@ -1270,7 +1270,7 @@ export function setupToolHandlers(
       // Project Planning Tools - Advanced Planning
       {
         name: "search_issues_jql",
-        description: "Advanced issue search using Jira Query Language (JQL) for powerful project analysis and custom reporting. Essential for complex filtering, cross-project queries, and detailed project insights. Use before creating filters to test queries.",
+        description: "Advanced issue search using Jira Query Language (JQL) for powerful project analysis. CRITICAL FOR AI: ALWAYS specify 'instance'. Example: {working_dir: '/path', instance: 'onvex', jql: 'project = JOB AND status != Done'}",
         inputSchema: {
           type: "object",
           properties: {
@@ -1312,7 +1312,7 @@ export function setupToolHandlers(
       },
       {
         name: "create_filter",
-        description: "Create saved filters for consistent project tracking, dashboard widgets, and team collaboration. Essential for recurring project views and shared reporting. Test JQL with search_issues_jql first before creating filters.",
+        description: "Create saved filters for consistent project tracking and reporting. CRITICAL FOR AI: ALWAYS specify 'instance'. Test JQL first with search_issues_jql. Example: {working_dir: '/path', instance: 'onvex', name: 'Sprint Planning', jql: 'project = JOB'}",
         inputSchema: {
           type: "object",
           properties: {
@@ -1372,7 +1372,7 @@ export function setupToolHandlers(
       },
       {
         name: "list_plans",
-        description: "List strategic plans for high-level roadmap and portfolio management (Jira Premium feature). Plans organize multiple projects and teams around business objectives. Returns informative alternatives if feature not available.",
+        description: "List strategic plans for high-level roadmap and portfolio management (Jira Premium feature). CRITICAL FOR AI: ALWAYS specify 'instance'. Example: {working_dir: '/path', instance: 'onvex'}",
         inputSchema: {
           type: "object",
           properties: {
@@ -1840,7 +1840,7 @@ export function setupToolHandlers(
       // Project Planning Tools - Workflow Insight
       {
         name: "get_project_statuses",
-        description: "Get comprehensive project workflow statuses and transitions for process understanding and planning optimization. Essential for workflow analysis, status planning, and understanding issue lifecycle. Use before creating complex JQL queries with status filters.",
+        description: "Get comprehensive project workflow statuses and transitions. CRITICAL FOR AI: ALWAYS specify 'instance' and usually 'projectKey'. Example: {working_dir: '/path', instance: 'onvex', projectKey: 'JOB'}",
         inputSchema: {
           type: "object",
           properties: {
@@ -1862,7 +1862,7 @@ export function setupToolHandlers(
       },
       {
         name: "get_issue_types",
-        description: "Get available issue types, their hierarchy, required fields, and configuration for effective work categorization and issue creation planning. Critical for understanding project structure and choosing appropriate issue types for different work items.",
+        description: "Get available issue types, their hierarchy, and required fields. CRITICAL FOR AI: ALWAYS specify 'instance' and usually 'projectKey'. Example: {working_dir: '/path', instance: 'onvex', projectKey: 'JOB'}",
         inputSchema: {
           type: "object",
           properties: {
@@ -2047,11 +2047,39 @@ export function setupToolHandlers(
           statusText: error.response?.statusText,
           data: error.response?.data,
         });
+        
+        const status = error.response?.status;
+        const errorData = error.response?.data;
+        
+        // Provide specific error messages based on status codes
+        let enhancedMessage = "";
+        
+        if (status === 400) {
+          enhancedMessage = `Bad Request (400): ${errorData?.errorMessages?.join(', ') || 'Invalid request parameters'}`;
+          if (errorData?.errors) {
+            const fieldErrors = Object.entries(errorData.errors)
+              .map(([field, message]) => `${field}: ${message}`)
+              .join(', ');
+            enhancedMessage += `\nField errors: ${fieldErrors}`;
+          }
+        } else if (status === 401) {
+          enhancedMessage = "Authentication Failed (401): Invalid API token or expired session. Check your Jira credentials.";
+        } else if (status === 403) {
+          enhancedMessage = `Permission Denied (403): You don't have permission to perform this action. ${errorData?.errorMessages?.join(', ') || 'Contact your Jira administrator.'}`;
+        } else if (status === 404) {
+          enhancedMessage = `Not Found (404): The requested resource doesn't exist. ${errorData?.errorMessages?.join(', ') || 'Check your project key, issue key, or other identifiers.'}`;
+        } else if (status === 429) {
+          enhancedMessage = "Rate Limited (429): Too many requests. Please wait and try again.";
+        } else {
+          enhancedMessage = `HTTP ${status}: ${error.response?.statusText || 'Unknown error'}`;
+          if (errorData?.errorMessages?.length) {
+            enhancedMessage += `\nMessages: ${errorData.errorMessages.join(', ')}`;
+          }
+        }
+        
         throw new McpError(
           ErrorCode.InternalError,
-          `Jira API error: ${JSON.stringify(
-            error.response?.data ?? error.message
-          )}`
+          enhancedMessage
         );
       }
       throw error;

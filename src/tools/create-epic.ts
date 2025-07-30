@@ -134,7 +134,7 @@ Use \`list_epic_issues\` to view issues in this epic or \`move_issues_to_epic\` 
               content: [
                 {
                   type: "text",
-                  text: `✅ Epic created successfully! (Note: Epic name field not available in this project)
+                  text: `✅ Epic created successfully!
 
 📊 **Epic Details:**
 - **Key:** ${createResponse.data.key}
@@ -142,6 +142,8 @@ Use \`list_epic_issues\` to view issues in this epic or \`move_issues_to_epic\` 
 - **Project:** ${effectiveProjectKey}
 ${priority ? `- **Priority:** ${priority}` : ''}
 ${labels && labels.length > 0 ? `- **Labels:** ${labels.join(', ')}` : ''}
+
+⚠️ **Note:** This project doesn't support the "Epic Name" field (customfield_10011). The epic was created using the Summary field instead.
 
 🔗 **Link:** https://${instanceConfig.domain}/browse/${createResponse.data.key}
 

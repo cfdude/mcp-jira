@@ -5,3 +5,4 @@ build/
 .jira-config.json
 .claude/
 CLAUDE.md
+.mcp.json

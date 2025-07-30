@@ -46,6 +46,7 @@ export async function handleCreateSprint(args: CreateSprintArgs) {
       if (endDate) sprintData.endDate = endDate;
 
       try {
+        console.error("Sprint creation request:", JSON.stringify(sprintData, null, 2));
         const response = await agileAxiosInstance.post("/sprint", sprintData);
         
         return {
@@ -69,9 +70,35 @@ Use \`update_sprint\` to modify sprint details or \`move_issues_to_sprint\` to a
         };
       } catch (error: any) {
         console.error("Error creating sprint:", error);
+        console.error("Sprint data that failed:", JSON.stringify(sprintData, null, 2));
+        console.error("Error response:", error.response?.data);
+        
+        let errorMessage = `Failed to create sprint: ${error.response?.data?.message || error.message}`;
+        
+        if (error.response?.status === 400) {
+          const errorData = error.response.data;
+          if (errorData?.errorMessages?.length) {
+            errorMessage += `\nErrors: ${errorData.errorMessages.join(', ')}`;
+          }
+          if (errorData?.errors) {
+            const fieldErrors = Object.entries(errorData.errors)
+              .map(([field, message]) => `${field}: ${message}`)
+              .join(', ');
+            errorMessage += `\nField errors: ${fieldErrors}`;
+          }
+          
+          // Add debugging info for board issues
+          if (errorMessage.includes('board') || errorMessage.includes('Board')) {
+            errorMessage += `\n\nDebugging Info:
+- Attempted Board ID: ${effectiveBoardId}
+- Project Key: ${effectiveProjectKey}
+- Board ID was ${boardId ? 'explicitly provided' : 'auto-detected'}`;
+          }
+        }
+        
         throw new McpError(
           ErrorCode.InternalError,
-          `Failed to create sprint: ${error.response?.data?.message || error.message}`
+          errorMessage
         );
       }
     }
