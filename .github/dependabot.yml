@@ -1,0 +1,66 @@
+version: 2
+updates:
+  # Enable version updates for npm
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    assignees:
+      - "robsherman"
+    reviewers:
+      - "robsherman"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "automated"
+    # Group security updates
+    groups:
+      security-updates:
+        patterns:
+          - "*"
+        update-types:
+          - "security"
+      # Group patch updates for non-security
+      patch-updates:
+        patterns:
+          - "*"
+        update-types:
+          - "patch"
+      # Group minor updates
+      minor-updates:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+    # Ignore major version updates for stable dependencies
+    ignore:
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 3
+    assignees:
+      - "robsherman"
+    reviewers:
+      - "robsherman"
+    commit-message:
+      prefix: "chore(ci)"
+      include: "scope"
+    labels:
+      - "github-actions"
+      - "automated"

@@ -112,7 +112,7 @@ Complete at least one sprint to see velocity data.`,
           velocityData.length > 0 ? Math.round(totalIssues / velocityData.length) : 0;
 
         // Find best and worst sprints
-        const validSprints = velocityData.filter((s) => !s.error);
+        const validSprints = velocityData.filter(s => !s.error);
         const bestSprint = validSprints.reduce(
           (best, current) =>
             current.completedStoryPoints > best.completedStoryPoints ? current : best,

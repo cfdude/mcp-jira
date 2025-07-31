@@ -96,7 +96,10 @@ export async function handleCreateIssue(args: CreateIssueArgs) {
       // Add description in ADF format if provided
       if (description) {
         const adfDescription = textToAdf(description);
-        console.error('[DEBUG] Converting description to ADF:', JSON.stringify(adfDescription, null, 2));
+        console.error(
+          '[DEBUG] Converting description to ADF:',
+          JSON.stringify(adfDescription, null, 2)
+        );
         fields.description = adfDescription;
       }
 

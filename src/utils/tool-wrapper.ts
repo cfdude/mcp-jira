@@ -66,10 +66,10 @@ export async function withJiraContext<TArgs extends BaseArgs, TResult>(
   handler: (toolArgs: Omit<TArgs, keyof BaseArgs>, context: JiraContext) => Promise<TResult>
 ): Promise<TResult> {
   const { working_dir, instance, ...toolArgs } = args;
-  
+
   // Generate request ID for tracing
   const requestId = Math.random().toString(36).substring(2, 15);
-  
+
   // Use simple logger for this request
 
   logger.info('Tool request started', {
@@ -108,9 +108,9 @@ export async function withJiraContext<TArgs extends BaseArgs, TResult>(
       projectKey: projectKey || '',
     };
 
-    logger.debug('Calling tool handler', { 
+    logger.debug('Calling tool handler', {
       toolArgs: Object.keys(toolArgs),
-      contextReady: true 
+      contextReady: true,
     });
 
     // Call the actual tool handler with clean context
@@ -118,24 +118,25 @@ export async function withJiraContext<TArgs extends BaseArgs, TResult>(
     const result = await handler(toolArgs as Omit<TArgs, keyof BaseArgs>, context);
     const duration = Date.now() - startTime;
 
-    logger.info('Tool request completed successfully', { 
+    logger.info('Tool request completed successfully', {
       duration: `${duration}ms`,
-      resultType: typeof result 
+      resultType: typeof result,
     });
 
     return result;
-
   } catch (error: any) {
     logger.error('Tool request failed', {
       error: error.message,
       stack: error.stack,
-      axiosError: error.response ? {
-        status: error.response.status,
-        statusText: error.response.statusText,
-        data: error.response.data
-      } : undefined
+      axiosError: error.response
+        ? {
+            status: error.response.status,
+            statusText: error.response.statusText,
+            data: error.response.data,
+          }
+        : undefined,
     });
-    
+
     throw error;
   }
 }

@@ -60,7 +60,7 @@ export async function resolveUserToAccountId(
 
     // Look for exact display name match first
     let exactMatch = users.find(
-      (user) => user.displayName.toLowerCase() === userIdentifier.toLowerCase()
+      user => user.displayName.toLowerCase() === userIdentifier.toLowerCase()
     );
 
     if (exactMatch) {
@@ -72,7 +72,7 @@ export async function resolveUserToAccountId(
 
     // Look for email match
     exactMatch = users.find(
-      (user) => user.emailAddress?.toLowerCase() === userIdentifier.toLowerCase()
+      user => user.emailAddress?.toLowerCase() === userIdentifier.toLowerCase()
     );
 
     if (exactMatch) {
@@ -84,7 +84,7 @@ export async function resolveUserToAccountId(
 
     // Look for partial display name match
     const partialMatches = users.filter(
-      (user) =>
+      user =>
         user.displayName.toLowerCase().includes(userIdentifier.toLowerCase()) ||
         userIdentifier.toLowerCase().includes(user.displayName.toLowerCase())
     );
@@ -96,7 +96,7 @@ export async function resolveUserToAccountId(
     }
 
     if (partialMatches.length > 1) {
-      const matchNames = partialMatches.map((u) => `"${u.displayName}"`).join(', ');
+      const matchNames = partialMatches.map(u => `"${u.displayName}"`).join(', ');
       throw new McpError(
         ErrorCode.InvalidRequest,
         `Multiple users found matching "${userIdentifier}": ${matchNames}. Please be more specific.`
@@ -105,9 +105,9 @@ export async function resolveUserToAccountId(
 
     // If we get here, we found users but no good matches
     const availableNames = users
-      .filter((u) => u.active)
+      .filter(u => u.active)
       .slice(0, 10) // Limit to first 10 to avoid huge error messages
-      .map((u) => `"${u.displayName}"`)
+      .map(u => `"${u.displayName}"`)
       .join(', ');
 
     throw new McpError(

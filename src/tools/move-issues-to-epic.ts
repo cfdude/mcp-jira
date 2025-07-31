@@ -33,7 +33,7 @@ export async function handleMoveIssuesToEpic(args: MoveIssuesToEpicArgs) {
               text: `✅ Successfully moved ${issueKeys.length} issue(s) to epic ${epicKey}!
 
 **Moved Issues:**
-${issueKeys.map((key) => `- ${key}`).join('\n')}
+${issueKeys.map(key => `- ${key}`).join('\n')}
 
 Use \`list_epic_issues\` to view all issues in this epic.`,
             },

@@ -36,8 +36,8 @@ export async function handleGetIssueTypes(args: GetIssueTypesArgs) {
           .get(`/issue/createmeta`, {
             params: {
               projectKeys: projectKey,
-              expand: 'projects.issuetypes.fields'
-            }
+              expand: 'projects.issuetypes.fields',
+            },
           })
           .catch(() => ({ data: { projects: [] } }));
 

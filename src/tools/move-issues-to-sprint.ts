@@ -38,7 +38,7 @@ export async function handleMoveIssuesToSprint(args: MoveIssuesToSprintArgs) {
               text: `✅ Successfully moved ${issueKeys.length} issue(s) to sprint ${sprintId}!
 
 **Moved Issues:**
-${issueKeys.map((key) => `- ${key}`).join('\n')}
+${issueKeys.map(key => `- ${key}`).join('\n')}
 
 Use \`get_sprint_details\` to view updated sprint information.`,
             },

@@ -15,7 +15,7 @@ const formatMessage = (level: string, message: string | Error, meta?: any): stri
   const msg = message instanceof Error ? message.message : message;
   const stack = message instanceof Error ? message.stack : undefined;
   const metaStr = meta ? ` ${JSON.stringify(meta)}` : '';
-  
+
   let result = `[${timestamp}] ${level.toUpperCase()}: ${msg}${metaStr}`;
   if (stack) {
     result += `\n${stack}`;
@@ -40,7 +40,7 @@ const createLogger = (baseMeta?: any): Logger => ({
     const combinedMeta = baseMeta ? { ...baseMeta, ...meta } : meta;
     console.debug(formatMessage('debug', message, combinedMeta));
   },
-  child: (meta: any) => createLogger(baseMeta ? { ...baseMeta, ...meta } : meta)
+  child: (meta: any) => createLogger(baseMeta ? { ...baseMeta, ...meta } : meta),
 });
 
 const logger = createLogger();

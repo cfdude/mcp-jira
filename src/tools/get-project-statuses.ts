@@ -161,7 +161,7 @@ ${
 ## 📈 All Unique Statuses
 ${Array.from(allStatuses)
   .sort()
-  .map((statusName) => {
+  .map(statusName => {
     const status = statusDetails[statusName];
     let emoji = '⚪';
     switch (status.categoryKey) {

@@ -73,7 +73,7 @@ export async function handleListInstances(args: ListInstancesArgs) {
     // List project mappings
     if (projects.length > 0) {
       result += '## Project-to-Instance Mappings\n\n';
-      projects.forEach((project) => {
+      projects.forEach(project => {
         result += `- **${project.projectKey}** → ${project.instance}\n`;
       });
       result += '\n';

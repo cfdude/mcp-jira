@@ -2042,7 +2042,7 @@ export function setupToolHandlers(server: Server, storyPointsFieldRef: { current
     ],
   }));
 
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  server.setRequestHandler(CallToolRequestSchema, async request => {
     try {
       const { working_dir, ...args } = request.params.arguments as any;
 

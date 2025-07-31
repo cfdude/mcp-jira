@@ -37,17 +37,17 @@ export function textToAdf(text: string): AdfDocument {
           content: [
             {
               type: 'text',
-              text: ''
-            }
-          ]
-        }
-      ]
+              text: '',
+            },
+          ],
+        },
+      ],
     };
   }
 
   // Split text by newlines and create paragraphs
   const lines = text.split('\n').filter(line => line.trim() !== '');
-  
+
   if (lines.length === 0) {
     return {
       type: 'doc',
@@ -58,11 +58,11 @@ export function textToAdf(text: string): AdfDocument {
           content: [
             {
               type: 'text',
-              text: ''
-            }
-          ]
-        }
-      ]
+              text: '',
+            },
+          ],
+        },
+      ],
     };
   }
 
@@ -71,15 +71,15 @@ export function textToAdf(text: string): AdfDocument {
     content: [
       {
         type: 'text',
-        text: line.trim()
-      }
-    ]
+        text: line.trim(),
+      },
+    ],
   }));
 
   return {
     type: 'doc',
     version: 1,
-    content
+    content,
   };
 }
 
@@ -106,9 +106,9 @@ export function createAdfParagraph(text: string): AdfNode {
     content: [
       {
         type: 'text',
-        text: text || ''
-      }
-    ]
+        text: text || '',
+      },
+    ],
   };
 }
 
@@ -122,9 +122,9 @@ export function createAdfCodeBlock(code: string, language?: string): AdfNode {
     content: [
       {
         type: 'text',
-        text: code
-      }
-    ]
+        text: code,
+      },
+    ],
   };
 }
 
@@ -142,12 +142,12 @@ export function createAdfBulletList(items: string[]): AdfNode {
           content: [
             {
               type: 'text',
-              text: item
-            }
-          ]
-        }
-      ]
-    }))
+              text: item,
+            },
+          ],
+        },
+      ],
+    })),
   };
 }
 
@@ -171,11 +171,11 @@ export function ensureAdfFormat(input: string | AdfDocument): AdfDocument {
   if (typeof input === 'string') {
     return textToAdf(input);
   }
-  
+
   if (isAdfFormat(input)) {
     return input as AdfDocument;
   }
-  
+
   // If it's some other object, convert to string and then to ADF
   return textToAdf(String(input));
 }

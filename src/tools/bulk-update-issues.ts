@@ -117,9 +117,9 @@ export async function handleBulkUpdateIssues(args: BulkUpdateIssuesArgs) {
         }
       }
 
-      const successCount = results.filter((r) => r.status === 'success').length;
+      const successCount = results.filter(r => r.status === 'success').length;
       const errorCount = errors.length;
-      const skippedCount = results.filter((r) => r.status === 'skipped').length;
+      const skippedCount = results.filter(r => r.status === 'skipped').length;
 
       return {
         content: [
@@ -137,8 +137,8 @@ ${
   successCount > 0
     ? `**Successfully Updated:**
 ${results
-  .filter((r) => r.status === 'success')
-  .map((r) => `✅ ${r.issueKey}`)
+  .filter(r => r.status === 'success')
+  .map(r => `✅ ${r.issueKey}`)
   .join('\n')}
 
 `
@@ -146,7 +146,7 @@ ${results
 }${
               errorCount > 0
                 ? `**Errors:**
-${errors.map((e) => `❌ ${e.issueKey}: ${e.message}`).join('\n')}
+${errors.map(e => `❌ ${e.issueKey}: ${e.message}`).join('\n')}
 
 `
                 : ''
@@ -154,8 +154,8 @@ ${errors.map((e) => `❌ ${e.issueKey}: ${e.message}`).join('\n')}
               skippedCount > 0
                 ? `**Skipped:**
 ${results
-  .filter((r) => r.status === 'skipped')
-  .map((r) => `⏭️ ${r.issueKey}: ${r.message}`)
+  .filter(r => r.status === 'skipped')
+  .map(r => `⏭️ ${r.issueKey}: ${r.message}`)
   .join('\n')}
 
 `

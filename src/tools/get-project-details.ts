@@ -34,7 +34,7 @@ export async function handleGetProjectDetails(args: GetProjectDetailsArgs) {
       additionalDataPromises.push(
         axiosInstance
           .get(`/project/${projectKey}/versions`)
-          .then((res) => ({ type: 'versions', data: res.data }))
+          .then(res => ({ type: 'versions', data: res.data }))
           .catch(() => ({ type: 'versions', data: [] }))
       );
 
@@ -42,7 +42,7 @@ export async function handleGetProjectDetails(args: GetProjectDetailsArgs) {
       additionalDataPromises.push(
         axiosInstance
           .get(`/project/${projectKey}/components`)
-          .then((res) => ({ type: 'components', data: res.data }))
+          .then(res => ({ type: 'components', data: res.data }))
           .catch(() => ({ type: 'components', data: [] }))
       );
 
@@ -50,7 +50,7 @@ export async function handleGetProjectDetails(args: GetProjectDetailsArgs) {
       additionalDataPromises.push(
         axiosInstance
           .get(`/project/${projectKey}/role`)
-          .then((res) => ({ type: 'roles', data: res.data }))
+          .then(res => ({ type: 'roles', data: res.data }))
           .catch(() => ({ type: 'roles', data: {} }))
       );
 
@@ -58,7 +58,7 @@ export async function handleGetProjectDetails(args: GetProjectDetailsArgs) {
       additionalDataPromises.push(
         axiosInstance
           .get(`/project/${projectKey}/hierarchy`)
-          .then((res) => ({ type: 'hierarchy', data: res.data }))
+          .then(res => ({ type: 'hierarchy', data: res.data }))
           .catch(() => ({ type: 'hierarchy', data: [] }))
       );
 
@@ -66,7 +66,7 @@ export async function handleGetProjectDetails(args: GetProjectDetailsArgs) {
       additionalDataPromises.push(
         axiosInstance
           .get(`/project/${projectKey}/features`)
-          .then((res) => ({ type: 'features', data: res.data }))
+          .then(res => ({ type: 'features', data: res.data }))
           .catch(() => ({ type: 'features', data: {} }))
       );
 

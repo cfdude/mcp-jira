@@ -77,7 +77,7 @@ export function formatIssue(issue: JiraIssue, storyPointsField: string | null = 
   const comments = issue.fields.comment?.comments;
   if (comments && comments.length > 0) {
     output += '\n\nComments:';
-    comments.forEach((comment) => {
+    comments.forEach(comment => {
       output += `\n\n[${formatDate(comment.created)} by ${
         comment.author.displayName
       }]\n${comment.body}`;
@@ -99,7 +99,7 @@ export function formatIssueList(
     return 'No issues found.';
   }
 
-  const formattedIssues = issues.map((issue) => formatIssue(issue, storyPointsField)).join('\n\n');
+  const formattedIssues = issues.map(issue => formatIssue(issue, storyPointsField)).join('\n\n');
   return `Latest Jira Issues in ${projectKey} Project:\n\n${formattedIssues}\n\nTotal Issues: ${issues.length}`;
 }
 
