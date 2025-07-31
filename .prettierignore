@@ -1,0 +1,8 @@
+node_modules/
+build/
+dist/
+*.min.js
+*.log
+.git/
+package-lock.json
+swagger-v3.v3.json

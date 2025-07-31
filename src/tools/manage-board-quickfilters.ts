@@ -1,9 +1,9 @@
 /**
  * Handler for the manage_board_quickfilters tool
  */
-import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
-import { withJiraContext } from "../utils/tool-wrapper.js";
-import { BaseArgs } from "../types.js";
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import { withJiraContext } from '../utils/tool-wrapper.js';
+import { BaseArgs } from '../types.js';
 
 export interface ManageBoardQuickfiltersArgs extends BaseArgs {
   boardId: number;
@@ -17,11 +17,11 @@ export async function handleManageBoardQuickfilters(args: ManageBoardQuickfilter
     { requiresProject: false },
     async (toolArgs, { agileAxiosInstance }) => {
       const { boardId, action, quickfilterId } = toolArgs;
-      
-      console.error("Managing board quickfilters:", {
+
+      console.error('Managing board quickfilters:', {
         boardId,
         action,
-        quickfilterId
+        quickfilterId,
       });
 
       try {
@@ -29,12 +29,12 @@ export async function handleManageBoardQuickfilters(args: ManageBoardQuickfilter
           // List all quickfilters for the board
           const response = await agileAxiosInstance.get(`/board/${boardId}/quickfilter`);
           const quickfilters = response.data.values || [];
-          
+
           if (quickfilters.length === 0) {
             return {
               content: [
                 {
-                  type: "text",
+                  type: 'text',
                   text: `📋 **Quickfilters for Board ${boardId}:**
 
 No quickfilters found for this board.`,
@@ -46,16 +46,18 @@ No quickfilters found for this board.`,
           return {
             content: [
               {
-                type: "text",
+                type: 'text',
                 text: `📋 **Quickfilters for Board ${boardId}:**
 
-${quickfilters.map((filter: any) => {
-  return `**${filter.name}** (ID: ${filter.id})
+${quickfilters
+  .map((filter: any) => {
+    return `**${filter.name}** (ID: ${filter.id})
 - **Query:** ${filter.jql || 'No JQL defined'}
 - **Description:** ${filter.description || 'No description'}
 - **Position:** ${filter.position || 'N/A'}
 `;
-}).join('\n')}
+  })
+  .join('\n')}
 
 **Total:** ${quickfilters.length} quickfilter(s)
 
@@ -72,13 +74,15 @@ Use \`manage_board_quickfilters\` with action 'get' to view detailed filter info
           }
 
           // Get specific quickfilter details
-          const response = await agileAxiosInstance.get(`/board/${boardId}/quickfilter/${quickfilterId}`);
+          const response = await agileAxiosInstance.get(
+            `/board/${boardId}/quickfilter/${quickfilterId}`
+          );
           const filter = response.data;
 
           return {
             content: [
               {
-                type: "text",
+                type: 'text',
                 text: `🔍 **Quickfilter Details:**
 
 **${filter.name}** (ID: ${filter.id})
@@ -98,8 +102,8 @@ This quickfilter can be used to filter issues on the board based on the JQL quer
           );
         }
       } catch (error: any) {
-        console.error("Error managing board quickfilters:", error);
-        
+        console.error('Error managing board quickfilters:', error);
+
         if (error.response?.status === 404) {
           if (quickfilterId) {
             throw new McpError(
@@ -107,13 +111,10 @@ This quickfilter can be used to filter issues on the board based on the JQL quer
               `Quickfilter ${quickfilterId} not found on board ${boardId}`
             );
           } else {
-            throw new McpError(
-              ErrorCode.InvalidRequest,
-              `Board ${boardId} not found`
-            );
+            throw new McpError(ErrorCode.InvalidRequest, `Board ${boardId} not found`);
           }
         }
-        
+
         throw new McpError(
           ErrorCode.InternalError,
           `Failed to manage board quickfilters: ${error.response?.data?.message || error.message}`

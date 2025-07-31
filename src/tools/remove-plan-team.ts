@@ -1,7 +1,7 @@
 /**
  * Remove a team from a strategic plan (Jira Premium feature)
  */
-import { withJiraContext } from "../utils/tool-wrapper.js";
+import { withJiraContext } from '../utils/tool-wrapper.js';
 
 interface RemovePlanTeamArgs {
   working_dir: string;
@@ -11,20 +11,17 @@ interface RemovePlanTeamArgs {
 }
 
 export async function handleRemovePlanTeam(args: RemovePlanTeamArgs) {
-  return withJiraContext(
-    args,
-    { requiresProject: false },
-    async (toolArgs, { axiosInstance }) => {
-      try {
-        const response = await axiosInstance.delete(
-          `/rest/api/3/plans/plan/${toolArgs.planId}/team/${toolArgs.teamId}`
-        );
+  return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
+    try {
+      const response = await axiosInstance.delete(
+        `/plans/plan/${toolArgs.planId}/team/${toolArgs.teamId}`
+      );
 
-        return {
-          content: [
-            {
-              type: "text",
-              text: `# Team Removed Successfully
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `# Team Removed Successfully
 
 ## ✅ Operation Complete
 Team \`${toolArgs.teamId}\` has been successfully removed from plan \`${toolArgs.planId}\`.
@@ -110,17 +107,17 @@ If this was a mistake or you need to re-add the team:
 
 ## ⚠️ Note
 Plans are a Jira Premium feature requiring Advanced Roadmaps. Ensure your instance has this feature enabled and you have appropriate permissions for team management.`,
-            },
-          ],
-        };
-      } catch (error: any) {
-        // Check for specific error types
-        if (error.response?.status === 404) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `# Team or Plan Not Found
+          },
+        ],
+      };
+    } catch (error: any) {
+      // Check for specific error types
+      if (error.response?.status === 404) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `# Team or Plan Not Found
 
 Could not remove team \`${toolArgs.teamId}\` from plan \`${toolArgs.planId}\`. This could be due to:
 
@@ -147,17 +144,17 @@ If the team was already removed by another user or process:
 - The operation has already been completed
 - No further action is needed
 - Use \`get-plan-teams\` to confirm current team assignments`,
-              },
-            ],
-          };
-        }
+            },
+          ],
+        };
+      }
 
-        if (error.response?.status === 403) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `# Access Denied
+      if (error.response?.status === 403) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `# Access Denied
 
 You don't have permission to remove team \`${toolArgs.teamId}\` from plan \`${toolArgs.planId}\`. This could be due to:
 
@@ -179,17 +176,17 @@ You don't have permission to remove team \`${toolArgs.teamId}\` from plan \`${to
 - Request temporary permissions for plan management
 
 Contact your Jira administrator if you need access to manage plan teams.`,
-              },
-            ],
-          };
-        }
+            },
+          ],
+        };
+      }
 
-        if (error.response?.status === 400) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `# Invalid Request
+      if (error.response?.status === 400) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `# Invalid Request
 
 The request to remove team \`${toolArgs.teamId}\` from plan \`${toolArgs.planId}\` could not be processed. This could be due to:
 
@@ -200,7 +197,7 @@ The request to remove team \`${toolArgs.teamId}\` from plan \`${toolArgs.planId}
 - **Active Dependencies**: The team may have active work that prevents removal
 
 ## Error Details
-${error.response?.data?.errorMessages?.join(", ") || error.message}
+${error.response?.data?.errorMessages?.join(', ') || error.message}
 
 ## Troubleshooting
 1. **Check Team Assignment**: Use \`get-plan-teams\` to verify the team is currently assigned
@@ -214,17 +211,17 @@ Consider these factors:
 - Does the plan have minimum team requirements?
 - Are there dependencies that rely on this team?
 - Is this the last team assigned to the plan?`,
-              },
-            ],
-          };
-        }
+            },
+          ],
+        };
+      }
 
-        if (error.response?.status === 409) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `# Cannot Remove Team
+      if (error.response?.status === 409) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `# Cannot Remove Team
 
 Team \`${toolArgs.teamId}\` cannot be removed from plan \`${toolArgs.planId}\` due to a conflict. This could be due to:
 
@@ -241,24 +238,23 @@ Team \`${toolArgs.teamId}\` cannot be removed from plan \`${toolArgs.planId}\` d
 4. **Check Plan Requirements**: Verify if this team is required for plan completion
 
 ## Error Details
-${error.response?.data?.errorMessages?.join(", ") || error.message}
+${error.response?.data?.errorMessages?.join(', ') || error.message}
 
 Use \`get-plan-teams\` and \`get-plan\` to understand the current plan state and resolve conflicts before attempting removal again.`,
-              },
-            ],
-          };
-        }
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Error removing team from plan: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
             },
           ],
-          isError: true,
         };
       }
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Error removing team from plan: ${error.response?.data?.errorMessages?.join(', ') || error.message}`,
+          },
+        ],
+        isError: true,
+      };
     }
-  );
+  });
 }

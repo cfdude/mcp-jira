@@ -1,10 +1,10 @@
 /**
  * Jira API interaction utilities with multi-instance support
  */
-import axios, { AxiosInstance } from "axios";
-import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
-import { JIRA_DOMAIN, JIRA_EMAIL, JIRA_API_TOKEN } from "../config.js";
-import { JiraInstanceConfig } from "../types.js";
+import axios, { AxiosInstance } from 'axios';
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import { JIRA_DOMAIN, JIRA_EMAIL, JIRA_API_TOKEN } from '../config.js';
+import { JiraInstanceConfig } from '../types.js';
 
 /**
  * Create Axios instances for Jira API using specific instance configuration
@@ -14,26 +14,27 @@ export function createJiraApiInstances(instanceConfig?: JiraInstanceConfig) {
   const domain = instanceConfig?.domain || JIRA_DOMAIN;
   const email = instanceConfig?.email || JIRA_EMAIL;
   const apiToken = instanceConfig?.apiToken || JIRA_API_TOKEN;
-  
+
   if (!domain || !email || !apiToken) {
     throw new McpError(
       ErrorCode.InvalidRequest,
-      "Missing Jira configuration. Either provide instance config or set JIRA_DOMAIN, JIRA_EMAIL, and JIRA_API_TOKEN environment variables."
+      'Missing Jira configuration. Either provide instance config or set JIRA_DOMAIN, JIRA_EMAIL, and JIRA_API_TOKEN environment variables.'
     );
   }
 
   console.error(`Creating Jira API instances for domain: ${domain}, email: ${email}`);
+  console.error(`BaseURL will be: https://${domain}.atlassian.net/rest/api/3`);
 
-  // Create instance for REST API v2
+  // Create instance for REST API v3
   const axiosInstance = axios.create({
-    baseURL: `https://${domain}.atlassian.net/rest/api/2`,
+    baseURL: `https://${domain}.atlassian.net/rest/api/3`,
     auth: {
       username: email,
       password: apiToken,
     },
     headers: {
-      "Accept": "application/json",
-      "Content-Type": "application/json",
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
     },
   });
 
@@ -45,8 +46,8 @@ export function createJiraApiInstances(instanceConfig?: JiraInstanceConfig) {
       password: apiToken,
     },
     headers: {
-      "Accept": "application/json",
-      "Content-Type": "application/json",
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
     },
   });
 
@@ -68,19 +69,16 @@ export async function getBoardId(
   projectKey: string
 ): Promise<number> {
   // Use Agile REST API to find the board for the project
-  const boardsResponse = await agileAxiosInstance.get(
-    `/board`,
-    {
-      params: {
-        projectKeyOrId: projectKey
-      }
-    }
-  );
-  
+  const boardsResponse = await agileAxiosInstance.get(`/board`, {
+    params: {
+      projectKeyOrId: projectKey,
+    },
+  });
+
   if (!boardsResponse.data.values.length) {
     throw new McpError(ErrorCode.InvalidRequest, 'No board found for project');
   }
-  
+
   return boardsResponse.data.values[0].id;
 }
 
@@ -91,19 +89,16 @@ export async function getActiveSprint(
   agileAxiosInstance: AxiosInstance,
   boardId: number
 ): Promise<number | null> {
-  const sprintsResponse = await agileAxiosInstance.get(
-    `/board/${boardId}/sprint`,
-    {
-      params: {
-        state: 'active'
-      }
-    }
-  );
-  
+  const sprintsResponse = await agileAxiosInstance.get(`/board/${boardId}/sprint`, {
+    params: {
+      state: 'active',
+    },
+  });
+
   if (!sprintsResponse.data.values.length) {
     return null;
   }
-  
+
   return sprintsResponse.data.values[0].id;
 }
 
@@ -115,12 +110,11 @@ export async function checkStoryPointsField(
   storyPointsField: string | null
 ): Promise<void> {
   const fieldConfigResponse = await axiosInstance.get('/field');
-  const storyPointsFields = fieldConfigResponse.data
-    .filter((field: any) => {
-      // Look specifically for "Story Points" field
-      return field.name === 'Story Points';
-    });
-  
+  const storyPointsFields = fieldConfigResponse.data.filter((field: any) => {
+    // Look specifically for "Story Points" field
+    return field.name === 'Story Points';
+  });
+
   if (storyPointsFields.length === 0) {
     console.error(`Story Points field not found. Please ensure:
 1. The "Story Points" field is configured in Jira
@@ -143,18 +137,15 @@ export async function inspectSprints(
   agileAxiosInstance: AxiosInstance,
   boardId: number
 ): Promise<void> {
-  console.error("Found board ID:", boardId);
+  console.error('Found board ID:', boardId);
 
-  const sprintsResponse = await agileAxiosInstance.get(
-    `/board/${boardId}/sprint`,
-    {
-      params: {
-        state: 'active,closed,future'
-      }
-    }
-  );
-  
-  console.error("Available sprints:", JSON.stringify(sprintsResponse.data, null, 2));
+  const sprintsResponse = await agileAxiosInstance.get(`/board/${boardId}/sprint`, {
+    params: {
+      state: 'active,closed,future',
+    },
+  });
+
+  console.error('Available sprints:', JSON.stringify(sprintsResponse.data, null, 2));
 }
 
 /**
@@ -167,53 +158,52 @@ export async function inspectIssueFields(
 ): Promise<void> {
   // Get field configuration first
   const fieldConfigResponse = await axiosInstance.get('/field');
-  
+
   // Look specifically for Story Points field
-  const storyPointsFields = fieldConfigResponse.data
-    .filter((field: any) => {
-      const nameMatch = field.name?.toLowerCase().includes('story point');
-      const descMatch = field.description?.toLowerCase().includes('story point');
-      return nameMatch || descMatch;
-    });
-  
-  console.error("Story Points Fields:", JSON.stringify(storyPointsFields, null, 2));
+  const storyPointsFields = fieldConfigResponse.data.filter((field: any) => {
+    const nameMatch = field.name?.toLowerCase().includes('story point');
+    const descMatch = field.description?.toLowerCase().includes('story point');
+    return nameMatch || descMatch;
+  });
+
+  console.error('Story Points Fields:', JSON.stringify(storyPointsFields, null, 2));
 
   // Get available field metadata for the project
   const metadataResponse = await axiosInstance.get('/issue/createmeta', {
     params: {
       projectKeys: projectKey,
-      expand: 'projects.issuetypes.fields'
-    }
+      expand: 'projects.issuetypes.fields',
+    },
   });
 
   // Look for Story Points in available fields
   const availableFields = metadataResponse.data.projects[0].issuetypes[0].fields;
-  const storyPointsInMeta = Object.entries(availableFields)
-    .filter(([_, value]: [string, any]) =>
+  const storyPointsInMeta = Object.entries(availableFields).filter(
+    ([_, value]: [string, any]) =>
       value.name?.toLowerCase().includes('story point') ||
       value.description?.toLowerCase().includes('story point')
-    );
-  
-  console.error("Story Points in Metadata:", JSON.stringify(storyPointsInMeta, null, 2));
+  );
+
+  console.error('Story Points in Metadata:', JSON.stringify(storyPointsInMeta, null, 2));
 
   // Get current field values
   const response = await axiosInstance.get(`/issue/${issueKey}`, {
     params: {
-      expand: "renderedFields,names,schema,editmeta",
-      fields: "*all"
-    }
+      expand: 'renderedFields,names,schema,editmeta',
+      fields: '*all',
+    },
   });
-  
+
   // Look for potential Story Points values in custom fields
   const customFields = Object.entries(response.data.fields)
-    .filter(([key, value]) =>
-      key.startsWith('customfield_') &&
-      (typeof value === 'number' || value === null)
+    .filter(
+      ([key, value]) =>
+        key.startsWith('customfield_') && (typeof value === 'number' || value === null)
     )
     .reduce((acc: any, [key, value]) => {
       acc[key] = value;
       return acc;
     }, {});
-  
-  console.error("Potential Story Points Fields:", JSON.stringify(customFields, null, 2));
+
+  console.error('Potential Story Points Fields:', JSON.stringify(customFields, null, 2));
 }

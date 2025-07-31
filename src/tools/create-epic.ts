@@ -1,9 +1,9 @@
 /**
  * Handler for the create_epic tool
  */
-import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
-import { withJiraContext } from "../utils/tool-wrapper.js";
-import { BaseArgs } from "../types.js";
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import { withJiraContext } from '../utils/tool-wrapper.js';
+import { BaseArgs } from '../types.js';
 
 export interface CreateEpicArgs extends BaseArgs {
   projectKey?: string;
@@ -20,46 +20,38 @@ export async function handleCreateEpic(args: CreateEpicArgs) {
     { requiresProject: true },
     async (toolArgs, { axiosInstance, projectKey: contextProjectKey, instanceConfig }) => {
       const { name, summary, description, priority, labels, projectKey } = toolArgs;
-      
+
       const effectiveProjectKey = projectKey || contextProjectKey;
-      
-      console.error("Creating epic with:", {
+
+      console.error('Creating epic with:', {
         projectKey: effectiveProjectKey,
         name,
         summary,
         description,
         priority,
-        labels
+        labels,
       });
 
       // First, get project metadata to verify Epic issue type exists
-      const metaResponse = await axiosInstance.get(
-        "/issue/createmeta",
-        {
-          params: {
-            projectKeys: effectiveProjectKey,
-            expand: "projects.issuetypes",
-          },
-        }
-      );
+      const metaResponse = await axiosInstance.get('/issue/createmeta', {
+        params: {
+          projectKeys: effectiveProjectKey,
+          expand: 'projects.issuetypes',
+        },
+      });
 
       const project = metaResponse.data.projects[0];
       if (!project) {
-        throw new McpError(
-          ErrorCode.InvalidRequest,
-          `Project ${effectiveProjectKey} not found`
-        );
+        throw new McpError(ErrorCode.InvalidRequest, `Project ${effectiveProjectKey} not found`);
       }
 
-      const epicIssueType = project.issuetypes.find(
-        (t: any) => t.name.toLowerCase() === 'epic'
-      );
+      const epicIssueType = project.issuetypes.find((t: any) => t.name.toLowerCase() === 'epic');
       if (!epicIssueType) {
         throw new McpError(
           ErrorCode.InvalidRequest,
           `Epic issue type not found. Available types: ${project.issuetypes
             .map((t: any) => t.name)
-            .join(", ")}`
+            .join(', ')}`
         );
       }
 
@@ -69,9 +61,9 @@ export async function handleCreateEpic(args: CreateEpicArgs) {
         },
         summary,
         issuetype: {
-          name: 'Epic'
+          name: 'Epic',
         },
-        labels: labels || []
+        labels: labels || [],
       };
 
       // Add description if provided
@@ -88,19 +80,19 @@ export async function handleCreateEpic(args: CreateEpicArgs) {
       // Add priority if specified
       if (priority) {
         fields.priority = {
-          name: priority
+          name: priority,
         };
       }
 
       try {
-        const createResponse = await axiosInstance.post("/issue", {
+        const createResponse = await axiosInstance.post('/issue', {
           fields,
         });
 
         return {
           content: [
             {
-              type: "text",
+              type: 'text',
               text: `✅ Epic created successfully!
 
 📊 **Epic Details:**
@@ -118,22 +110,22 @@ Use \`list_epic_issues\` to view issues in this epic or \`move_issues_to_epic\` 
           ],
         };
       } catch (error: any) {
-        console.error("Error creating epic:", error);
-        
+        console.error('Error creating epic:', error);
+
         // If epic name field fails, try without it
         if (error.response?.status === 400 && error.response?.data?.errors?.customfield_10011) {
-          console.error("Epic name field not available, trying without it...");
+          console.error('Epic name field not available, trying without it...');
           delete fields.customfield_10011;
-          
+
           try {
-            const createResponse = await axiosInstance.post("/issue", {
+            const createResponse = await axiosInstance.post('/issue', {
               fields,
             });
 
             return {
               content: [
                 {
-                  type: "text",
+                  type: 'text',
                   text: `✅ Epic created successfully!
 
 📊 **Epic Details:**
@@ -158,7 +150,7 @@ Use \`update_issue\` to modify the epic or \`move_issues_to_epic\` to add issues
             );
           }
         }
-        
+
         throw new McpError(
           ErrorCode.InternalError,
           `Failed to create epic: ${error.response?.data?.message || error.message}`

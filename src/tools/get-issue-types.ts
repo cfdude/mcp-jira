@@ -1,7 +1,7 @@
 /**
  * Get available issue types for work categorization and project planning
  */
-import { withJiraContext } from "../utils/tool-wrapper.js";
+import { withJiraContext } from '../utils/tool-wrapper.js';
 
 interface GetIssueTypesArgs {
   working_dir: string;
@@ -15,86 +15,95 @@ export async function handleGetIssueTypes(args: GetIssueTypesArgs) {
     { requiresProject: false },
     async (toolArgs, { axiosInstance, projectKey: resolvedProjectKey }) => {
       const projectKey = toolArgs.projectKey || resolvedProjectKey;
-      
+
       if (!projectKey) {
-        throw new Error("projectKey is required for getting issue types");
+        throw new Error('projectKey is required for getting issue types');
       }
-  try {
-    // Get issue types for the project
-    const response = await axiosInstance.get(
-      `/rest/api/3/issuetype/project`,
-      {
-        params: { projectId: projectKey }
-      }
-    );
+      try {
+        // First get the project details to get the numeric project ID
+        const projectResponse = await axiosInstance.get(`/project/${projectKey}`);
+        const projectId = projectResponse.data.id;
 
-    const issueTypes = response.data;
+        // Get issue types for the project using the numeric project ID
+        const response = await axiosInstance.get(`/issuetype/project`, {
+          params: { projectId: projectId },
+        });
 
-    // Get create metadata to understand which fields are available for each issue type
-    const createMetaResponse = await axiosInstance.get(
-      `/rest/api/3/issue/createmeta/${projectKey}/issuetypes`
-    ).catch(() => ({ data: { values: [] } }));
+        const issueTypes = response.data;
 
-    const createMeta = createMetaResponse.data.values || [];
-    
-    // Create a map of issue type metadata
-    const metadataMap: { [key: string]: any } = {};
-    createMeta.forEach((meta: any) => {
-      metadataMap[meta.id] = meta;
-    });
+        // Get create metadata to understand which fields are available for each issue type
+        const createMetaResponse = await axiosInstance
+          .get(`/issue/createmeta`, {
+            params: {
+              projectKeys: projectKey,
+              expand: 'projects.issuetypes.fields'
+            }
+          })
+          .catch(() => ({ data: { projects: [] } }));
 
-    // Get project hierarchy to understand issue type relationships
-    const hierarchyResponse = await axiosInstance.get(
-      `/rest/api/3/project/${projectKey}/hierarchy`
-    ).catch(() => ({ data: [] }));
+        const createMeta = createMetaResponse.data.projects?.[0]?.issuetypes || [];
 
-    const hierarchy = hierarchyResponse.data || [];
+        // Create a map of issue type metadata
+        const metadataMap: { [key: string]: any } = {};
+        createMeta.forEach((meta: any) => {
+          metadataMap[meta.id] = meta;
+        });
 
-    // Process issue types with additional information
-    const processedIssueTypes = issueTypes.map((issueType: any) => {
-      const metadata = metadataMap[issueType.id];
-      const hierarchyInfo = hierarchy.find((h: any) => h.id === issueType.id);
-      
-      return {
-        id: issueType.id,
-        name: issueType.name,
-        description: issueType.description || "No description",
-        iconUrl: issueType.iconUrl,
-        avatarId: issueType.avatarId,
-        entityId: issueType.entityId,
-        hierarchyLevel: issueType.hierarchyLevel || 0,
-        scope: issueType.scope,
-        subtask: issueType.subtask || false,
-        untranslatedName: issueType.untranslatedName,
-        // Additional metadata from create meta
-        fields: metadata?.fields ? Object.keys(metadata.fields).length : 0,
-        requiredFields: metadata?.fields ? 
-          Object.entries(metadata.fields)
-            .filter(([, field]: [string, any]) => field.required)
-            .map(([fieldKey]) => fieldKey) : [],
-        // Hierarchy information
-        hierarchyInfo: hierarchyInfo || null
-      };
-    });
+        // Get project hierarchy to understand issue type relationships
+        const hierarchyResponse = await axiosInstance
+          .get(`/project/${projectKey}/hierarchy`)
+          .catch(() => ({ data: [] }));
 
-    // Categorize issue types
-    const standardTypes = processedIssueTypes.filter((type: any) => !type.subtask && type.hierarchyLevel === 0);
-    const epicTypes = processedIssueTypes.filter((type: any) => type.hierarchyLevel > 0);
-    const subtaskTypes = processedIssueTypes.filter((type: any) => type.subtask);
+        const hierarchy = hierarchyResponse.data || [];
 
-    // Calculate usage statistics
-    const typeStats = {
-      total: processedIssueTypes.length,
-      standard: standardTypes.length,
-      epics: epicTypes.length,
-      subtasks: subtaskTypes.length
-    };
+        // Process issue types with additional information
+        const processedIssueTypes = issueTypes.map((issueType: any) => {
+          const metadata = metadataMap[issueType.id];
+          const hierarchyInfo = hierarchy.find((h: any) => h.id === issueType.id);
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: `# Issue Types for Project ${projectKey}
+          return {
+            id: issueType.id,
+            name: issueType.name,
+            description: issueType.description || 'No description',
+            iconUrl: issueType.iconUrl,
+            avatarId: issueType.avatarId,
+            entityId: issueType.entityId,
+            hierarchyLevel: issueType.hierarchyLevel || 0,
+            scope: issueType.scope,
+            subtask: issueType.subtask || false,
+            untranslatedName: issueType.untranslatedName,
+            // Additional metadata from create meta
+            fields: metadata?.fields ? Object.keys(metadata.fields).length : 0,
+            requiredFields: metadata?.fields
+              ? Object.entries(metadata.fields)
+                  .filter(([, field]: [string, any]) => field.required)
+                  .map(([fieldKey]) => fieldKey)
+              : [],
+            // Hierarchy information
+            hierarchyInfo: hierarchyInfo || null,
+          };
+        });
+
+        // Categorize issue types
+        const standardTypes = processedIssueTypes.filter(
+          (type: any) => !type.subtask && type.hierarchyLevel === 0
+        );
+        const epicTypes = processedIssueTypes.filter((type: any) => type.hierarchyLevel > 0);
+        const subtaskTypes = processedIssueTypes.filter((type: any) => type.subtask);
+
+        // Calculate usage statistics
+        const typeStats = {
+          total: processedIssueTypes.length,
+          standard: standardTypes.length,
+          epics: epicTypes.length,
+          subtasks: subtaskTypes.length,
+        };
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `# Issue Types for Project ${projectKey}
 
 ## 📊 Overview
 - **Total Issue Types**: ${typeStats.total}
@@ -103,74 +112,98 @@ export async function handleGetIssueTypes(args: GetIssueTypesArgs) {
 - **Subtask Types**: ${typeStats.subtasks}
 
 ## 📋 Standard Issue Types (${standardTypes.length})
-${standardTypes.length > 0 ? 
-  standardTypes.map((type: any) => 
-    `### ${type.name} (ID: ${type.id})
+${
+  standardTypes.length > 0
+    ? standardTypes
+        .map(
+          (type: any) =>
+            `### ${type.name} (ID: ${type.id})
 - **Description**: ${type.description}
 - **Hierarchy Level**: ${type.hierarchyLevel}
 - **Available Fields**: ${type.fields}
 - **Required Fields**: ${type.requiredFields.length > 0 ? type.requiredFields.join(', ') : 'None specified'}
 - **Scope**: ${type.scope?.type || 'Global'}
 ${type.iconUrl ? `- **Icon**: ${type.iconUrl}` : ''}`
-  ).join('\n\n') : 
-  "No standard issue types found."
+        )
+        .join('\n\n')
+    : 'No standard issue types found.'
 }
 
-${epicTypes.length > 0 ? `
+${
+  epicTypes.length > 0
+    ? `
 ## 🎯 Epic/Parent Types (${epicTypes.length})
-${epicTypes.map((type: any) => 
-  `### ${type.name} (ID: ${type.id})
+${epicTypes
+  .map(
+    (type: any) =>
+      `### ${type.name} (ID: ${type.id})
 - **Description**: ${type.description}
 - **Hierarchy Level**: ${type.hierarchyLevel}
 - **Available Fields**: ${type.fields}
 - **Required Fields**: ${type.requiredFields.length > 0 ? type.requiredFields.join(', ') : 'None specified'}
 ${type.iconUrl ? `- **Icon**: ${type.iconUrl}` : ''}`
-).join('\n\n')}
-` : ""}
+  )
+  .join('\n\n')}
+`
+    : ''
+}
 
-${subtaskTypes.length > 0 ? `
+${
+  subtaskTypes.length > 0
+    ? `
 ## 📝 Subtask Types (${subtaskTypes.length})
-${subtaskTypes.map((type: any) => 
-  `### ${type.name} (ID: ${type.id})
+${subtaskTypes
+  .map(
+    (type: any) =>
+      `### ${type.name} (ID: ${type.id})
 - **Description**: ${type.description}
 - **Parent Type**: Subtask (can be created under other issues)
 - **Available Fields**: ${type.fields}
 - **Required Fields**: ${type.requiredFields.length > 0 ? type.requiredFields.join(', ') : 'None specified'}
 ${type.iconUrl ? `- **Icon**: ${type.iconUrl}` : ''}`
-).join('\n\n')}
-` : ""}
+  )
+  .join('\n\n')}
+`
+    : ''
+}
 
 ## 🏗️ Issue Type Hierarchy
-${hierarchy.length > 0 ? 
-  hierarchy.map((level: any) => 
-    `- **Level ${level.level || 0}**: ${level.name} (${level.issueTypes?.length || 0} types)`
-  ).join('\n') : 
-  "No hierarchy information available."
+${
+  hierarchy.length > 0
+    ? hierarchy
+        .map(
+          (level: any) =>
+            `- **Level ${level.level || 0}**: ${level.name} (${level.issueTypes?.length || 0} types)`
+        )
+        .join('\n')
+    : 'No hierarchy information available.'
 }
 
 ## 💡 Planning Guidelines
 
 ### When to Use Each Type:
-${standardTypes.map((type: any) => {
-  let suggestion = "";
-  const name = type.name.toLowerCase();
-  
-  if (name.includes('story') || name.includes('user story')) {
-    suggestion = "Use for user-facing features and functionality";
-  } else if (name.includes('task')) {
-    suggestion = "Use for general work items and technical tasks";
-  } else if (name.includes('bug') || name.includes('defect')) {
-    suggestion = "Use for reporting and tracking software defects";
-  } else if (name.includes('epic')) {
-    suggestion = "Use for large features that span multiple sprints";
-  } else if (name.includes('improvement') || name.includes('enhancement')) {
-    suggestion = "Use for improvements to existing functionality";
-  } else {
-    suggestion = "Custom issue type - check with team for usage guidelines";
-  }
-  
-  return `- **${type.name}**: ${suggestion}`;
-}).join('\n')}
+${standardTypes
+  .map((type: any) => {
+    let suggestion = '';
+    const name = type.name.toLowerCase();
+
+    if (name.includes('story') || name.includes('user story')) {
+      suggestion = 'Use for user-facing features and functionality';
+    } else if (name.includes('task')) {
+      suggestion = 'Use for general work items and technical tasks';
+    } else if (name.includes('bug') || name.includes('defect')) {
+      suggestion = 'Use for reporting and tracking software defects';
+    } else if (name.includes('epic')) {
+      suggestion = 'Use for large features that span multiple sprints';
+    } else if (name.includes('improvement') || name.includes('enhancement')) {
+      suggestion = 'Use for improvements to existing functionality';
+    } else {
+      suggestion = 'Custom issue type - check with team for usage guidelines';
+    }
+
+    return `- **${type.name}**: ${suggestion}`;
+  })
+  .join('\n')}
 
 ### Field Configuration:
 - Issue types with more required fields need more upfront planning
@@ -178,20 +211,20 @@ ${standardTypes.map((type: any) => {
 - Use subtasks to break down larger work items into manageable pieces
 
 ## 🔧 Configuration Insights
-- **Complexity**: ${typeStats.total > 10 ? "High - Many issue types available" : typeStats.total > 5 ? "Medium - Good variety" : "Low - Simple setup"}
+- **Complexity**: ${typeStats.total > 10 ? 'High - Many issue types available' : typeStats.total > 5 ? 'Medium - Good variety' : 'Low - Simple setup'}
 - **Hierarchy Depth**: ${Math.max(...processedIssueTypes.map((t: any) => t.hierarchyLevel))} levels
-- **Customization**: ${processedIssueTypes.some((t: any) => t.scope?.type === 'PROJECT') ? "Project-specific types configured" : "Using global issue types"}
+- **Customization**: ${processedIssueTypes.some((t: any) => t.scope?.type === 'PROJECT') ? 'Project-specific types configured' : 'Using global issue types'}
 
 Use these issue types strategically to categorize and organize your project work effectively!`,
-        },
-      ],
-    };
+            },
+          ],
+        };
       } catch (error: any) {
         return {
           content: [
             {
-              type: "text",
-              text: `Error getting issue types: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
+              type: 'text',
+              text: `Error getting issue types: ${error.response?.data?.errorMessages?.join(', ') || error.message}`,
             },
           ],
           isError: true,

@@ -1,9 +1,9 @@
 /**
  * Handler for the rank_epics tool
  */
-import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
-import { withJiraContext } from "../utils/tool-wrapper.js";
-import { RankEpicsArgs } from "../types.js";
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import { withJiraContext } from '../utils/tool-wrapper.js';
+import { RankEpicsArgs } from '../types.js';
 
 export async function handleRankEpics(args: RankEpicsArgs) {
   return withJiraContext(
@@ -11,26 +11,26 @@ export async function handleRankEpics(args: RankEpicsArgs) {
     { extractProjectFromIssueKey: true },
     async (toolArgs, { agileAxiosInstance }) => {
       const { epicToRank, rankBeforeEpic, rankAfterEpic, rankCustomFieldId } = toolArgs;
-      
-      console.error("Ranking epics:", {
+
+      console.error('Ranking epics:', {
         epicToRank,
         rankBeforeEpic,
         rankAfterEpic,
-        rankCustomFieldId
+        rankCustomFieldId,
       });
 
       // Validate that only one ranking option is provided
       if (rankBeforeEpic && rankAfterEpic) {
         throw new McpError(
           ErrorCode.InvalidRequest,
-          "Cannot specify both rankBeforeEpic and rankAfterEpic. Choose one."
+          'Cannot specify both rankBeforeEpic and rankAfterEpic. Choose one.'
         );
       }
 
       if (!rankBeforeEpic && !rankAfterEpic) {
         throw new McpError(
           ErrorCode.InvalidRequest,
-          "Must specify either rankBeforeEpic or rankAfterEpic"
+          'Must specify either rankBeforeEpic or rankAfterEpic'
         );
       }
 
@@ -41,11 +41,11 @@ export async function handleRankEpics(args: RankEpicsArgs) {
 
       try {
         const response = await agileAxiosInstance.put(`/epic/${epicToRank}/rank`, rankData);
-        
+
         return {
           content: [
             {
-              type: "text",
+              type: 'text',
               text: `✅ Epic ranked successfully!
 
 📊 **Ranking Details:**
@@ -59,22 +59,22 @@ The epic has been repositioned in the epic ranking order.`,
           ],
         };
       } catch (error: any) {
-        console.error("Error ranking epics:", error);
-        
+        console.error('Error ranking epics:', error);
+
         if (error.response?.status === 404) {
           throw new McpError(
             ErrorCode.InvalidRequest,
             `Epic ${epicToRank} not found or target epic for ranking not found`
           );
         }
-        
+
         if (error.response?.status === 400) {
           throw new McpError(
             ErrorCode.InvalidRequest,
             `Invalid ranking request: ${error.response?.data?.message || 'Check epic keys and ranking parameters'}`
           );
         }
-        
+
         throw new McpError(
           ErrorCode.InternalError,
           `Failed to rank epics: ${error.response?.data?.message || error.message}`

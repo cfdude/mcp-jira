@@ -1,10 +1,10 @@
 /**
  * Handler for the bulk_update_issues tool
  */
-import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
-import { withJiraContext } from "../utils/tool-wrapper.js";
-import { resolveAssigneeValue } from "../utils/user-resolver.js";
-import { BulkUpdateIssuesArgs } from "../types.js";
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import { withJiraContext } from '../utils/tool-wrapper.js';
+import { resolveAssigneeValue } from '../utils/user-resolver.js';
+import { BulkUpdateIssuesArgs } from '../types.js';
 
 export async function handleBulkUpdateIssues(args: BulkUpdateIssuesArgs) {
   return withJiraContext(
@@ -12,26 +12,20 @@ export async function handleBulkUpdateIssues(args: BulkUpdateIssuesArgs) {
     { extractProjectFromIssueKey: true },
     async (toolArgs, { axiosInstance, agileAxiosInstance, projectConfig }) => {
       const { issueKeys, updates } = toolArgs;
-      
+
       const storyPointsField = projectConfig.storyPointsField;
-      
-      console.error("Bulk updating issues:", {
+
+      console.error('Bulk updating issues:', {
         issueKeys,
-        updates
+        updates,
       });
 
       if (!issueKeys || issueKeys.length === 0) {
-        throw new McpError(
-          ErrorCode.InvalidRequest,
-          "At least one issue key must be provided"
-        );
+        throw new McpError(ErrorCode.InvalidRequest, 'At least one issue key must be provided');
       }
 
       if (!updates || Object.keys(updates).length === 0) {
-        throw new McpError(
-          ErrorCode.InvalidRequest,
-          "At least one update field must be provided"
-        );
+        throw new McpError(ErrorCode.InvalidRequest, 'At least one update field must be provided');
       }
 
       const results: any[] = [];
@@ -41,14 +35,14 @@ export async function handleBulkUpdateIssues(args: BulkUpdateIssuesArgs) {
       for (const issueKey of issueKeys) {
         try {
           const fields: any = {};
-          
+
           // Build update fields
           if (updates.status) {
             // For status updates, we need to use transitions API
             // This is simplified - in production, you'd want to handle transitions properly
             fields.status = { name: updates.status };
           }
-          
+
           if (updates.assignee !== undefined) {
             try {
               const resolvedAccountId = await resolveAssigneeValue(axiosInstance, updates.assignee);
@@ -62,20 +56,20 @@ export async function handleBulkUpdateIssues(args: BulkUpdateIssuesArgs) {
               errors.push({
                 issueKey,
                 status: 'error',
-                message: `Failed to resolve assignee "${updates.assignee}": ${error.message}`
+                message: `Failed to resolve assignee "${updates.assignee}": ${error.message}`,
               });
               continue; // Skip this issue and move to the next one
             }
           }
-          
+
           if (updates.priority) {
             fields.priority = { name: updates.priority };
           }
-          
+
           if (updates.labels !== undefined) {
             fields.labels = updates.labels;
           }
-          
+
           if (updates.storyPoints !== undefined && storyPointsField) {
             fields[storyPointsField] = updates.storyPoints;
           }
@@ -85,7 +79,9 @@ export async function handleBulkUpdateIssues(args: BulkUpdateIssuesArgs) {
             try {
               if (updates.sprint.toLowerCase() === 'remove') {
                 // Remove from sprint - this requires specific handling
-                console.error(`Removing ${issueKey} from sprint (not implemented via standard API)`);
+                console.error(
+                  `Removing ${issueKey} from sprint (not implemented via standard API)`
+                );
               } else {
                 // Find sprint and move issue
                 // This would require additional logic to find sprint by name
@@ -102,34 +98,33 @@ export async function handleBulkUpdateIssues(args: BulkUpdateIssuesArgs) {
             results.push({
               issueKey,
               status: 'success',
-              message: 'Issue updated successfully'
+              message: 'Issue updated successfully',
             });
           } else {
             results.push({
               issueKey,
               status: 'skipped',
-              message: 'No applicable updates for this issue'
+              message: 'No applicable updates for this issue',
             });
           }
-          
         } catch (error: any) {
           console.error(`Error updating ${issueKey}:`, error);
           errors.push({
             issueKey,
             status: 'error',
-            message: error.response?.data?.message || error.message
+            message: error.response?.data?.message || error.message,
           });
         }
       }
 
-      const successCount = results.filter(r => r.status === 'success').length;
+      const successCount = results.filter((r) => r.status === 'success').length;
       const errorCount = errors.length;
-      const skippedCount = results.filter(r => r.status === 'skipped').length;
+      const skippedCount = results.filter((r) => r.status === 'skipped').length;
 
       return {
         content: [
           {
-            type: "text",
+            type: 'text',
             text: `📊 **Bulk Update Results:**
 
 **Summary:**
@@ -138,19 +133,37 @@ export async function handleBulkUpdateIssues(args: BulkUpdateIssuesArgs) {
 - **Errors:** ${errorCount}
 - **Skipped:** ${skippedCount}
 
-${successCount > 0 ? `**Successfully Updated:**
-${results.filter(r => r.status === 'success').map(r => `✅ ${r.issueKey}`).join('\n')}
+${
+  successCount > 0
+    ? `**Successfully Updated:**
+${results
+  .filter((r) => r.status === 'success')
+  .map((r) => `✅ ${r.issueKey}`)
+  .join('\n')}
 
-` : ''}${errorCount > 0 ? `**Errors:**
-${errors.map(e => `❌ ${e.issueKey}: ${e.message}`).join('\n')}
+`
+    : ''
+}${
+              errorCount > 0
+                ? `**Errors:**
+${errors.map((e) => `❌ ${e.issueKey}: ${e.message}`).join('\n')}
 
-` : ''}${skippedCount > 0 ? `**Skipped:**
-${results.filter(r => r.status === 'skipped').map(r => `⏭️ ${r.issueKey}: ${r.message}`).join('\n')}
+`
+                : ''
+            }${
+              skippedCount > 0
+                ? `**Skipped:**
+${results
+  .filter((r) => r.status === 'skipped')
+  .map((r) => `⏭️ ${r.issueKey}: ${r.message}`)
+  .join('\n')}
 
-` : ''}**Applied Updates:**
-${Object.entries(updates).map(([key, value]) => 
-  `- **${key}:** ${Array.isArray(value) ? value.join(', ') : value}`
-).join('\n')}`,
+`
+                : ''
+            }**Applied Updates:**
+${Object.entries(updates)
+  .map(([key, value]) => `- **${key}:** ${Array.isArray(value) ? value.join(', ') : value}`)
+  .join('\n')}`,
           },
         ],
       };

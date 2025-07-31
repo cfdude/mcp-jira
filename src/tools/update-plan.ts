@@ -1,14 +1,14 @@
 /**
  * Update an existing strategic plan using JSON Patch operations (Jira Premium feature)
  */
-import { withJiraContext } from "../utils/tool-wrapper.js";
+import { withJiraContext } from '../utils/tool-wrapper.js';
 
 interface UpdatePlanArgs {
   working_dir: string;
   instance?: string;
   planId: string;
   operations: Array<{
-    op: "add" | "remove" | "replace" | "move" | "copy" | "test";
+    op: 'add' | 'remove' | 'replace' | 'move' | 'copy' | 'test';
     path: string;
     value?: any;
     from?: string;
@@ -17,77 +17,78 @@ interface UpdatePlanArgs {
 }
 
 export async function handleUpdatePlan(args: UpdatePlanArgs) {
-  return withJiraContext(
-    args,
-    { requiresProject: false },
-    async (toolArgs, { axiosInstance }) => {
-      try {
-        const params: any = {};
-        if (toolArgs.useGroupId) {
-          params.useGroupId = toolArgs.useGroupId;
+  return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
+    try {
+      const params: any = {};
+      if (toolArgs.useGroupId) {
+        params.useGroupId = toolArgs.useGroupId;
+      }
+
+      const response = await axiosInstance.patch(
+        `/plans/plan/${toolArgs.planId}`,
+        toolArgs.operations,
+        {
+          params,
+          headers: {
+            'Content-Type': 'application/json-patch+json',
+          },
         }
+      );
 
-        const response = await axiosInstance.patch(
-          `/rest/api/3/plans/plan/${toolArgs.planId}`,
-          toolArgs.operations,
-          { 
-            params,
-            headers: {
-              'Content-Type': 'application/json-patch+json'
-            }
-          }
-        );
-
-        // Format the operations for display
-        const formatOperations = (operations: any[]) => {
-          return operations.map((op, index) => {
+      // Format the operations for display
+      const formatOperations = (operations: any[]) => {
+        return operations
+          .map((op, index) => {
             let description = `${index + 1}. **${op.op.toUpperCase()}**`;
-            
+
             switch (op.op) {
-              case "replace":
+              case 'replace':
                 description += ` \`${op.path}\` with new value`;
                 break;
-              case "add":
+              case 'add':
                 description += ` new value to \`${op.path}\``;
                 break;
-              case "remove":
+              case 'remove':
                 description += ` \`${op.path}\``;
                 break;
-              case "move":
+              case 'move':
                 description += ` from \`${op.from}\` to \`${op.path}\``;
                 break;
-              case "copy":
+              case 'copy':
                 description += ` from \`${op.from}\` to \`${op.path}\``;
                 break;
-              case "test":
+              case 'test':
                 description += ` that \`${op.path}\` has expected value`;
                 break;
               default:
                 description += ` operation on \`${op.path}\``;
             }
-            
-            if (op.value !== undefined && op.op !== "remove" && op.op !== "move") {
-              const valueStr = typeof op.value === 'object' 
-                ? JSON.stringify(op.value).substring(0, 100) + (JSON.stringify(op.value).length > 100 ? '...' : '')
-                : String(op.value);
+
+            if (op.value !== undefined && op.op !== 'remove' && op.op !== 'move') {
+              const valueStr =
+                typeof op.value === 'object'
+                  ? JSON.stringify(op.value).substring(0, 100) +
+                    (JSON.stringify(op.value).length > 100 ? '...' : '')
+                  : String(op.value);
               description += `\n   - Value: \`${valueStr}\``;
             }
-            
+
             return description;
-          }).join('\n\n');
-        };
+          })
+          .join('\n\n');
+      };
 
-        const updatedPlan = response.data;
+      const updatedPlan = response.data;
 
-        return {
-          content: [
-            {
-              type: "text",
-              text: `# Plan Updated Successfully
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `# Plan Updated Successfully
 
 ## 📋 Updated Plan Details
 - **Plan ID**: ${toolArgs.planId}
-- **Plan Name**: ${updatedPlan.name || "Name not returned"}
+- **Plan Name**: ${updatedPlan.name || 'Name not returned'}
 - **Last Updated**: ${new Date().toLocaleString()}
 
 ## 🔧 Operations Applied (${toolArgs.operations.length})
@@ -153,17 +154,17 @@ Here are some frequently used JSON Patch paths for plan updates:
 
 ## ⚠️ Note
 Plans are a Jira Premium feature requiring Advanced Roadmaps. Some operations may require specific permissions or feature availability.`,
-            },
-          ],
-        };
-      } catch (error: any) {
-        // Check for specific error types
-        if (error.response?.status === 404) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `# Plan Not Found
+          },
+        ],
+      };
+    } catch (error: any) {
+      // Check for specific error types
+      if (error.response?.status === 404) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `# Plan Not Found
 
 The plan with ID \`${toolArgs.planId}\` could not be found for updating. This could be due to:
 
@@ -179,17 +180,17 @@ The plan with ID \`${toolArgs.planId}\` could not be found for updating. This co
 ## Alternative Actions
 - Use \`list-plans\` to see all available plans
 - Use \`create-plan\` to create a new strategic plan if needed`,
-              },
-            ],
-          };
-        }
+            },
+          ],
+        };
+      }
 
-        if (error.response?.status === 403) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `# Access Denied
+      if (error.response?.status === 403) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `# Access Denied
 
 You don't have permission to update plan \`${toolArgs.planId}\`. This could be due to:
 
@@ -198,17 +199,17 @@ You don't have permission to update plan \`${toolArgs.planId}\`. This could be d
 - **Plan Permissions**: The plan may have specific edit permissions that exclude you
 
 Contact your Jira administrator if you need access to update plans.`,
-              },
-            ],
-          };
-        }
+            },
+          ],
+        };
+      }
 
-        if (error.response?.status === 400) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `# Invalid Update Operations
+      if (error.response?.status === 400) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `# Invalid Update Operations
 
 The update operations could not be applied to plan \`${toolArgs.planId}\`. This could be due to:
 
@@ -218,7 +219,7 @@ The update operations could not be applied to plan \`${toolArgs.planId}\`. This 
 - **Conflicting Operations**: Some operations may conflict with each other
 
 ## Error Details
-${error.response?.data?.errorMessages?.join(", ") || error.message}
+${error.response?.data?.errorMessages?.join(', ') || error.message}
 
 ## JSON Patch Operation Format
 Each operation should follow this structure:
@@ -237,21 +238,20 @@ Each operation should follow this structure:
 - Values must match the expected data type
 - Required fields cannot be removed
 - Some fields may be read-only`,
-              },
-            ],
-          };
-        }
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Error updating plan: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
             },
           ],
-          isError: true,
         };
       }
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Error updating plan: ${error.response?.data?.errorMessages?.join(', ') || error.message}`,
+          },
+        ],
+        isError: true,
+      };
     }
-  );
+  });
 }

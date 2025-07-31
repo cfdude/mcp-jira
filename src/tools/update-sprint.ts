@@ -1,9 +1,9 @@
 /**
  * Handler for the update_sprint tool
  */
-import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
-import { withJiraContext } from "../utils/tool-wrapper.js";
-import { BaseArgs } from "../types.js";
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import { withJiraContext } from '../utils/tool-wrapper.js';
+import { BaseArgs } from '../types.js';
 
 export interface UpdateSprintArgs extends BaseArgs {
   sprintId: number;
@@ -23,7 +23,7 @@ function formatJiraDate(dateString: string): string {
   if (isNaN(date.getTime())) {
     throw new Error(`Invalid date format: ${dateString}`);
   }
-  
+
   // Format to ISO string and ensure timezone offset
   const isoString = date.toISOString();
   // Convert Z to +00:00 format for Jira compatibility
@@ -36,20 +36,20 @@ export async function handleUpdateSprint(args: UpdateSprintArgs) {
     { requiresProject: false },
     async (toolArgs, { agileAxiosInstance }) => {
       const { sprintId, name, goal, startDate, endDate, state } = toolArgs;
-      
-      console.error("Updating sprint:", {
+
+      console.error('Updating sprint:', {
         sprintId,
         name,
         goal,
         startDate,
         endDate,
-        state
+        state,
       });
 
       const updateData: any = {};
       if (name !== undefined) updateData.name = name;
       if (goal !== undefined) updateData.goal = goal;
-      
+
       // Format dates properly for Jira API
       if (startDate !== undefined) {
         try {
@@ -61,7 +61,7 @@ export async function handleUpdateSprint(args: UpdateSprintArgs) {
           );
         }
       }
-      
+
       if (endDate !== undefined) {
         try {
           updateData.endDate = formatJiraDate(endDate);
@@ -72,10 +72,10 @@ export async function handleUpdateSprint(args: UpdateSprintArgs) {
           );
         }
       }
-      
+
       if (state !== undefined) {
         updateData.state = state;
-        
+
         // For state transitions to active, ensure dates are provided
         if (state === 'active') {
           if (!startDate || !endDate) {
@@ -90,18 +90,18 @@ export async function handleUpdateSprint(args: UpdateSprintArgs) {
       if (Object.keys(updateData).length === 0) {
         throw new McpError(
           ErrorCode.InvalidRequest,
-          "At least one field must be provided to update"
+          'At least one field must be provided to update'
         );
       }
 
       try {
-        console.error("Sprint update request:", JSON.stringify(updateData, null, 2));
+        console.error('Sprint update request:', JSON.stringify(updateData, null, 2));
         const response = await agileAxiosInstance.put(`/sprint/${sprintId}`, updateData);
-        
+
         return {
           content: [
             {
-              type: "text",
+              type: 'text',
               text: `✅ Sprint updated successfully!
 
 📊 **Updated Sprint Details:**
@@ -116,12 +116,12 @@ ${response.data.endDate ? `- **End Date:** ${response.data.endDate}` : ''}`,
           ],
         };
       } catch (error: any) {
-        console.error("Error updating sprint:", error);
-        console.error("Sprint update data that failed:", JSON.stringify(updateData, null, 2));
-        console.error("Error response:", error.response?.data);
-        
+        console.error('Error updating sprint:', error);
+        console.error('Sprint update data that failed:', JSON.stringify(updateData, null, 2));
+        console.error('Error response:', error.response?.data);
+
         let errorMessage = `Failed to update sprint: ${error.response?.data?.message || error.message}`;
-        
+
         if (error.response?.status === 400) {
           const errorData = error.response.data;
           if (errorData?.errorMessages?.length) {
@@ -133,7 +133,7 @@ ${response.data.endDate ? `- **End Date:** ${response.data.endDate}` : ''}`,
               .join(', ');
             errorMessage += `\nField errors: ${fieldErrors}`;
           }
-          
+
           // Add specific guidance for sprint state transitions
           if (updateData.state === 'active') {
             errorMessage += `\n\nSprint State Transition Issue:
@@ -143,11 +143,8 @@ ${response.data.endDate ? `- **End Date:** ${response.data.endDate}` : ''}`,
 - Try: Ensure startDate and endDate are provided in ISO format (YYYY-MM-DDTHH:mm:ss.sssZ)`;
           }
         }
-        
-        throw new McpError(
-          ErrorCode.InternalError,
-          errorMessage
-        );
+
+        throw new McpError(ErrorCode.InternalError, errorMessage);
       }
     }
   );

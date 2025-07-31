@@ -1,8 +1,8 @@
 /**
  * Handler for the delete_issue tool with multi-instance support
  */
-import { DeleteIssueArgs } from "../types.js";
-import { withJiraContext } from "../utils/tool-wrapper.js";
+import { DeleteIssueArgs } from '../types.js';
+import { withJiraContext } from '../utils/tool-wrapper.js';
 
 export async function handleDeleteIssue(args: DeleteIssueArgs) {
   return withJiraContext(
@@ -12,11 +12,11 @@ export async function handleDeleteIssue(args: DeleteIssueArgs) {
       try {
         // Delete the issue
         await axiosInstance.delete(`/issue/${issue_key}`);
-        
+
         return {
           content: [
             {
-              type: "text",
+              type: 'text',
               text: `Issue ${issue_key} has been deleted successfully.`,
             },
           ],
@@ -26,7 +26,7 @@ export async function handleDeleteIssue(args: DeleteIssueArgs) {
           return {
             content: [
               {
-                type: "text",
+                type: 'text',
                 text: `# Permission Denied: Cannot Delete Issue ${issue_key}
 
 **Error**: Insufficient permissions to delete this issue.
@@ -49,12 +49,12 @@ export async function handleDeleteIssue(args: DeleteIssueArgs) {
             ],
           };
         }
-        
+
         if (error.response?.status === 404) {
           return {
             content: [
               {
-                type: "text",
+                type: 'text',
                 text: `# Issue Not Found: ${issue_key}
 
 **Error**: The issue ${issue_key} does not exist or you don't have permission to view it.
@@ -73,7 +73,7 @@ export async function handleDeleteIssue(args: DeleteIssueArgs) {
             ],
           };
         }
-        
+
         // Re-throw other errors to be handled by the wrapper
         throw error;
       }

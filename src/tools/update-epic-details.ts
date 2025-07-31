@@ -1,9 +1,9 @@
 /**
  * Handler for the update_epic_details tool
  */
-import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
-import { withJiraContext } from "../utils/tool-wrapper.js";
-import { UpdateEpicDetailsArgs } from "../types.js";
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import { withJiraContext } from '../utils/tool-wrapper.js';
+import { UpdateEpicDetailsArgs } from '../types.js';
 
 export async function handleUpdateEpicDetails(args: UpdateEpicDetailsArgs) {
   return withJiraContext(
@@ -11,13 +11,13 @@ export async function handleUpdateEpicDetails(args: UpdateEpicDetailsArgs) {
     { extractProjectFromIssueKey: true },
     async (toolArgs, { agileAxiosInstance }) => {
       const { epicKey, name, summary, done, color } = toolArgs;
-      
-      console.error("Updating epic details:", {
+
+      console.error('Updating epic details:', {
         epicKey,
         name,
         summary,
         done,
-        color
+        color,
       });
 
       const updateData: any = {};
@@ -31,17 +31,17 @@ export async function handleUpdateEpicDetails(args: UpdateEpicDetailsArgs) {
       if (Object.keys(updateData).length === 0) {
         throw new McpError(
           ErrorCode.InvalidRequest,
-          "At least one field must be provided to update"
+          'At least one field must be provided to update'
         );
       }
 
       try {
         const response = await agileAxiosInstance.put(`/epic/${epicKey}`, updateData);
-        
+
         return {
           content: [
             {
-              type: "text",
+              type: 'text',
               text: `✅ Epic updated successfully!
 
 📊 **Updated Epic Details:**
@@ -56,15 +56,12 @@ Use \`list_epic_issues\` to view issues in this epic.`,
           ],
         };
       } catch (error: any) {
-        console.error("Error updating epic details:", error);
-        
+        console.error('Error updating epic details:', error);
+
         if (error.response?.status === 404) {
-          throw new McpError(
-            ErrorCode.InvalidRequest,
-            `Epic ${epicKey} not found`
-          );
+          throw new McpError(ErrorCode.InvalidRequest, `Epic ${epicKey} not found`);
         }
-        
+
         throw new McpError(
           ErrorCode.InternalError,
           `Failed to update epic: ${error.response?.data?.message || error.message}`

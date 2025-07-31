@@ -2,10 +2,11 @@
  * Tool wrapper utility for handling multi-instance Jira configuration
  * Eliminates duplication of instance resolution logic across all tools
  */
-import { AxiosInstance } from "axios";
-import { BaseArgs, JiraConfig, JiraInstanceConfig } from "../types.js";
-import { getInstanceForProject } from "../config.js";
-import { createJiraApiInstances } from "./jira-api.js";
+import { AxiosInstance } from 'axios';
+import { BaseArgs, JiraConfig, JiraInstanceConfig } from '../types.js';
+import { getInstanceForProject } from '../config.js';
+import { createJiraApiInstances } from './jira-api.js';
+import logger from './logger.js';
 
 export interface JiraContext {
   axiosInstance: AxiosInstance;
@@ -29,27 +30,27 @@ function extractProjectKey(args: any, options: ToolOptions): string | undefined 
   if (args.projectKey) {
     return args.projectKey;
   }
-  
+
   // 2. Extract from issue key if enabled (e.g., "MIG-123" -> "MIG")
   if (options.extractProjectFromIssueKey && args.issue_key) {
     return args.issue_key.split('-')[0];
   }
-  
+
   // 3. Extract from epic key if available (and if extractProjectFromIssueKey is enabled)
   if (options.extractProjectFromIssueKey && args.epicKey) {
     return args.epicKey.split('-')[0];
   }
-  
+
   // 4. Use default if provided
   if (options.defaultProjectKey) {
     return options.defaultProjectKey;
   }
-  
+
   // 5. Return undefined if no project key can be determined (for tools that don't require it)
   if (!options.requiresProject) {
     return undefined;
   }
-  
+
   // 6. Require explicit project key
   throw new Error(
     "Project key is required. Either provide 'projectKey' parameter or use a tool that can extract it from issue keys."
@@ -66,35 +67,77 @@ export async function withJiraContext<TArgs extends BaseArgs, TResult>(
 ): Promise<TResult> {
   const { working_dir, instance, ...toolArgs } = args;
   
-  console.error(`[Tool Wrapper] Processing tool with working_dir: ${working_dir}, instance: ${instance || 'auto'}`);
+  // Generate request ID for tracing
+  const requestId = Math.random().toString(36).substring(2, 15);
   
-  // Extract project key using smart resolution
-  const projectKey = extractProjectKey(args, options);
-  console.error(`[Tool Wrapper] Resolved project key: ${projectKey || 'none'}`);
-  
-  // Get the appropriate instance and project configuration
-  const { instance: instanceConfig, projectConfig } = await getInstanceForProject(
-    working_dir,
-    projectKey,
-    instance
-  );
-  
-  console.error(`[Tool Wrapper] Using instance: ${instanceConfig.domain} for project: ${projectKey || 'global'}`);
-  
-  // Create API instances for this specific Jira instance
-  const { axiosInstance, agileAxiosInstance } = createJiraApiInstances(instanceConfig);
-  
-  // Create context object with all necessary Jira resources
-  const context: JiraContext = {
-    axiosInstance,
-    agileAxiosInstance,
-    instanceConfig,
-    projectConfig,
-    projectKey: projectKey || ''
-  };
-  
-  // Call the actual tool handler with clean context
-  return handler(toolArgs as Omit<TArgs, keyof BaseArgs>, context);
+  // Use simple logger for this request
+
+  logger.info('Tool request started', {
+    args: { ...args },
+    options,
+  });
+
+  try {
+    // Extract project key using smart resolution
+    const projectKey = extractProjectKey(args, options);
+    logger.debug('Project key resolved', { projectKey, source: projectKey ? 'extracted' : 'none' });
+
+    // Get the appropriate instance and project configuration
+    const { instance: instanceConfig, projectConfig } = await getInstanceForProject(
+      working_dir,
+      projectKey,
+      instance
+    );
+
+    logger.info('Instance configuration resolved', {
+      instanceDomain: instanceConfig.domain,
+      projectKey: projectKey || 'global',
+      hasProjectConfig: !!projectConfig,
+    });
+
+    // Create API instances for this specific Jira instance
+    const { axiosInstance, agileAxiosInstance } = createJiraApiInstances(instanceConfig);
+    logger.debug('API instances created successfully');
+
+    // Create context object with all necessary Jira resources
+    const context: JiraContext = {
+      axiosInstance,
+      agileAxiosInstance,
+      instanceConfig,
+      projectConfig,
+      projectKey: projectKey || '',
+    };
+
+    logger.debug('Calling tool handler', { 
+      toolArgs: Object.keys(toolArgs),
+      contextReady: true 
+    });
+
+    // Call the actual tool handler with clean context
+    const startTime = Date.now();
+    const result = await handler(toolArgs as Omit<TArgs, keyof BaseArgs>, context);
+    const duration = Date.now() - startTime;
+
+    logger.info('Tool request completed successfully', { 
+      duration: `${duration}ms`,
+      resultType: typeof result 
+    });
+
+    return result;
+
+  } catch (error: any) {
+    logger.error('Tool request failed', {
+      error: error.message,
+      stack: error.stack,
+      axiosError: error.response ? {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data
+      } : undefined
+    });
+    
+    throw error;
+  }
 }
 
 /**
@@ -102,19 +145,19 @@ export async function withJiraContext<TArgs extends BaseArgs, TResult>(
  */
 export function getStandardFields(projectConfig: JiraConfig): string[] {
   const fields = [
-    "summary",
-    "description",
-    "status",
-    "issuetype",
-    "created",
-    "creator",
-    "assignee",
-    "priority",
-    "labels",
-    "parent",
-    "comment"
+    'summary',
+    'description',
+    'status',
+    'issuetype',
+    'created',
+    'creator',
+    'assignee',
+    'priority',
+    'labels',
+    'parent',
+    'comment',
   ];
-  
+
   // Add configured custom fields
   if (projectConfig.sprintField) {
     fields.push(projectConfig.sprintField);
@@ -125,10 +168,10 @@ export function getStandardFields(projectConfig: JiraConfig): string[] {
   if (projectConfig.epicLinkField) {
     fields.push(projectConfig.epicLinkField);
   }
-  
+
   // Add common fields
-  fields.push("customfield_10019"); // Rank field
-  
+  fields.push('customfield_10019'); // Rank field
+
   return fields;
 }
 
@@ -137,33 +180,39 @@ export function getStandardFields(projectConfig: JiraConfig): string[] {
  */
 export function formatSprintInfo(issue: any, projectConfig: JiraConfig): string {
   const sprintField = projectConfig.sprintField || 'customfield_10020';
-  
-  if (!issue.fields[sprintField] || 
-      !Array.isArray(issue.fields[sprintField]) || 
-      issue.fields[sprintField].length === 0) {
+
+  if (
+    !issue.fields[sprintField] ||
+    !Array.isArray(issue.fields[sprintField]) ||
+    issue.fields[sprintField].length === 0
+  ) {
     return '';
   }
-  
+
   const sprint = issue.fields[sprintField][0];
-  
+
   if (!sprint || typeof sprint !== 'object') {
     return '';
   }
-  
+
   const sprintName = sprint.name || 'Unknown';
   const sprintState = sprint.state || 'Unknown';
   const sprintId = sprint.id || 'Unknown';
-  const startDate = sprint.startDate ? new Date(sprint.startDate).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }) : 'Unknown';
-  const endDate = sprint.endDate ? new Date(sprint.endDate).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }) : 'Unknown';
-  
+  const startDate = sprint.startDate
+    ? new Date(sprint.startDate).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    : 'Unknown';
+  const endDate = sprint.endDate
+    ? new Date(sprint.endDate).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    : 'Unknown';
+
   return `\n- Sprint: ${sprintName} (ID: ${sprintId}, State: ${sprintState})\n- Sprint Dates: ${startDate} to ${endDate}`;
 }
 
@@ -171,9 +220,12 @@ export function formatSprintInfo(issue: any, projectConfig: JiraConfig): string 
  * Helper function to format story points consistently
  */
 export function formatStoryPoints(issue: any, projectConfig: JiraConfig): string {
-  if (!projectConfig.storyPointsField || issue.fields[projectConfig.storyPointsField] === undefined) {
+  if (
+    !projectConfig.storyPointsField ||
+    issue.fields[projectConfig.storyPointsField] === undefined
+  ) {
     return '';
   }
-  
-  return `\n- Story Points: ${issue.fields[projectConfig.storyPointsField] || "Not set"}`;
+
+  return `\n- Story Points: ${issue.fields[projectConfig.storyPointsField] || 'Not set'}`;
 }

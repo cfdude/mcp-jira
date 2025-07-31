@@ -1,7 +1,7 @@
 /**
  * Create a new project component for feature organization
  */
-import { withJiraContext } from "../utils/tool-wrapper.js";
+import { withJiraContext } from '../utils/tool-wrapper.js';
 
 interface CreateComponentArgs {
   working_dir: string;
@@ -19,11 +19,11 @@ export async function handleCreateComponent(args: CreateComponentArgs) {
     { requiresProject: false },
     async (toolArgs, { axiosInstance, projectKey: resolvedProjectKey }) => {
       const projectKey = toolArgs.projectKey || resolvedProjectKey;
-      
+
       if (!projectKey) {
-        throw new Error("projectKey is required for creating component");
+        throw new Error('projectKey is required for creating component');
       }
-      
+
       try {
         const componentData: any = {
           name: toolArgs.name,
@@ -41,25 +41,22 @@ export async function handleCreateComponent(args: CreateComponentArgs) {
           componentData.assigneeType = toolArgs.assigneeType;
         }
 
-    const response = await axiosInstance.post(
-      `/rest/api/3/component`,
-      componentData
-    );
+        const response = await axiosInstance.post(`/component`, componentData);
 
-    const component = response.data;
+        const component = response.data;
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: `# Component Created Successfully
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `# Component Created Successfully
 
 **${component.name}** (ID: ${component.id})
 
 - **Project**: ${projectKey}
-- **Description**: ${component.description || "No description"}
-- **Component Lead**: ${component.lead?.displayName || "No lead assigned"}
-- **Assignee Type**: ${component.assigneeType || "PROJECT_DEFAULT"}
+- **Description**: ${component.description || 'No description'}
+- **Component Lead**: ${component.lead?.displayName || 'No lead assigned'}
+- **Assignee Type**: ${component.assigneeType || 'PROJECT_DEFAULT'}
 
 ## Next Steps
 - Start using this component when creating new issues
@@ -68,15 +65,15 @@ export async function handleCreateComponent(args: CreateComponentArgs) {
 - Update the component lead if needed for better ownership
 
 Component is ready for use in project organization and issue assignment.`,
-        },
-      ],
-    };
+            },
+          ],
+        };
       } catch (error: any) {
         return {
           content: [
             {
-              type: "text",
-              text: `Error creating component: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
+              type: 'text',
+              text: `Error creating component: ${error.response?.data?.errorMessages?.join(', ') || error.message}`,
             },
           ],
           isError: true,

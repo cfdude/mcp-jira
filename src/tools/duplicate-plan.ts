@@ -1,7 +1,7 @@
 /**
  * Duplicate a strategic plan to create a new plan based on existing configuration (Jira Premium feature)
  */
-import { withJiraContext } from "../utils/tool-wrapper.js";
+import { withJiraContext } from '../utils/tool-wrapper.js';
 
 interface DuplicatePlanArgs {
   working_dir: string;
@@ -16,56 +16,53 @@ interface DuplicatePlanArgs {
 }
 
 export async function handleDuplicatePlan(args: DuplicatePlanArgs) {
-  return withJiraContext(
-    args,
-    { requiresProject: false },
-    async (toolArgs, { axiosInstance }) => {
-      try {
-        // Build the request body for duplication
-        const requestBody: any = {
-          name: toolArgs.newPlanName,
-        };
+  return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
+    try {
+      // Build the request body for duplication
+      const requestBody: any = {
+        name: toolArgs.newPlanName,
+      };
 
-        // Add optional duplication settings
-        if (toolArgs.copyTeams !== undefined) {
-          requestBody.copyTeams = toolArgs.copyTeams;
-        }
-        if (toolArgs.copyScheduling !== undefined) {
-          requestBody.copyScheduling = toolArgs.copyScheduling;
-        }
-        if (toolArgs.copyExclusionRules !== undefined) {
-          requestBody.copyExclusionRules = toolArgs.copyExclusionRules;
-        }
-        if (toolArgs.copyCustomFields !== undefined) {
-          requestBody.copyCustomFields = toolArgs.copyCustomFields;
-        }
-        if (toolArgs.copyPermissions !== undefined) {
-          requestBody.copyPermissions = toolArgs.copyPermissions;
-        }
+      // Add optional duplication settings
+      if (toolArgs.copyTeams !== undefined) {
+        requestBody.copyTeams = toolArgs.copyTeams;
+      }
+      if (toolArgs.copyScheduling !== undefined) {
+        requestBody.copyScheduling = toolArgs.copyScheduling;
+      }
+      if (toolArgs.copyExclusionRules !== undefined) {
+        requestBody.copyExclusionRules = toolArgs.copyExclusionRules;
+      }
+      if (toolArgs.copyCustomFields !== undefined) {
+        requestBody.copyCustomFields = toolArgs.copyCustomFields;
+      }
+      if (toolArgs.copyPermissions !== undefined) {
+        requestBody.copyPermissions = toolArgs.copyPermissions;
+      }
 
-        const response = await axiosInstance.post(
-          `/rest/api/3/plans/plan/${toolArgs.planId}/duplicate`,
-          requestBody
-        );
+      const response = await axiosInstance.post(
+        `/plans/plan/${toolArgs.planId}/duplicate`,
+        requestBody
+      );
 
-        const newPlanId = response.data;
+      const newPlanId = response.data;
 
-        // Determine what was copied based on parameters
-        const getCopyStatus = (param: boolean | undefined, defaultValue: boolean = true) => {
-          return param !== undefined ? param : defaultValue;
-        };
+      // Determine what was copied based on parameters
+      const getCopyStatus = (param: boolean | undefined, defaultValue: boolean = true) => {
+        return param !== undefined ? param : defaultValue;
+      };
 
-        const copiedTeams = getCopyStatus(toolArgs.copyTeams);
-        const copiedScheduling = getCopyStatus(toolArgs.copyScheduling);
-        const copiedExclusionRules = getCopyStatus(toolArgs.copyExclusionRules);
-        const copiedCustomFields = getCopyStatus(toolArgs.copyCustomFields);
-        const copiedPermissions = getCopyStatus(toolArgs.copyPermissions);
+      const copiedTeams = getCopyStatus(toolArgs.copyTeams);
+      const copiedScheduling = getCopyStatus(toolArgs.copyScheduling);
+      const copiedExclusionRules = getCopyStatus(toolArgs.copyExclusionRules);
+      const copiedCustomFields = getCopyStatus(toolArgs.copyCustomFields);
+      const copiedPermissions = getCopyStatus(toolArgs.copyPermissions);
 
-        return {
-          content: [
-            {
-              type: "text",
-              text: `# Plan Duplicated Successfully
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `# Plan Duplicated Successfully
 
 ## ✅ Operation Complete
 Plan \`${toolArgs.planId}\` has been successfully duplicated to create a new plan.
@@ -85,11 +82,11 @@ Plan \`${toolArgs.planId}\` has been successfully duplicated to create a new pla
 - **Core Structure**: Fundamental plan organization
 
 ### 🔧 Optional Components Copied
-- **Teams**: ${copiedTeams ? "✅ Copied" : "❌ Not copied"}
-- **Scheduling Configuration**: ${copiedScheduling ? "✅ Copied" : "❌ Not copied"}
-- **Exclusion Rules**: ${copiedExclusionRules ? "✅ Copied" : "❌ Not copied"}
-- **Custom Fields**: ${copiedCustomFields ? "✅ Copied" : "❌ Not copied"}
-- **Permissions**: ${copiedPermissions ? "✅ Copied" : "❌ Not copied"}
+- **Teams**: ${copiedTeams ? '✅ Copied' : '❌ Not copied'}
+- **Scheduling Configuration**: ${copiedScheduling ? '✅ Copied' : '❌ Not copied'}
+- **Exclusion Rules**: ${copiedExclusionRules ? '✅ Copied' : '❌ Not copied'}
+- **Custom Fields**: ${copiedCustomFields ? '✅ Copied' : '❌ Not copied'}
+- **Permissions**: ${copiedPermissions ? '✅ Copied' : '❌ Not copied'}
 
 ## 🎯 Benefits of Plan Duplication
 
@@ -117,20 +114,26 @@ Plan \`${toolArgs.planId}\` has been successfully duplicated to create a new pla
 - The new plan has its own timeline and progress tracking
 
 ### **Team Assignments**
-${copiedTeams ? `- **Teams Copied**: All team assignments from the original plan are replicated
+${
+  copiedTeams
+    ? `- **Teams Copied**: All team assignments from the original plan are replicated
 - **Independent Management**: Teams can be managed separately in each plan
 - **Capacity Considerations**: Teams now contribute to both plans' capacity calculations
-- **Review Recommended**: Verify team assignments are appropriate for the new plan scope` : 
-`- **No Teams Copied**: The new plan starts without team assignments
+- **Review Recommended**: Verify team assignments are appropriate for the new plan scope`
+    : `- **No Teams Copied**: The new plan starts without team assignments
 - **Manual Assignment Needed**: Use \`add-plan-team\` to assign teams to the new plan
-- **Fresh Start**: Allows for different team composition based on new plan requirements`}
+- **Fresh Start**: Allows for different team composition based on new plan requirements`
+}
 
 ### **Scheduling Configuration**
-${copiedScheduling ? `- **Configuration Copied**: All scheduling settings are replicated in the new plan
+${
+  copiedScheduling
+    ? `- **Configuration Copied**: All scheduling settings are replicated in the new plan
 - **Timeline Independence**: The new plan can have its own timeline and milestones
-- **Review Recommended**: Adjust dates and scheduling to match new plan objectives` :
-`- **Default Scheduling**: The new plan uses default scheduling configurations
-- **Configuration Needed**: Use \`update-plan\` to set up scheduling for the new plan`}
+- **Review Recommended**: Adjust dates and scheduling to match new plan objectives`
+    : `- **Default Scheduling**: The new plan uses default scheduling configurations
+- **Configuration Needed**: Use \`update-plan\` to set up scheduling for the new plan`
+}
 
 ## 💡 Recommended Next Steps
 
@@ -190,17 +193,17 @@ ${copiedScheduling ? `- **Configuration Copied**: All scheduling settings are re
 - **Regular Review**: Periodically review both plans to ensure they remain aligned with objectives
 
 Plans are a Jira Premium feature requiring Advanced Roadmaps. Ensure your instance has this feature enabled and you have appropriate permissions.`,
-            },
-          ],
-        };
-      } catch (error: any) {
-        // Check for specific error types
-        if (error.response?.status === 404) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `# Source Plan Not Found
+          },
+        ],
+      };
+    } catch (error: any) {
+      // Check for specific error types
+      if (error.response?.status === 404) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `# Source Plan Not Found
 
 Could not duplicate plan \`${toolArgs.planId}\` because it was not found. This could be due to:
 
@@ -221,17 +224,17 @@ Could not duplicate plan \`${toolArgs.planId}\` because it was not found. This c
 - If the plan is archived, you may need administrator assistance to duplicate it
 - Consider creating a new plan from scratch if the source plan is not available
 - Use \`create-plan\` to build a new plan with similar configuration manually`,
-              },
-            ],
-          };
-        }
+            },
+          ],
+        };
+      }
 
-        if (error.response?.status === 403) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `# Access Denied
+      if (error.response?.status === 403) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `# Access Denied
 
 You don't have permission to duplicate plan \`${toolArgs.planId}\`. This could be due to:
 
@@ -259,17 +262,17 @@ To duplicate plans, you typically need:
 - Use \`create-plan\` to build a similar plan from scratch
 
 Contact your Jira administrator if you need access to duplicate plans.`,
-              },
-            ],
-          };
-        }
+            },
+          ],
+        };
+      }
 
-        if (error.response?.status === 400) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `# Invalid Duplication Request
+      if (error.response?.status === 400) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `# Invalid Duplication Request
 
 The request to duplicate plan \`${toolArgs.planId}\` could not be processed. This could be due to:
 
@@ -280,7 +283,7 @@ The request to duplicate plan \`${toolArgs.planId}\` could not be processed. Thi
 - **System Limitations**: There may be limits on plan creation or duplication
 
 ## Error Details
-${error.response?.data?.errorMessages?.join(", ") || error.message}
+${error.response?.data?.errorMessages?.join(', ') || error.message}
 
 ## Troubleshooting
 1. **Check Plan Name**: Ensure the new plan name is unique and follows naming conventions
@@ -301,17 +304,17 @@ Duplication parameters should be boolean values:
 - Should follow your organization's naming conventions
 - Cannot be empty or contain only whitespace
 - May have length restrictions`,
-              },
-            ],
-          };
-        }
+            },
+          ],
+        };
+      }
 
-        if (error.response?.status === 409) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `# Plan Name Conflict
+      if (error.response?.status === 409) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `# Plan Name Conflict
 
 Plan \`${toolArgs.planId}\` cannot be duplicated because of a naming conflict. This could be due to:
 
@@ -321,7 +324,7 @@ Plan \`${toolArgs.planId}\` cannot be duplicated because of a naming conflict. T
 - **Case Sensitivity**: Names may be case-sensitive and conflict with existing plans
 
 ## Error Details
-${error.response?.data?.errorMessages?.join(", ") || error.message}
+${error.response?.data?.errorMessages?.join(', ') || error.message}
 
 ## Resolution Steps
 1. **Choose Different Name**: Try a different name for the new plan
@@ -336,21 +339,20 @@ ${error.response?.data?.errorMessages?.join(", ") || error.message}
 - **Sequential Numbers**: "${toolArgs.newPlanName} (Copy)" or "${toolArgs.newPlanName} #2"
 
 Try the duplication again with a unique plan name.`,
-              },
-            ],
-          };
-        }
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Error duplicating plan: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
             },
           ],
-          isError: true,
         };
       }
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Error duplicating plan: ${error.response?.data?.errorMessages?.join(', ') || error.message}`,
+          },
+        ],
+        isError: true,
+      };
     }
-  );
+  });
 }

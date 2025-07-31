@@ -1,7 +1,7 @@
 /**
  * Move a strategic plan to trash (soft delete) (Jira Premium feature)
  */
-import { withJiraContext } from "../utils/tool-wrapper.js";
+import { withJiraContext } from '../utils/tool-wrapper.js';
 
 interface TrashPlanArgs {
   working_dir: string;
@@ -10,20 +10,15 @@ interface TrashPlanArgs {
 }
 
 export async function handleTrashPlan(args: TrashPlanArgs) {
-  return withJiraContext(
-    args,
-    { requiresProject: false },
-    async (toolArgs, { axiosInstance }) => {
-      try {
-        const response = await axiosInstance.post(
-          `/rest/api/3/plans/plan/${toolArgs.planId}/trash`
-        );
+  return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
+    try {
+      const response = await axiosInstance.post(`/plans/plan/${toolArgs.planId}/trash`);
 
-        return {
-          content: [
-            {
-              type: "text",
-              text: `# Plan Moved to Trash
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `# Plan Moved to Trash
 
 ## ⚠️ Operation Complete
 Plan \`${toolArgs.planId}\` has been moved to trash (soft deleted).
@@ -171,17 +166,17 @@ This action moves the plan to trash and may be difficult or impossible to revers
 - ✅ Documented lessons learned
 
 Plans are a Jira Premium feature requiring Advanced Roadmaps. Trash functionality depends on your instance configuration and may vary.`,
-            },
-          ],
-        };
-      } catch (error: any) {
-        // Check for specific error types
-        if (error.response?.status === 404) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `# Plan Not Found
+          },
+        ],
+      };
+    } catch (error: any) {
+      // Check for specific error types
+      if (error.response?.status === 404) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `# Plan Not Found
 
 Could not move plan \`${toolArgs.planId}\` to trash because it was not found. This could be due to:
 
@@ -208,17 +203,17 @@ If the plan is already trashed:
 - No further action is needed
 - The plan is already in the desired trashed state
 - Contact your administrator if you need to verify trash status`,
-              },
-            ],
-          };
-        }
+            },
+          ],
+        };
+      }
 
-        if (error.response?.status === 403) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `# Access Denied
+      if (error.response?.status === 403) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `# Access Denied
 
 You don't have permission to move plan \`${toolArgs.planId}\` to trash. This could be due to:
 
@@ -249,17 +244,17 @@ To trash plans, you typically need:
 Plan deletion/trashing is typically restricted to prevent accidental data loss. The permission restrictions are designed to protect valuable strategic planning data.
 
 Contact your Jira administrator if you need access to trash plans.`,
-              },
-            ],
-          };
-        }
+            },
+          ],
+        };
+      }
 
-        if (error.response?.status === 400) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `# Cannot Trash Plan
+      if (error.response?.status === 400) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `# Cannot Trash Plan
 
 Plan \`${toolArgs.planId}\` cannot be moved to trash at this time. This could be due to:
 
@@ -270,7 +265,7 @@ Plan \`${toolArgs.planId}\` cannot be moved to trash at this time. This could be
 - **System Restrictions**: There may be system-level restrictions preventing deletion
 
 ## Error Details
-${error.response?.data?.errorMessages?.join(", ") || error.message}
+${error.response?.data?.errorMessages?.join(', ') || error.message}
 
 ## Pre-Deletion Checklist
 Before trashing a plan, consider:
@@ -290,17 +285,17 @@ Before trashing a plan, consider:
 - Use \`update-plan\` to change plan status without deleting
 - Complete or reassign active work before attempting to trash
 - Contact plan stakeholders to coordinate proper closure`,
-              },
-            ],
-          };
-        }
+            },
+          ],
+        };
+      }
 
-        if (error.response?.status === 409) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `# Plan Trash Conflict
+      if (error.response?.status === 409) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `# Plan Trash Conflict
 
 Plan \`${toolArgs.planId}\` cannot be moved to trash due to a conflict. This could be due to:
 
@@ -311,7 +306,7 @@ Plan \`${toolArgs.planId}\` cannot be moved to trash due to a conflict. This cou
 - **System State Conflict**: The plan state conflicts with trash operation requirements
 
 ## Error Details
-${error.response?.data?.errorMessages?.join(", ") || error.message}
+${error.response?.data?.errorMessages?.join(', ') || error.message}
 
 ## Resolution Steps
 1. **Check Current Status**: Use \`get-plan\` to verify the current plan state
@@ -324,21 +319,20 @@ If the plan is already trashed:
 - The desired state has been achieved
 - No further action is needed
 - Contact your administrator if you need to verify trash status or need restoration`,
-              },
-            ],
-          };
-        }
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Error moving plan to trash: ${error.response?.data?.errorMessages?.join(", ") || error.message}`,
             },
           ],
-          isError: true,
         };
       }
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Error moving plan to trash: ${error.response?.data?.errorMessages?.join(', ') || error.message}`,
+          },
+        ],
+        isError: true,
+      };
     }
-  );
+  });
 }
