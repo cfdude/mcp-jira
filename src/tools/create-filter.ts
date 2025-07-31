@@ -3,8 +3,9 @@
  */
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { CreateFilterArgs } from '../types.js';
+import type { SessionState } from '../session-manager.js';
 
-export async function handleCreateFilter(args: CreateFilterArgs) {
+export async function handleCreateFilter(args: CreateFilterArgs, session?: SessionState) {
   return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
     try {
       const filterData: any = {

@@ -2,6 +2,7 @@
  * Get component progress with issue counts and work distribution
  */
 import { withJiraContext } from '../utils/tool-wrapper.js';
+import type { SessionState } from '../session-manager.js';
 
 interface GetComponentProgressArgs {
   working_dir: string;
@@ -10,7 +11,10 @@ interface GetComponentProgressArgs {
   componentId: string;
 }
 
-export async function handleGetComponentProgress(args: GetComponentProgressArgs) {
+export async function handleGetComponentProgress(
+  args: GetComponentProgressArgs,
+  session?: SessionState
+) {
   return withJiraContext(
     args,
     { requiresProject: false },
@@ -158,6 +162,7 @@ ${recentIssues.length === 0 ? '⚠️ No recent activity. Component may need att
           isError: true,
         };
       }
-    }
+    },
+    session
   );
 }

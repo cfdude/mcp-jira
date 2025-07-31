@@ -106,7 +106,7 @@ export async function loadMultiInstanceConfig(
       }
     } catch (error) {
       console.error('Error trying location', location, ':', error);
-      lastError = error as Error;
+      // Store for potential future logging: error as Error
     }
   }
 

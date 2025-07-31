@@ -2,13 +2,14 @@
  * Tool to list available Jira instances and their configurations
  */
 import { listAvailableInstances } from '../config.js';
+import type { SessionState } from '../session-manager.js';
 
 interface ListInstancesArgs {
   working_dir: string;
   instance?: string;
 }
 
-export async function handleListInstances(args: ListInstancesArgs) {
+export async function handleListInstances(args: ListInstancesArgs, session?: SessionState) {
   try {
     const { instances, projects } = await listAvailableInstances(args.working_dir);
 

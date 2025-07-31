@@ -4,8 +4,9 @@
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { MoveIssuesToEpicArgs } from '../types.js';
+import type { SessionState } from '../session-manager.js';
 
-export async function handleMoveIssuesToEpic(args: MoveIssuesToEpicArgs) {
+export async function handleMoveIssuesToEpic(args: MoveIssuesToEpicArgs, session?: SessionState) {
   return withJiraContext(
     args,
     { extractProjectFromIssueKey: true },
@@ -61,6 +62,7 @@ Use \`list_epic_issues\` to view all issues in this epic.`,
           `Failed to move issues to epic: ${error.response?.data?.message || error.message}`
         );
       }
-    }
+    },
+    session
   );
 }

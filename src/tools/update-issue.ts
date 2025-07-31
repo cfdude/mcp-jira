@@ -8,8 +8,9 @@ import { UpdateIssueArgs } from '../types.js';
 import { getBoardId } from '../utils/jira-api.js';
 import { formatIssue } from '../utils/formatting.js';
 import { resolveAssigneeValue } from '../utils/user-resolver.js';
+import type { SessionState } from '../session-manager.js';
 
-export async function handleUpdateIssue(args: UpdateIssueArgs) {
+export async function handleUpdateIssue(args: UpdateIssueArgs, session?: SessionState) {
   return withJiraContext(
     args,
     { extractProjectFromIssueKey: true },
@@ -243,6 +244,7 @@ export async function handleUpdateIssue(args: UpdateIssueArgs) {
           },
         ],
       };
-    }
+    },
+    session
   );
 }

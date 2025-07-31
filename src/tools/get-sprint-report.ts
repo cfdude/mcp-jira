@@ -4,8 +4,9 @@
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { GetSprintReportArgs } from '../types.js';
+import type { SessionState } from '../session-manager.js';
 
-export async function handleGetSprintReport(args: GetSprintReportArgs) {
+export async function handleGetSprintReport(args: GetSprintReportArgs, session?: SessionState) {
   return withJiraContext(
     args,
     { requiresProject: false },
@@ -184,6 +185,7 @@ ${Object.entries(assigneeBreakdown)
           `Failed to get sprint report: ${error.response?.data?.message || error.message}`
         );
       }
-    }
+    },
+    session
   );
 }

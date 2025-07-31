@@ -2,6 +2,7 @@
  * Archive a strategic plan (Jira Premium feature)
  */
 import { withJiraContext } from '../utils/tool-wrapper.js';
+import type { SessionState } from '../session-manager.js';
 
 interface ArchivePlanArgs {
   working_dir: string;
@@ -9,7 +10,7 @@ interface ArchivePlanArgs {
   planId: string;
 }
 
-export async function handleArchivePlan(args: ArchivePlanArgs) {
+export async function handleArchivePlan(args: ArchivePlanArgs, session?: SessionState) {
   return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
     try {
       const response = await axiosInstance.post(`/plans/plan/${toolArgs.planId}/archive`);

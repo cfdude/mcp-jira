@@ -4,6 +4,7 @@
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { BaseArgs } from '../types.js';
+import type { SessionState } from '../session-manager.js';
 
 export interface CreateEpicArgs extends BaseArgs {
   projectKey?: string;
@@ -14,7 +15,7 @@ export interface CreateEpicArgs extends BaseArgs {
   labels?: string[];
 }
 
-export async function handleCreateEpic(args: CreateEpicArgs) {
+export async function handleCreateEpic(args: CreateEpicArgs, session?: SessionState) {
   return withJiraContext(
     args,
     { requiresProject: true },
@@ -156,6 +157,7 @@ Use \`update_issue\` to modify the epic or \`move_issues_to_epic\` to add issues
           `Failed to create epic: ${error.response?.data?.message || error.message}`
         );
       }
-    }
+    },
+    session
   );
 }

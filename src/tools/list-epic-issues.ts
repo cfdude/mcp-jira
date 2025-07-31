@@ -4,8 +4,9 @@
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { ListEpicIssuesArgs } from '../types.js';
+import type { SessionState } from '../session-manager.js';
 
-export async function handleListEpicIssues(args: ListEpicIssuesArgs) {
+export async function handleListEpicIssues(args: ListEpicIssuesArgs, session?: SessionState) {
   return withJiraContext(
     args,
     { extractProjectFromIssueKey: true },
@@ -120,6 +121,7 @@ ${issues.length < totalIssues ? `\nShowing ${issues.length} of ${totalIssues} is
           `Failed to list epic issues: ${error.response?.data?.message || error.message}`
         );
       }
-    }
+    },
+    session
   );
 }

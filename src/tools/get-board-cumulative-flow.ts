@@ -3,6 +3,7 @@
  */
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import type { SessionState } from '../session-manager.js';
 
 interface GetBoardCumulativeFlowArgs {
   working_dir: string;
@@ -10,7 +11,10 @@ interface GetBoardCumulativeFlowArgs {
   boardId: number;
 }
 
-export async function handleGetBoardCumulativeFlow(args: GetBoardCumulativeFlowArgs) {
+export async function handleGetBoardCumulativeFlow(
+  args: GetBoardCumulativeFlowArgs,
+  session?: SessionState
+) {
   return withJiraContext(
     args,
     { requiresProject: false },
@@ -199,6 +203,7 @@ ${columns
           `Failed to get board cumulative flow data: ${error.response?.data?.message || error.message}`
         );
       }
-    }
+    },
+    session
   );
 }

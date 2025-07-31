@@ -4,6 +4,7 @@
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { BaseArgs } from '../types.js';
+import type { SessionState } from '../session-manager.js';
 
 export interface UpdateSprintArgs extends BaseArgs {
   sprintId: number;
@@ -30,7 +31,7 @@ function formatJiraDate(dateString: string): string {
   return isoString.replace('Z', '+00:00');
 }
 
-export async function handleUpdateSprint(args: UpdateSprintArgs) {
+export async function handleUpdateSprint(args: UpdateSprintArgs, session?: SessionState) {
   return withJiraContext(
     args,
     { requiresProject: false },
@@ -146,6 +147,7 @@ ${response.data.endDate ? `- **End Date:** ${response.data.endDate}` : ''}`,
 
         throw new McpError(ErrorCode.InternalError, errorMessage);
       }
-    }
+    },
+    session
   );
 }

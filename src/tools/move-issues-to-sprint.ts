@@ -4,13 +4,17 @@
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { BaseArgs } from '../types.js';
+import type { SessionState } from '../session-manager.js';
 
 export interface MoveIssuesToSprintArgs extends BaseArgs {
   sprintId: number;
   issueKeys: string[];
 }
 
-export async function handleMoveIssuesToSprint(args: MoveIssuesToSprintArgs) {
+export async function handleMoveIssuesToSprint(
+  args: MoveIssuesToSprintArgs,
+  session?: SessionState
+) {
   return withJiraContext(
     args,
     { extractProjectFromIssueKey: true },
@@ -60,6 +64,7 @@ Use \`get_sprint_details\` to view updated sprint information.`,
           `Failed to move issues to sprint: ${error.response?.data?.message || error.message}`
         );
       }
-    }
+    },
+    session
   );
 }

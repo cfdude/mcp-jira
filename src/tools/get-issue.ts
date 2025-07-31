@@ -8,8 +8,9 @@ import {
   formatSprintInfo,
   formatStoryPoints,
 } from '../utils/tool-wrapper.js';
+import type { SessionState } from '../session-manager.js';
 
-export async function handleGetIssue(args: GetIssueArgs) {
+export async function handleGetIssue(args: GetIssueArgs, session?: SessionState) {
   return withJiraContext(
     args,
     { extractProjectFromIssueKey: true },
@@ -85,6 +86,7 @@ export async function handleGetIssue(args: GetIssueArgs) {
           },
         ],
       };
-    }
+    },
+    session
   );
 }

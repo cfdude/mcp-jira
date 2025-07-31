@@ -4,8 +4,9 @@
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { UpdateEpicDetailsArgs } from '../types.js';
+import type { SessionState } from '../session-manager.js';
 
-export async function handleUpdateEpicDetails(args: UpdateEpicDetailsArgs) {
+export async function handleUpdateEpicDetails(args: UpdateEpicDetailsArgs, session?: SessionState) {
   return withJiraContext(
     args,
     { extractProjectFromIssueKey: true },
@@ -67,6 +68,7 @@ Use \`list_epic_issues\` to view issues in this epic.`,
           `Failed to update epic: ${error.response?.data?.message || error.message}`
         );
       }
-    }
+    },
+    session
   );
 }

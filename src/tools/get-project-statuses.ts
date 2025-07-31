@@ -2,6 +2,7 @@
  * Get project-specific statuses for workflow understanding
  */
 import { withJiraContext } from '../utils/tool-wrapper.js';
+import type { SessionState } from '../session-manager.js';
 
 interface GetProjectStatusesArgs {
   working_dir: string;
@@ -9,7 +10,10 @@ interface GetProjectStatusesArgs {
   projectKey?: string;
 }
 
-export async function handleGetProjectStatuses(args: GetProjectStatusesArgs) {
+export async function handleGetProjectStatuses(
+  args: GetProjectStatusesArgs,
+  session?: SessionState
+) {
   return withJiraContext(
     args,
     { requiresProject: false },
@@ -204,6 +208,7 @@ ${Array.from(allStatuses)
           isError: true,
         };
       }
-    }
+    },
+    session
   );
 }

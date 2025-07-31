@@ -2,6 +2,7 @@
  * Get detailed information about teams assigned to a strategic plan (Jira Premium feature)
  */
 import { withJiraContext } from '../utils/tool-wrapper.js';
+import type { SessionState } from '../session-manager.js';
 
 interface GetPlanTeamsArgs {
   working_dir: string;
@@ -9,7 +10,7 @@ interface GetPlanTeamsArgs {
   planId: string;
 }
 
-export async function handleGetPlanTeams(args: GetPlanTeamsArgs) {
+export async function handleGetPlanTeams(args: GetPlanTeamsArgs, session?: SessionState) {
   return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
     try {
       const response = await axiosInstance.get(`/plans/plan/${toolArgs.planId}/team`);

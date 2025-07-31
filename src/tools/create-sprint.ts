@@ -5,6 +5,7 @@ import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { getBoardId } from '../utils/jira-api.js';
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { BaseArgs } from '../types.js';
+import type { SessionState } from '../session-manager.js';
 
 export interface CreateSprintArgs extends BaseArgs {
   projectKey?: string;
@@ -15,7 +16,7 @@ export interface CreateSprintArgs extends BaseArgs {
   boardId?: number;
 }
 
-export async function handleCreateSprint(args: CreateSprintArgs) {
+export async function handleCreateSprint(args: CreateSprintArgs, session?: SessionState) {
   return withJiraContext(
     args,
     { requiresProject: true },
@@ -99,6 +100,7 @@ Use \`update_sprint\` to modify sprint details or \`move_issues_to_sprint\` to a
 
         throw new McpError(ErrorCode.InternalError, errorMessage);
       }
-    }
+    },
+    session
   );
 }

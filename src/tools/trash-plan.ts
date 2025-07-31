@@ -2,6 +2,7 @@
  * Move a strategic plan to trash (soft delete) (Jira Premium feature)
  */
 import { withJiraContext } from '../utils/tool-wrapper.js';
+import type { SessionState } from '../session-manager.js';
 
 interface TrashPlanArgs {
   working_dir: string;
@@ -9,7 +10,7 @@ interface TrashPlanArgs {
   planId: string;
 }
 
-export async function handleTrashPlan(args: TrashPlanArgs) {
+export async function handleTrashPlan(args: TrashPlanArgs, session?: SessionState) {
   return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
     try {
       const response = await axiosInstance.post(`/plans/plan/${toolArgs.planId}/trash`);

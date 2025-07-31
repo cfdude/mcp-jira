@@ -2,6 +2,7 @@
  * Get detailed information about a specific strategic plan (Jira Premium feature)
  */
 import { withJiraContext } from '../utils/tool-wrapper.js';
+import type { SessionState } from '../session-manager.js';
 
 interface GetPlanArgs {
   working_dir: string;
@@ -9,7 +10,7 @@ interface GetPlanArgs {
   planId: string;
 }
 
-export async function handleGetPlan(args: GetPlanArgs) {
+export async function handleGetPlan(args: GetPlanArgs, session?: SessionState) {
   return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
     try {
       const response = await axiosInstance.get(`/plans/plan/${toolArgs.planId}`);

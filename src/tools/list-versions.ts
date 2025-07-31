@@ -3,8 +3,9 @@
  */
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { ListVersionsArgs } from '../types.js';
+import type { SessionState } from '../session-manager.js';
 
-export async function handleListVersions(args: ListVersionsArgs) {
+export async function handleListVersions(args: ListVersionsArgs, session?: SessionState) {
   return withJiraContext(
     args,
     { requiresProject: true },
@@ -89,6 +90,7 @@ Total versions: ${formattedVersions.length}`,
           isError: true,
         };
       }
-    }
+    },
+    session
   );
 }

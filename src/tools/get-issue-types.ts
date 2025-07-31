@@ -2,6 +2,7 @@
  * Get available issue types for work categorization and project planning
  */
 import { withJiraContext } from '../utils/tool-wrapper.js';
+import type { SessionState } from '../session-manager.js';
 
 interface GetIssueTypesArgs {
   working_dir: string;
@@ -9,7 +10,7 @@ interface GetIssueTypesArgs {
   projectKey?: string;
 }
 
-export async function handleGetIssueTypes(args: GetIssueTypesArgs) {
+export async function handleGetIssueTypes(args: GetIssueTypesArgs, session?: SessionState) {
   return withJiraContext(
     args,
     { requiresProject: false },
@@ -230,6 +231,7 @@ Use these issue types strategically to categorize and organize your project work
           isError: true,
         };
       }
-    }
+    },
+    session
   );
 }

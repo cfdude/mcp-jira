@@ -3,8 +3,9 @@
  */
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { CreateVersionArgs } from '../types.js';
+import type { SessionState } from '../session-manager.js';
 
-export async function handleCreateVersion(args: CreateVersionArgs) {
+export async function handleCreateVersion(args: CreateVersionArgs, session?: SessionState) {
   return withJiraContext(
     args,
     { requiresProject: true },
@@ -65,6 +66,7 @@ Version is ready for use in project planning and issue assignment.`,
           isError: true,
         };
       }
-    }
+    },
+    session
   );
 }

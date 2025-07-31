@@ -5,8 +5,10 @@
 import { AxiosInstance } from 'axios';
 import { BaseArgs, JiraConfig, JiraInstanceConfig } from '../types.js';
 import { getInstanceForProject } from '../config.js';
+import { getInstanceForProjectWithSession } from '../session-config.js';
 import { createJiraApiInstances } from './jira-api.js';
 import logger from './logger.js';
+import type { SessionState } from '../session-manager.js';
 
 export interface JiraContext {
   axiosInstance: AxiosInstance;
@@ -63,16 +65,18 @@ function extractProjectKey(args: any, options: ToolOptions): string | undefined 
 export async function withJiraContext<TArgs extends BaseArgs, TResult>(
   args: TArgs,
   options: ToolOptions,
-  handler: (toolArgs: Omit<TArgs, keyof BaseArgs>, context: JiraContext) => Promise<TResult>
+  handler: (toolArgs: Omit<TArgs, keyof BaseArgs>, context: JiraContext) => Promise<TResult>,
+  session?: SessionState
 ): Promise<TResult> {
   const { working_dir, instance, ...toolArgs } = args;
 
   // Generate request ID for tracing
   const requestId = Math.random().toString(36).substring(2, 15);
 
-  // Use simple logger for this request
+  const logContext = session ? { sessionId: session.sessionId } : {};
 
   logger.info('Tool request started', {
+    ...logContext,
     args: { ...args },
     options,
   });
@@ -80,24 +84,43 @@ export async function withJiraContext<TArgs extends BaseArgs, TResult>(
   try {
     // Extract project key using smart resolution
     const projectKey = extractProjectKey(args, options);
-    logger.debug('Project key resolved', { projectKey, source: projectKey ? 'extracted' : 'none' });
-
-    // Get the appropriate instance and project configuration
-    const { instance: instanceConfig, projectConfig } = await getInstanceForProject(
-      working_dir,
+    logger.debug('Project key resolved', {
+      ...logContext,
       projectKey,
-      instance
-    );
+      source: projectKey ? 'extracted' : 'none',
+    });
+
+    let instanceConfig: JiraInstanceConfig;
+    let projectConfig: JiraConfig;
+
+    if (session && projectKey) {
+      // Use session-aware configuration loading
+      const configResult = await getInstanceForProjectWithSession(
+        working_dir,
+        projectKey,
+        session,
+        instance
+      );
+      instanceConfig = configResult.instance;
+      projectConfig = configResult.projectConfig;
+    } else {
+      // Fall back to legacy global configuration
+      const configResult = await getInstanceForProject(working_dir, projectKey, instance);
+      instanceConfig = configResult.instance;
+      projectConfig = configResult.projectConfig;
+    }
 
     logger.info('Instance configuration resolved', {
+      ...logContext,
       instanceDomain: instanceConfig.domain,
       projectKey: projectKey || 'global',
       hasProjectConfig: !!projectConfig,
+      sessionAware: !!session,
     });
 
     // Create API instances for this specific Jira instance
     const { axiosInstance, agileAxiosInstance } = createJiraApiInstances(instanceConfig);
-    logger.debug('API instances created successfully');
+    logger.debug('API instances created successfully', logContext);
 
     // Create context object with all necessary Jira resources
     const context: JiraContext = {
@@ -109,6 +132,7 @@ export async function withJiraContext<TArgs extends BaseArgs, TResult>(
     };
 
     logger.debug('Calling tool handler', {
+      ...logContext,
       toolArgs: Object.keys(toolArgs),
       contextReady: true,
     });
@@ -119,6 +143,7 @@ export async function withJiraContext<TArgs extends BaseArgs, TResult>(
     const duration = Date.now() - startTime;
 
     logger.info('Tool request completed successfully', {
+      ...logContext,
       duration: `${duration}ms`,
       resultType: typeof result,
     });
@@ -126,6 +151,7 @@ export async function withJiraContext<TArgs extends BaseArgs, TResult>(
     return result;
   } catch (error: any) {
     logger.error('Tool request failed', {
+      ...logContext,
       error: error.message,
       stack: error.stack,
       axiosError: error.response

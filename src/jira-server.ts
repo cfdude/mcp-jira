@@ -8,12 +8,14 @@ import {
   ListPromptsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { setupToolHandlers } from './tools/index.js';
+import { sessionManager, SessionState } from './session-manager.js';
 import logger from './utils/logger.js';
 import 'dotenv/config';
 
 export class JiraServer {
   private server: Server;
   private storyPointsFieldRef: { current: string | null } = { current: null };
+  private currentSession: SessionState | null = null;
 
   constructor() {
     logger.info('Initializing MCP Jira Server');
@@ -33,8 +35,8 @@ export class JiraServer {
     );
 
     logger.debug('Setting up tool handlers');
-    // Setup tool handlers (API instances created per-request now)
-    setupToolHandlers(this.server, this.storyPointsFieldRef);
+    // Setup tool handlers with session support
+    setupToolHandlers(this.server, this.storyPointsFieldRef, undefined);
     logger.debug('Tool handlers setup completed');
 
     // Setup resources handlers
@@ -52,36 +54,11 @@ export class JiraServer {
       logger.error('MCP Server Error', { error: error.message, stack: error.stack });
     };
 
-    // Add process-level error handlers to prevent unexpected shutdowns
-    process.on('unhandledRejection', (reason, promise) => {
-      logger.error('Unhandled Promise Rejection', {
-        reason: reason instanceof Error ? reason.message : String(reason),
-        stack: reason instanceof Error ? reason.stack : undefined,
-        promise: String(promise),
-      });
-      // Don't exit on unhandled rejections - log and continue
-    });
+    // Note: Removed global process error handlers to avoid interfering with Claude's process management
+    // Error handling is now done at the server level through this.server.onerror
 
-    process.on('uncaughtException', error => {
-      logger.error('Uncaught Exception', {
-        error: error.message,
-        stack: error.stack,
-      });
-      // For uncaught exceptions, we should exit after logging
-      process.exit(1);
-    });
-
-    process.on('SIGINT', async () => {
-      logger.info('Received SIGINT, shutting down gracefully');
-      await this.server.close();
-      process.exit(0);
-    });
-
-    process.on('SIGTERM', async () => {
-      logger.info('Received SIGTERM, shutting down gracefully');
-      await this.server.close();
-      process.exit(0);
-    });
+    // Note: Signal handlers removed to avoid conflicts with Claude's process management
+    // Server cleanup is handled by transport close events
 
     logger.info('JiraServer initialization completed');
   }
@@ -93,32 +70,62 @@ export class JiraServer {
     logger.info('Starting MCP Jira server transport');
     const transport = new StdioServerTransport();
 
-    // Add transport event logging
+    // Create a session for this STDIO connection
+    const sessionId = `stdio-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+    this.currentSession = sessionManager.createSession(sessionId);
+
+    logger.info('Created session for STDIO connection', {
+      sessionId: this.currentSession.sessionId,
+      totalSessions: sessionManager.getActiveSessionCount(),
+    });
+
+    // Add transport event logging with session context
     transport.onclose = () => {
-      logger.warn('MCP transport closed');
+      logger.warn('MCP transport closed', { sessionId: this.currentSession?.sessionId });
+      if (this.currentSession) {
+        sessionManager.removeSession(this.currentSession.sessionId);
+        logger.info('Session cleaned up on transport close', {
+          sessionId: this.currentSession.sessionId,
+        });
+      }
     };
 
     transport.onerror = error => {
       logger.error('MCP transport error', {
+        sessionId: this.currentSession?.sessionId,
         error: error.message,
         stack: error.stack,
       });
     };
 
+    // Update tool handlers to use the current session
+    setupToolHandlers(this.server, this.storyPointsFieldRef, this.currentSession);
+
     try {
       await this.server.connect(transport);
-      logger.info('Jira MCP server running on stdio transport');
+      logger.info('Jira MCP server running on stdio transport', {
+        sessionId: this.currentSession.sessionId,
+        activeSessions: sessionManager.getActiveSessionCount(),
+      });
 
       // Log server connection status
       logger.info('Server connection established', {
+        sessionId: this.currentSession.sessionId,
         serverName: 'jira-server',
         serverVersion: '0.1.0',
       });
     } catch (error: any) {
       logger.error('Failed to connect MCP server transport', {
+        sessionId: this.currentSession?.sessionId,
         error: error.message,
         stack: error.stack,
       });
+
+      // Clean up session on connection failure
+      if (this.currentSession) {
+        sessionManager.removeSession(this.currentSession.sessionId);
+      }
+
       throw error;
     }
   }
