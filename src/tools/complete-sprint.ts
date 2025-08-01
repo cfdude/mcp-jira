@@ -4,8 +4,9 @@
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { CompleteSprintArgs } from '../types.js';
+import type { SessionState } from '../session-manager.js';
 
-export async function handleCompleteSprint(args: CompleteSprintArgs) {
+export async function handleCompleteSprint(args: CompleteSprintArgs, session?: SessionState) {
   return withJiraContext(
     args,
     { requiresProject: false },
@@ -70,6 +71,7 @@ The sprint has been marked as completed. Use \`get_sprint_details\` to view fina
           `Failed to complete sprint: ${error.response?.data?.message || error.message}`
         );
       }
-    }
+    },
+    session
   );
 }

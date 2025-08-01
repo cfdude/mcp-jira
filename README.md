@@ -604,6 +604,33 @@ npm test
 npm run build
 ```
 
+### Testing
+
+The project includes comprehensive Jest testing with ESM and TypeScript support:
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode during development
+npm run test:watch
+
+# Generate test coverage report
+npm run test:coverage
+```
+
+**Test Structure:**
+- `tests/unit/` - Unit tests for individual modules (config, formatting, ADF conversion)
+- `tests/integration/` - Integration tests for server functionality
+- Uses Jest with ts-jest for TypeScript ESM support
+- Tests are automatically run in CI/CD pipeline
+
+**Key Features:**
+- ESM module testing with `.js` extension imports
+- TypeScript compilation via ts-jest
+- Node.js experimental VM modules for ESM compatibility
+- Comprehensive coverage for utilities and core functionality
+
 ### Contributing
 
 1. **Field Detection**: Add new custom field support in `src/config/config.ts`

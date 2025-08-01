@@ -4,6 +4,7 @@
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { BaseArgs } from '../types.js';
+import type { SessionState } from '../session-manager.js';
 
 export interface CreateEpicArgs extends BaseArgs {
   projectKey?: string;
@@ -14,7 +15,7 @@ export interface CreateEpicArgs extends BaseArgs {
   labels?: string[];
 }
 
-export async function handleCreateEpic(args: CreateEpicArgs) {
+export async function handleCreateEpic(args: CreateEpicArgs, session?: SessionState) {
   return withJiraContext(
     args,
     { requiresProject: true },
@@ -72,9 +73,8 @@ export async function handleCreateEpic(args: CreateEpicArgs) {
       }
 
       // Add Epic Name (usually customfield_10011 but may vary)
-      // Try common Epic Name field IDs
-      const epicNameFieldIds = ['customfield_10011', 'customfield_10004', 'customfield_10014'];
-      // For now, we'll use the most common one
+      // Use the most common Epic Name field ID
+      // Could be customfield_10011, customfield_10004, or customfield_10014 depending on instance
       fields.customfield_10011 = name;
 
       // Add priority if specified
@@ -156,6 +156,7 @@ Use \`update_issue\` to modify the epic or \`move_issues_to_epic\` to add issues
           `Failed to create epic: ${error.response?.data?.message || error.message}`
         );
       }
-    }
+    },
+    session
   );
 }

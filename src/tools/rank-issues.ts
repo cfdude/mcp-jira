@@ -4,8 +4,9 @@
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { RankIssuesArgs } from '../types.js';
+import type { SessionState } from '../session-manager.js';
 
-export async function handleRankIssues(args: RankIssuesArgs) {
+export async function handleRankIssues(args: RankIssuesArgs, session?: SessionState) {
   return withJiraContext(
     args,
     { extractProjectFromIssueKey: true },
@@ -47,7 +48,7 @@ export async function handleRankIssues(args: RankIssuesArgs) {
       if (rankCustomFieldId) rankData.rankCustomFieldId = rankCustomFieldId;
 
       try {
-        const response = await agileAxiosInstance.put('/issue/rank', rankData);
+        await agileAxiosInstance.put('/issue/rank', rankData);
 
         return {
           content: [
@@ -88,6 +89,7 @@ The issues have been repositioned in the ranking order as requested.`,
           `Failed to rank issues: ${error.response?.data?.message || error.message}`
         );
       }
-    }
+    },
+    session
   );
 }

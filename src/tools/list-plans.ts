@@ -2,6 +2,7 @@
  * List strategic plans for high-level roadmap management (Jira Premium feature)
  */
 import { withJiraContext } from '../utils/tool-wrapper.js';
+import type { SessionState } from '../session-manager.js';
 
 interface ListPlansArgs {
   working_dir: string;
@@ -10,7 +11,7 @@ interface ListPlansArgs {
   maxResults?: number;
 }
 
-export async function handleListPlans(args: ListPlansArgs) {
+export async function handleListPlans(args: ListPlansArgs, _session?: SessionState) {
   return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
     try {
       const params: any = {};

@@ -2,6 +2,7 @@
  * Duplicate a strategic plan to create a new plan based on existing configuration (Jira Premium feature)
  */
 import { withJiraContext } from '../utils/tool-wrapper.js';
+import type { SessionState } from '../session-manager.js';
 
 interface DuplicatePlanArgs {
   working_dir: string;
@@ -15,7 +16,7 @@ interface DuplicatePlanArgs {
   copyPermissions?: boolean;
 }
 
-export async function handleDuplicatePlan(args: DuplicatePlanArgs) {
+export async function handleDuplicatePlan(args: DuplicatePlanArgs, _session?: SessionState) {
   return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
     try {
       // Build the request body for duplication

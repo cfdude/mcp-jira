@@ -4,6 +4,7 @@
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { BaseArgs } from '../types.js';
+import type { SessionState } from '../session-manager.js';
 
 export interface ListBoardsArgs extends BaseArgs {
   projectKey?: string;
@@ -13,7 +14,7 @@ export interface ListBoardsArgs extends BaseArgs {
   maxResults?: number;
 }
 
-export async function handleListBoards(args: ListBoardsArgs) {
+export async function handleListBoards(args: ListBoardsArgs, session?: SessionState) {
   return withJiraContext(
     args,
     { requiresProject: false },
@@ -86,6 +87,7 @@ Use \`get_board_configuration\` to view detailed board settings.`,
           `Failed to list boards: ${error.response?.data?.message || error.message}`
         );
       }
-    }
+    },
+    session
   );
 }

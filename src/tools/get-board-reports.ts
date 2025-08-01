@@ -4,12 +4,13 @@
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { BaseArgs } from '../types.js';
+import type { SessionState } from '../session-manager.js';
 
 export interface GetBoardReportsArgs extends BaseArgs {
   boardId: number;
 }
 
-export async function handleGetBoardReports(args: GetBoardReportsArgs) {
+export async function handleGetBoardReports(args: GetBoardReportsArgs, session?: SessionState) {
   return withJiraContext(
     args,
     { requiresProject: false },
@@ -123,6 +124,7 @@ For detailed sprint analytics, use \`get_sprint_report\` with specific sprint ID
           `Failed to get board reports: ${error.response?.data?.message || error.message}`
         );
       }
-    }
+    },
+    session
   );
 }

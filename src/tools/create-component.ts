@@ -2,6 +2,7 @@
  * Create a new project component for feature organization
  */
 import { withJiraContext } from '../utils/tool-wrapper.js';
+import type { SessionState } from '../session-manager.js';
 
 interface CreateComponentArgs {
   working_dir: string;
@@ -13,7 +14,7 @@ interface CreateComponentArgs {
   assigneeType?: string;
 }
 
-export async function handleCreateComponent(args: CreateComponentArgs) {
+export async function handleCreateComponent(args: CreateComponentArgs, session?: SessionState) {
   return withJiraContext(
     args,
     { requiresProject: false },
@@ -79,6 +80,7 @@ Component is ready for use in project organization and issue assignment.`,
           isError: true,
         };
       }
-    }
+    },
+    session
   );
 }

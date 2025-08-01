@@ -2,6 +2,7 @@
  * Get component progress with issue counts and work distribution
  */
 import { withJiraContext } from '../utils/tool-wrapper.js';
+import type { SessionState } from '../session-manager.js';
 
 interface GetComponentProgressArgs {
   working_dir: string;
@@ -10,7 +11,10 @@ interface GetComponentProgressArgs {
   componentId: string;
 }
 
-export async function handleGetComponentProgress(args: GetComponentProgressArgs) {
+export async function handleGetComponentProgress(
+  args: GetComponentProgressArgs,
+  session?: SessionState
+) {
   return withJiraContext(
     args,
     { requiresProject: false },
@@ -26,12 +30,10 @@ export async function handleGetComponentProgress(args: GetComponentProgressArgs)
         const componentResponse = await axiosInstance.get(`/component/${toolArgs.componentId}`);
         const component = componentResponse.data;
 
-        // Get issue counts for this component
-        const issueCountsResponse = await axiosInstance.get(
-          `/component/${toolArgs.componentId}/relatedIssueCounts`
-        );
-        const issueCounts = issueCountsResponse.data;
-
+        // Issue counts available via API if needed in future
+        // const issueCountsResponse = await axiosInstance.get(
+        //   `/component/${toolArgs.componentId}/relatedIssueCounts`
+        // );
         // Get detailed issue breakdown by searching for issues in this component
         const searchResponse = await axiosInstance.get(`/search`, {
           params: {
@@ -158,6 +160,7 @@ ${recentIssues.length === 0 ? '⚠️ No recent activity. Component may need att
           isError: true,
         };
       }
-    }
+    },
+    session
   );
 }

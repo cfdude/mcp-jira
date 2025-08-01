@@ -2,6 +2,7 @@
  * Update an existing strategic plan using JSON Patch operations (Jira Premium feature)
  */
 import { withJiraContext } from '../utils/tool-wrapper.js';
+import type { SessionState } from '../session-manager.js';
 
 interface UpdatePlanArgs {
   working_dir: string;
@@ -16,7 +17,7 @@ interface UpdatePlanArgs {
   useGroupId?: boolean;
 }
 
-export async function handleUpdatePlan(args: UpdatePlanArgs) {
+export async function handleUpdatePlan(args: UpdatePlanArgs, _session?: SessionState) {
   return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
     try {
       const params: any = {};

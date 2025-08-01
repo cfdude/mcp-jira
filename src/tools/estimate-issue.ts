@@ -4,8 +4,9 @@
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { EstimateIssueArgs } from '../types.js';
+import type { SessionState } from '../session-manager.js';
 
-export async function handleEstimateIssue(args: EstimateIssueArgs) {
+export async function handleEstimateIssue(args: EstimateIssueArgs, session?: SessionState) {
   return withJiraContext(
     args,
     { extractProjectFromIssueKey: true },
@@ -16,7 +17,7 @@ export async function handleEstimateIssue(args: EstimateIssueArgs) {
       });
 
       try {
-        const response = await agileAxiosInstance.put(`/issue/${issueKey}/estimation`, {
+        await agileAxiosInstance.put(`/issue/${issueKey}/estimation`, {
           value: value,
         });
 
@@ -53,6 +54,7 @@ The issue estimation has been updated. This affects planning calculations and re
           `Failed to set issue estimation: ${error.response?.data?.message || error.message}`
         );
       }
-    }
+    },
+    session
   );
 }

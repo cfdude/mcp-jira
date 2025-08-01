@@ -4,6 +4,7 @@
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { BaseArgs } from '../types.js';
+import type { SessionState } from '../session-manager.js';
 
 export interface UpdateSprintArgs extends BaseArgs {
   sprintId: number;
@@ -30,7 +31,7 @@ function formatJiraDate(dateString: string): string {
   return isoString.replace('Z', '+00:00');
 }
 
-export async function handleUpdateSprint(args: UpdateSprintArgs) {
+export async function handleUpdateSprint(args: UpdateSprintArgs, session?: SessionState) {
   return withJiraContext(
     args,
     { requiresProject: false },
@@ -54,7 +55,7 @@ export async function handleUpdateSprint(args: UpdateSprintArgs) {
       if (startDate !== undefined) {
         try {
           updateData.startDate = formatJiraDate(startDate);
-        } catch (error) {
+        } catch {
           throw new McpError(
             ErrorCode.InvalidRequest,
             `Invalid startDate format: ${startDate}. Use ISO format like "2025-07-29T00:00:00Z" or "2025-07-29"`
@@ -65,7 +66,7 @@ export async function handleUpdateSprint(args: UpdateSprintArgs) {
       if (endDate !== undefined) {
         try {
           updateData.endDate = formatJiraDate(endDate);
-        } catch (error) {
+        } catch {
           throw new McpError(
             ErrorCode.InvalidRequest,
             `Invalid endDate format: ${endDate}. Use ISO format like "2025-08-12T23:59:59Z" or "2025-08-12"`
@@ -146,6 +147,7 @@ ${response.data.endDate ? `- **End Date:** ${response.data.endDate}` : ''}`,
 
         throw new McpError(ErrorCode.InternalError, errorMessage);
       }
-    }
+    },
+    session
   );
 }

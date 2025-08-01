@@ -3,6 +3,7 @@
  */
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import type { SessionState } from '../session-manager.js';
 
 interface GetVelocityChartDataArgs {
   working_dir: string;
@@ -11,7 +12,10 @@ interface GetVelocityChartDataArgs {
   numberOfSprints?: number;
 }
 
-export async function handleGetVelocityChartData(args: GetVelocityChartDataArgs) {
+export async function handleGetVelocityChartData(
+  args: GetVelocityChartDataArgs,
+  session?: SessionState
+) {
   return withJiraContext(
     args,
     { requiresProject: false },
@@ -185,6 +189,7 @@ ${
           `Failed to get velocity chart data: ${error.response?.data?.message || error.message}`
         );
       }
-    }
+    },
+    session
   );
 }

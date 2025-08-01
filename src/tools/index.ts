@@ -9,7 +9,6 @@ import {
   ErrorCode,
 } from '@modelcontextprotocol/sdk/types.js';
 import axios from 'axios';
-import { loadProjectConfig } from '../config.js';
 import { handleCreateIssue } from './create-issue.js';
 import { handleListIssues } from './list-issues.js';
 import { handleUpdateIssue } from './update-issue.js';
@@ -75,10 +74,30 @@ import { handleArchivePlan } from './archive-plan.js';
 import { handleDuplicatePlan } from './duplicate-plan.js';
 import { handleTrashPlan } from './trash-plan.js';
 
+// Import session types
+import type { SessionState } from '../session-manager.js';
+
+/**
+ * Create session-aware wrapper for tool handlers
+ */
+// Session-aware handler wrapper - currently unused but available for future enhancements
+// function createSessionAwareHandler<T extends any[]>(
+//   handler: (...args: T) => Promise<any>,
+//   _session?: SessionState
+// ) {
+//   return async (...args: T) => {
+//     return handler(...args);
+//   };
+// }
+
 /**
  * Register all tool handlers with the server
  */
-export function setupToolHandlers(server: Server, storyPointsFieldRef: { current: string | null }) {
+export function setupToolHandlers(
+  server: Server,
+  storyPointsFieldRef: { current: string | null },
+  session?: SessionState
+) {
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: [
       {
@@ -2110,125 +2129,125 @@ export function setupToolHandlers(server: Server, storyPointsFieldRef: { current
       // Route to the appropriate handler based on the tool name
       switch (request.params.name) {
         case 'create_issue':
-          return handleCreateIssue({ ...args, working_dir });
+          return handleCreateIssue({ ...args, working_dir }, session);
 
         case 'update_issue':
-          return handleUpdateIssue({ ...args, working_dir });
+          return handleUpdateIssue({ ...args, working_dir }, session);
 
         case 'get_issue':
-          return handleGetIssue({ ...args, working_dir });
+          return handleGetIssue({ ...args, working_dir }, session);
 
         case 'delete_issue':
-          return handleDeleteIssue({ ...args, working_dir });
+          return handleDeleteIssue({ ...args, working_dir }, session);
 
         case 'add_comment':
-          return handleAddComment({ ...args, working_dir });
+          return handleAddComment({ ...args, working_dir }, session);
 
         case 'list_issues':
-          return handleListIssues({ ...args, working_dir });
+          return handleListIssues({ ...args, working_dir }, session);
 
         case 'list_instances':
-          return handleListInstances({ ...args, working_dir });
+          return handleListInstances({ ...args, working_dir }, session);
 
         // Sprint Management
         case 'create_sprint':
-          return handleCreateSprint({ ...args, working_dir });
+          return handleCreateSprint({ ...args, working_dir }, session);
         case 'update_sprint':
-          return handleUpdateSprint({ ...args, working_dir });
+          return handleUpdateSprint({ ...args, working_dir }, session);
         case 'get_sprint_details':
-          return handleGetSprintDetails({ ...args, working_dir });
+          return handleGetSprintDetails({ ...args, working_dir }, session);
         case 'move_issues_to_sprint':
-          return handleMoveIssuesToSprint({ ...args, working_dir });
+          return handleMoveIssuesToSprint({ ...args, working_dir }, session);
         case 'complete_sprint':
-          return handleCompleteSprint({ ...args, working_dir });
+          return handleCompleteSprint({ ...args, working_dir }, session);
 
         // Board Management
         case 'list_boards':
-          return handleListBoards({ ...args, working_dir });
+          return handleListBoards({ ...args, working_dir }, session);
         case 'get_board_configuration':
-          return handleGetBoardConfiguration({ ...args, working_dir });
+          return handleGetBoardConfiguration({ ...args, working_dir }, session);
         case 'get_board_reports':
-          return handleGetBoardReports({ ...args, working_dir });
+          return handleGetBoardReports({ ...args, working_dir }, session);
         case 'manage_board_quickfilters':
-          return handleManageBoardQuickfilters({ ...args, working_dir });
+          return handleManageBoardQuickfilters({ ...args, working_dir }, session);
 
         // Epic Management
         case 'create_epic':
-          return handleCreateEpic({ ...args, working_dir });
+          return handleCreateEpic({ ...args, working_dir }, session);
         case 'update_epic_details':
-          return handleUpdateEpicDetails({ ...args, working_dir });
+          return handleUpdateEpicDetails({ ...args, working_dir }, session);
         case 'rank_epics':
-          return handleRankEpics({ ...args, working_dir });
+          return handleRankEpics({ ...args, working_dir }, session);
         case 'list_epic_issues':
-          return handleListEpicIssues({ ...args, working_dir });
+          return handleListEpicIssues({ ...args, working_dir }, session);
         case 'move_issues_to_epic':
-          return handleMoveIssuesToEpic({ ...args, working_dir });
+          return handleMoveIssuesToEpic({ ...args, working_dir }, session);
 
         // Advanced Issue Operations
         case 'bulk_update_issues':
-          return handleBulkUpdateIssues({ ...args, working_dir });
+          return handleBulkUpdateIssues({ ...args, working_dir }, session);
         case 'rank_issues':
-          return handleRankIssues({ ...args, working_dir });
+          return handleRankIssues({ ...args, working_dir }, session);
         case 'estimate_issue':
-          return handleEstimateIssue({ ...args, working_dir });
+          return handleEstimateIssue({ ...args, working_dir }, session);
 
         // Reporting & Analytics
         case 'get_sprint_report':
-          return handleGetSprintReport({ ...args, working_dir });
+          return handleGetSprintReport({ ...args, working_dir }, session);
         case 'get_velocity_chart_data':
-          return handleGetVelocityChartData({ ...args, working_dir });
+          return handleGetVelocityChartData({ ...args, working_dir }, session);
         case 'get_burndown_chart_data':
-          return handleGetBurndownChartData({ ...args, working_dir });
+          return handleGetBurndownChartData({ ...args, working_dir }, session);
         case 'get_board_cumulative_flow':
-          return handleGetBoardCumulativeFlow({ ...args, working_dir });
+          return handleGetBoardCumulativeFlow({ ...args, working_dir }, session);
 
         // Project Planning Tools
         case 'list_versions':
-          return handleListVersions({ ...args, working_dir });
+          return handleListVersions({ ...args, working_dir }, session);
         case 'create_version':
-          return handleCreateVersion({ ...args, working_dir });
+          return handleCreateVersion({ ...args, working_dir }, session);
         case 'get_version_progress':
-          return handleGetVersionProgress({ ...args, working_dir });
+          return handleGetVersionProgress({ ...args, working_dir }, session);
         case 'list_components':
-          return handleListComponents({ ...args, working_dir });
+          return handleListComponents({ ...args, working_dir }, session);
         case 'create_component':
-          return handleCreateComponent({ ...args, working_dir });
+          return handleCreateComponent({ ...args, working_dir }, session);
         case 'get_component_progress':
-          return handleGetComponentProgress({ ...args, working_dir });
+          return handleGetComponentProgress({ ...args, working_dir }, session);
         case 'search_projects':
-          return handleSearchProjects({ ...args, working_dir });
+          return handleSearchProjects({ ...args, working_dir }, session);
         case 'get_project_details':
-          return handleGetProjectDetails({ ...args, working_dir });
+          return handleGetProjectDetails({ ...args, working_dir }, session);
         case 'search_issues_jql':
-          return handleSearchIssuesJql({ ...args, working_dir });
+          return handleSearchIssuesJql({ ...args, working_dir }, session);
         case 'create_filter':
-          return handleCreateFilter({ ...args, working_dir });
+          return handleCreateFilter({ ...args, working_dir }, session);
         case 'list_plans':
-          return handleListPlans({ ...args, working_dir });
+          return handleListPlans({ ...args, working_dir }, session);
         case 'get_project_statuses':
-          return handleGetProjectStatuses({ ...args, working_dir });
+          return handleGetProjectStatuses({ ...args, working_dir }, session);
         case 'get_issue_types':
-          return handleGetIssueTypes({ ...args, working_dir });
+          return handleGetIssueTypes({ ...args, working_dir }, session);
 
         // Plans Management
         case 'create_plan':
-          return handleCreatePlan({ ...args, working_dir });
+          return handleCreatePlan({ ...args, working_dir }, session);
         case 'get_plan':
-          return handleGetPlan({ ...args, working_dir });
+          return handleGetPlan({ ...args, working_dir }, session);
         case 'update_plan':
-          return handleUpdatePlan({ ...args, working_dir });
+          return handleUpdatePlan({ ...args, working_dir }, session);
         case 'get_plan_teams':
-          return handleGetPlanTeams({ ...args, working_dir });
+          return handleGetPlanTeams({ ...args, working_dir }, session);
         case 'add_plan_team':
-          return handleAddPlanTeam({ ...args, working_dir });
+          return handleAddPlanTeam({ ...args, working_dir }, session);
         case 'remove_plan_team':
-          return handleRemovePlanTeam({ ...args, working_dir });
+          return handleRemovePlanTeam({ ...args, working_dir }, session);
         case 'archive_plan':
-          return handleArchivePlan({ ...args, working_dir });
+          return handleArchivePlan({ ...args, working_dir }, session);
         case 'duplicate_plan':
-          return handleDuplicatePlan({ ...args, working_dir });
+          return handleDuplicatePlan({ ...args, working_dir }, session);
         case 'trash_plan':
-          return handleTrashPlan({ ...args, working_dir });
+          return handleTrashPlan({ ...args, working_dir }, session);
 
         default:
           throw new McpError(

@@ -2,6 +2,7 @@
  * Get comprehensive project details
  */
 import { withJiraContext } from '../utils/tool-wrapper.js';
+import type { SessionState } from '../session-manager.js';
 
 interface GetProjectDetailsArgs {
   working_dir: string;
@@ -10,7 +11,10 @@ interface GetProjectDetailsArgs {
   expand?: string;
 }
 
-export async function handleGetProjectDetails(args: GetProjectDetailsArgs) {
+export async function handleGetProjectDetails(
+  args: GetProjectDetailsArgs,
+  _session?: SessionState
+) {
   return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
     try {
       const projectKey = toolArgs.projectKey;
@@ -162,7 +166,7 @@ ${
     ? Object.entries(roles)
         .slice(0, 10)
         .map(
-          ([key, role]: [string, any]) =>
+          ([_key, role]: [string, any]) =>
             `- **${role.name}**: ${role.description || 'No description'}`
         )
         .join('\n')

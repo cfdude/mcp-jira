@@ -4,6 +4,7 @@
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { BaseArgs } from '../types.js';
+import type { SessionState } from '../session-manager.js';
 
 export interface ManageBoardQuickfiltersArgs extends BaseArgs {
   boardId: number;
@@ -11,7 +12,10 @@ export interface ManageBoardQuickfiltersArgs extends BaseArgs {
   quickfilterId?: number;
 }
 
-export async function handleManageBoardQuickfilters(args: ManageBoardQuickfiltersArgs) {
+export async function handleManageBoardQuickfilters(
+  args: ManageBoardQuickfiltersArgs,
+  session?: SessionState
+) {
   return withJiraContext(
     args,
     { requiresProject: false },
@@ -120,6 +124,7 @@ This quickfilter can be used to filter issues on the board based on the JQL quer
           `Failed to manage board quickfilters: ${error.response?.data?.message || error.message}`
         );
       }
-    }
+    },
+    session
   );
 }

@@ -2,6 +2,7 @@
  * Get version progress with issue counts and status breakdown
  */
 import { withJiraContext } from '../utils/tool-wrapper.js';
+import type { SessionState } from '../session-manager.js';
 
 interface GetVersionProgressArgs {
   working_dir: string;
@@ -10,7 +11,10 @@ interface GetVersionProgressArgs {
   versionId: string;
 }
 
-export async function handleGetVersionProgress(args: GetVersionProgressArgs) {
+export async function handleGetVersionProgress(
+  args: GetVersionProgressArgs,
+  session?: SessionState
+) {
   return withJiraContext(
     args,
     { requiresProject: false },
@@ -134,6 +138,7 @@ ${daysUntilRelease !== null && daysUntilRelease <= 7 && daysUntilRelease > 0 ? '
           isError: true,
         };
       }
-    }
+    },
+    session
   );
 }

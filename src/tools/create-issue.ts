@@ -7,8 +7,9 @@ import { CreateIssueArgs } from '../types.js';
 import { getBoardId } from '../utils/jira-api.js';
 import { formatCreatedIssue } from '../utils/formatting.js';
 import { textToAdf } from '../utils/adf-converter.js';
+import type { SessionState } from '../session-manager.js';
 
-export async function handleCreateIssue(args: CreateIssueArgs) {
+export async function handleCreateIssue(args: CreateIssueArgs, session?: SessionState) {
   return withJiraContext(
     args,
     { requiresProject: true },
@@ -219,6 +220,7 @@ export async function handleCreateIssue(args: CreateIssueArgs) {
           },
         ],
       };
-    }
+    },
+    session
   );
 }

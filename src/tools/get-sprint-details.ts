@@ -4,8 +4,9 @@
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { GetSprintDetailsArgs } from '../types.js';
+import type { SessionState } from '../session-manager.js';
 
-export async function handleGetSprintDetails(args: GetSprintDetailsArgs) {
+export async function handleGetSprintDetails(args: GetSprintDetailsArgs, session?: SessionState) {
   return withJiraContext(
     args,
     { requiresProject: false },
@@ -96,6 +97,7 @@ ${issues.length > 10 ? `\n... and ${issues.length - 10} more issues` : ''}`,
           `Failed to get sprint details: ${error.response?.data?.message || error.message}`
         );
       }
-    }
+    },
+    session
   );
 }

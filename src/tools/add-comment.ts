@@ -4,8 +4,9 @@
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { AddCommentArgs } from '../types.js';
+import type { SessionState } from '../session-manager.js';
 
-export async function handleAddComment(args: AddCommentArgs) {
+export async function handleAddComment(args: AddCommentArgs, session?: SessionState) {
   return withJiraContext(
     args,
     { extractProjectFromIssueKey: true },
@@ -31,6 +32,7 @@ export async function handleAddComment(args: AddCommentArgs) {
           `Failed to add comment: ${error.response?.data?.message || error.message}`
         );
       }
-    }
+    },
+    session
   );
 }

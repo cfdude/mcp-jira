@@ -3,8 +3,9 @@
  */
 import { DeleteIssueArgs } from '../types.js';
 import { withJiraContext } from '../utils/tool-wrapper.js';
+import type { SessionState } from '../session-manager.js';
 
-export async function handleDeleteIssue(args: DeleteIssueArgs) {
+export async function handleDeleteIssue(args: DeleteIssueArgs, session?: SessionState) {
   return withJiraContext(
     args,
     { extractProjectFromIssueKey: true },
@@ -77,6 +78,7 @@ export async function handleDeleteIssue(args: DeleteIssueArgs) {
         // Re-throw other errors to be handled by the wrapper
         throw error;
       }
-    }
+    },
+    session
   );
 }

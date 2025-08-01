@@ -4,12 +4,16 @@
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { BaseArgs } from '../types.js';
+import type { SessionState } from '../session-manager.js';
 
 export interface GetBoardConfigurationArgs extends BaseArgs {
   boardId: number;
 }
 
-export async function handleGetBoardConfiguration(args: GetBoardConfigurationArgs) {
+export async function handleGetBoardConfiguration(
+  args: GetBoardConfigurationArgs,
+  session?: SessionState
+) {
   return withJiraContext(
     args,
     { requiresProject: false },
@@ -116,6 +120,7 @@ Use \`list_boards\` to see all boards or \`get_board_reports\` for analytics.`,
           `Failed to get board configuration: ${error.response?.data?.message || error.message}`
         );
       }
-    }
+    },
+    session
   );
 }

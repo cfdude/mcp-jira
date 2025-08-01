@@ -2,6 +2,7 @@
  * Add a team to a strategic plan (Jira Premium feature)
  */
 import { withJiraContext } from '../utils/tool-wrapper.js';
+import type { SessionState } from '../session-manager.js';
 
 interface AddPlanTeamArgs {
   working_dir: string;
@@ -10,7 +11,7 @@ interface AddPlanTeamArgs {
   teamId: string;
 }
 
-export async function handleAddPlanTeam(args: AddPlanTeamArgs) {
+export async function handleAddPlanTeam(args: AddPlanTeamArgs, _session?: SessionState) {
   return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
     try {
       const response = await axiosInstance.put(

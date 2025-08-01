@@ -3,6 +3,7 @@
  */
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import type { SessionState } from '../session-manager.js';
 
 interface GetBurndownChartDataArgs {
   working_dir: string;
@@ -10,7 +11,10 @@ interface GetBurndownChartDataArgs {
   sprintId: number;
 }
 
-export async function handleGetBurndownChartData(args: GetBurndownChartDataArgs) {
+export async function handleGetBurndownChartData(
+  args: GetBurndownChartDataArgs,
+  session?: SessionState
+) {
   return withJiraContext(
     args,
     { requiresProject: false },
@@ -177,6 +181,7 @@ ${totalDays > 15 ? '\n... (showing first 15 days)' : ''}
           `Failed to get burndown chart data: ${error.response?.data?.message || error.message}`
         );
       }
-    }
+    },
+    session
   );
 }

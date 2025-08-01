@@ -5,12 +5,13 @@ import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { resolveAssigneeValue } from '../utils/user-resolver.js';
 import { BulkUpdateIssuesArgs } from '../types.js';
+import type { SessionState } from '../session-manager.js';
 
-export async function handleBulkUpdateIssues(args: BulkUpdateIssuesArgs) {
+export async function handleBulkUpdateIssues(args: BulkUpdateIssuesArgs, session?: SessionState) {
   return withJiraContext(
     args,
     { extractProjectFromIssueKey: true },
-    async (toolArgs, { axiosInstance, agileAxiosInstance, projectConfig }) => {
+    async (toolArgs, { axiosInstance, agileAxiosInstance: _agileAxiosInstance, projectConfig }) => {
       const { issueKeys, updates } = toolArgs;
 
       const storyPointsField = projectConfig.storyPointsField;
@@ -167,6 +168,7 @@ ${Object.entries(updates)
           },
         ],
       };
-    }
+    },
+    session
   );
 }

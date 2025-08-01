@@ -2,6 +2,7 @@
  * List project components for feature organization
  */
 import { withJiraContext } from '../utils/tool-wrapper.js';
+import type { SessionState } from '../session-manager.js';
 
 interface ListComponentsArgs {
   working_dir: string;
@@ -9,7 +10,7 @@ interface ListComponentsArgs {
   projectKey?: string;
 }
 
-export async function handleListComponents(args: ListComponentsArgs) {
+export async function handleListComponents(args: ListComponentsArgs, session?: SessionState) {
   return withJiraContext(
     args,
     { requiresProject: false },
@@ -85,6 +86,7 @@ ${
           isError: true,
         };
       }
-    }
+    },
+    session
   );
 }

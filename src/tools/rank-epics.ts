@@ -4,8 +4,9 @@
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { RankEpicsArgs } from '../types.js';
+import type { SessionState } from '../session-manager.js';
 
-export async function handleRankEpics(args: RankEpicsArgs) {
+export async function handleRankEpics(args: RankEpicsArgs, session?: SessionState) {
   return withJiraContext(
     args,
     { extractProjectFromIssueKey: true },
@@ -40,7 +41,7 @@ export async function handleRankEpics(args: RankEpicsArgs) {
       if (rankCustomFieldId) rankData.rankCustomFieldId = rankCustomFieldId;
 
       try {
-        const response = await agileAxiosInstance.put(`/epic/${epicToRank}/rank`, rankData);
+        await agileAxiosInstance.put(`/epic/${epicToRank}/rank`, rankData);
 
         return {
           content: [
@@ -80,6 +81,7 @@ The epic has been repositioned in the epic ranking order.`,
           `Failed to rank epics: ${error.response?.data?.message || error.message}`
         );
       }
-    }
+    },
+    session
   );
 }
