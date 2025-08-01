@@ -80,16 +80,15 @@ import type { SessionState } from '../session-manager.js';
 /**
  * Create session-aware wrapper for tool handlers
  */
-function createSessionAwareHandler<T extends any[]>(
-  handler: (...args: T) => Promise<any>,
-  session?: SessionState
-) {
-  return async (...args: T) => {
-    // For now, we'll need to patch the withJiraContext call
-    // This is a temporary approach until we refactor all handlers
-    return handler(...args);
-  };
-}
+// Session-aware handler wrapper - currently unused but available for future enhancements
+// function createSessionAwareHandler<T extends any[]>(
+//   handler: (...args: T) => Promise<any>,
+//   _session?: SessionState
+// ) {
+//   return async (...args: T) => {
+//     return handler(...args);
+//   };
+// }
 
 /**
  * Register all tool handlers with the server

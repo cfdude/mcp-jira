@@ -11,12 +11,10 @@ interface RemovePlanTeamArgs {
   teamId: string;
 }
 
-export async function handleRemovePlanTeam(args: RemovePlanTeamArgs, session?: SessionState) {
+export async function handleRemovePlanTeam(args: RemovePlanTeamArgs, _session?: SessionState) {
   return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
     try {
-      await axiosInstance.delete(
-        `/plans/plan/${toolArgs.planId}/team/${toolArgs.teamId}`
-      );
+      await axiosInstance.delete(`/plans/plan/${toolArgs.planId}/team/${toolArgs.teamId}`);
 
       return {
         content: [

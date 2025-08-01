@@ -17,7 +17,7 @@ interface UpdatePlanArgs {
   useGroupId?: boolean;
 }
 
-export async function handleUpdatePlan(args: UpdatePlanArgs, session?: SessionState) {
+export async function handleUpdatePlan(args: UpdatePlanArgs, _session?: SessionState) {
   return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
     try {
       const params: any = {};

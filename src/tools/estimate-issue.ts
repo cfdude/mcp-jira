@@ -17,7 +17,7 @@ export async function handleEstimateIssue(args: EstimateIssueArgs, session?: Ses
       });
 
       try {
-        const response = await agileAxiosInstance.put(`/issue/${issueKey}/estimation`, {
+        await agileAxiosInstance.put(`/issue/${issueKey}/estimation`, {
           value: value,
         });
 

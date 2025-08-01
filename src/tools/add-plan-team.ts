@@ -11,7 +11,7 @@ interface AddPlanTeamArgs {
   teamId: string;
 }
 
-export async function handleAddPlanTeam(args: AddPlanTeamArgs, session?: SessionState) {
+export async function handleAddPlanTeam(args: AddPlanTeamArgs, _session?: SessionState) {
   return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
     try {
       const response = await axiosInstance.put(

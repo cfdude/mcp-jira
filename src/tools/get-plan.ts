@@ -10,7 +10,7 @@ interface GetPlanArgs {
   planId: string;
 }
 
-export async function handleGetPlan(args: GetPlanArgs, session?: SessionState) {
+export async function handleGetPlan(args: GetPlanArgs, _session?: SessionState) {
   return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
     try {
       const response = await axiosInstance.get(`/plans/plan/${toolArgs.planId}`);

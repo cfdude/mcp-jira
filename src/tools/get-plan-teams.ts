@@ -10,7 +10,7 @@ interface GetPlanTeamsArgs {
   planId: string;
 }
 
-export async function handleGetPlanTeams(args: GetPlanTeamsArgs, session?: SessionState) {
+export async function handleGetPlanTeams(args: GetPlanTeamsArgs, _session?: SessionState) {
   return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
     try {
       const response = await axiosInstance.get(`/plans/plan/${toolArgs.planId}/team`);

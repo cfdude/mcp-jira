@@ -10,7 +10,7 @@ interface ArchivePlanArgs {
   planId: string;
 }
 
-export async function handleArchivePlan(args: ArchivePlanArgs, session?: SessionState) {
+export async function handleArchivePlan(args: ArchivePlanArgs, _session?: SessionState) {
   return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
     try {
       await axiosInstance.post(`/plans/plan/${toolArgs.planId}/archive`);

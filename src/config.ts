@@ -39,8 +39,6 @@ export async function loadMultiInstanceConfig(
 
   console.error('Will try these config locations:', configLocations);
 
-  let lastError: Error | null = null;
-
   // Try each location
   for (const location of configLocations) {
     try {

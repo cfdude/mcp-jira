@@ -9,7 +9,7 @@ interface ListInstancesArgs {
   instance?: string;
 }
 
-export async function handleListInstances(args: ListInstancesArgs, session?: SessionState) {
+export async function handleListInstances(args: ListInstancesArgs, _session?: SessionState) {
   try {
     const { instances, projects } = await listAvailableInstances(args.working_dir);
 

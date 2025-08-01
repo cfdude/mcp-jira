@@ -70,8 +70,8 @@ export async function withJiraContext<TArgs extends BaseArgs, TResult>(
 ): Promise<TResult> {
   const { working_dir, instance, ...toolArgs } = args;
 
-  // Generate request ID for tracing
-  const requestId = Math.random().toString(36).substring(2, 15);
+  // Request ID generation available for future logging enhancements
+  // const requestId = Math.random().toString(36).substring(2, 15);
 
   const logContext = session ? { sessionId: session.sessionId } : {};
 

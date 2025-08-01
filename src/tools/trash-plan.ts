@@ -10,7 +10,7 @@ interface TrashPlanArgs {
   planId: string;
 }
 
-export async function handleTrashPlan(args: TrashPlanArgs, session?: SessionState) {
+export async function handleTrashPlan(args: TrashPlanArgs, _session?: SessionState) {
   return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
     try {
       await axiosInstance.post(`/plans/plan/${toolArgs.planId}/trash`);

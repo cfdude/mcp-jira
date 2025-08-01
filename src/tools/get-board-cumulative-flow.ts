@@ -80,7 +80,7 @@ No issues found on this board.`,
 
           // Find which column this status belongs to
           let foundColumn = false;
-          for (const [columnName, columnData] of Object.entries(statusFlow)) {
+          for (const [, columnData] of Object.entries(statusFlow)) {
             const columnInfo = columnData as any;
             if (columnInfo.statuses.includes(issueStatus)) {
               columnInfo.issues++;

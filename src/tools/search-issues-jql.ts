@@ -5,7 +5,7 @@ import { withJiraContext } from '../utils/tool-wrapper.js';
 import { SearchIssuesJqlArgs } from '../types.js';
 import type { SessionState } from '../session-manager.js';
 
-export async function handleSearchIssuesJql(args: SearchIssuesJqlArgs, session?: SessionState) {
+export async function handleSearchIssuesJql(args: SearchIssuesJqlArgs, _session?: SessionState) {
   return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
     try {
       const params: any = {

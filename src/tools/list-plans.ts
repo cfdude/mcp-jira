@@ -11,7 +11,7 @@ interface ListPlansArgs {
   maxResults?: number;
 }
 
-export async function handleListPlans(args: ListPlansArgs, session?: SessionState) {
+export async function handleListPlans(args: ListPlansArgs, _session?: SessionState) {
   return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
     try {
       const params: any = {};

@@ -11,7 +11,7 @@ export async function handleBulkUpdateIssues(args: BulkUpdateIssuesArgs, session
   return withJiraContext(
     args,
     { extractProjectFromIssueKey: true },
-    async (toolArgs, { axiosInstance, agileAxiosInstance, projectConfig }) => {
+    async (toolArgs, { axiosInstance, agileAxiosInstance: _agileAxiosInstance, projectConfig }) => {
       const { issueKeys, updates } = toolArgs;
 
       const storyPointsField = projectConfig.storyPointsField;

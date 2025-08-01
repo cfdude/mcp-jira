@@ -52,7 +52,7 @@ interface CreatePlanArgs {
   useGroupId?: boolean;
 }
 
-export async function handleCreatePlan(args: CreatePlanArgs, session?: SessionState) {
+export async function handleCreatePlan(args: CreatePlanArgs, _session?: SessionState) {
   return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
     try {
       const requestBody: any = {

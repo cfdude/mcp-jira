@@ -55,7 +55,7 @@ export async function handleUpdateSprint(args: UpdateSprintArgs, session?: Sessi
       if (startDate !== undefined) {
         try {
           updateData.startDate = formatJiraDate(startDate);
-        } catch (error) {
+        } catch {
           throw new McpError(
             ErrorCode.InvalidRequest,
             `Invalid startDate format: ${startDate}. Use ISO format like "2025-07-29T00:00:00Z" or "2025-07-29"`
@@ -66,7 +66,7 @@ export async function handleUpdateSprint(args: UpdateSprintArgs, session?: Sessi
       if (endDate !== undefined) {
         try {
           updateData.endDate = formatJiraDate(endDate);
-        } catch (error) {
+        } catch {
           throw new McpError(
             ErrorCode.InvalidRequest,
             `Invalid endDate format: ${endDate}. Use ISO format like "2025-08-12T23:59:59Z" or "2025-08-12"`
