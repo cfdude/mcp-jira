@@ -73,9 +73,8 @@ export async function handleCreateEpic(args: CreateEpicArgs, session?: SessionSt
       }
 
       // Add Epic Name (usually customfield_10011 but may vary)
-      // Try common Epic Name field IDs
-      const epicNameFieldIds = ['customfield_10011', 'customfield_10004', 'customfield_10014'];
-      // For now, we'll use the most common one
+      // Use the most common Epic Name field ID
+      // Could be customfield_10011, customfield_10004, or customfield_10014 depending on instance
       fields.customfield_10011 = name;
 
       // Add priority if specified

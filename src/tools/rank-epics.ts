@@ -41,7 +41,7 @@ export async function handleRankEpics(args: RankEpicsArgs, session?: SessionStat
       if (rankCustomFieldId) rankData.rankCustomFieldId = rankCustomFieldId;
 
       try {
-        const response = await agileAxiosInstance.put(`/epic/${epicToRank}/rank`, rankData);
+        await agileAxiosInstance.put(`/epic/${epicToRank}/rank`, rankData);
 
         return {
           content: [

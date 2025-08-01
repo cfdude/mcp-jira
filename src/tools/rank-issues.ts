@@ -48,7 +48,7 @@ export async function handleRankIssues(args: RankIssuesArgs, session?: SessionSt
       if (rankCustomFieldId) rankData.rankCustomFieldId = rankCustomFieldId;
 
       try {
-        const response = await agileAxiosInstance.put('/issue/rank', rankData);
+        await agileAxiosInstance.put('/issue/rank', rankData);
 
         return {
           content: [

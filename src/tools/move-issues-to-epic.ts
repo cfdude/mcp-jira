@@ -23,7 +23,7 @@ export async function handleMoveIssuesToEpic(args: MoveIssuesToEpicArgs, session
       }
 
       try {
-        const response = await agileAxiosInstance.post(`/epic/${epicKey}/issue`, {
+        await agileAxiosInstance.post(`/epic/${epicKey}/issue`, {
           issues: issueKeys,
         });
 

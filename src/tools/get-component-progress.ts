@@ -30,12 +30,10 @@ export async function handleGetComponentProgress(
         const componentResponse = await axiosInstance.get(`/component/${toolArgs.componentId}`);
         const component = componentResponse.data;
 
-        // Get issue counts for this component
-        const issueCountsResponse = await axiosInstance.get(
-          `/component/${toolArgs.componentId}/relatedIssueCounts`
-        );
-        const issueCounts = issueCountsResponse.data;
-
+        // Issue counts available via API if needed in future
+        // const issueCountsResponse = await axiosInstance.get(
+        //   `/component/${toolArgs.componentId}/relatedIssueCounts`
+        // );
         // Get detailed issue breakdown by searching for issues in this component
         const searchResponse = await axiosInstance.get(`/search`, {
           params: {

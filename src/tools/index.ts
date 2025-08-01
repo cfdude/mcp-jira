@@ -9,7 +9,6 @@ import {
   ErrorCode,
 } from '@modelcontextprotocol/sdk/types.js';
 import axios from 'axios';
-import { loadProjectConfig } from '../config.js';
 import { handleCreateIssue } from './create-issue.js';
 import { handleListIssues } from './list-issues.js';
 import { handleUpdateIssue } from './update-issue.js';

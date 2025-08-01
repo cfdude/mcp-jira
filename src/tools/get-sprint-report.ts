@@ -37,7 +37,7 @@ export async function handleGetSprintReport(args: GetSprintReportArgs, session?:
         // Status categorization
         const statusBreakdown = issues.reduce((acc: any, issue: any) => {
           const status = issue.fields.status.name;
-          const category = issue.fields.status.statusCategory.key;
+          // Status category available as issue.fields.status.statusCategory.key if needed
           acc[status] = (acc[status] || 0) + 1;
           return acc;
         }, {});

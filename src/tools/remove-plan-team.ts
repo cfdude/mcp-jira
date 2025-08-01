@@ -14,7 +14,7 @@ interface RemovePlanTeamArgs {
 export async function handleRemovePlanTeam(args: RemovePlanTeamArgs, session?: SessionState) {
   return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
     try {
-      const response = await axiosInstance.delete(
+      await axiosInstance.delete(
         `/plans/plan/${toolArgs.planId}/team/${toolArgs.teamId}`
       );
 

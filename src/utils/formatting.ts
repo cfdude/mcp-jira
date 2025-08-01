@@ -1,7 +1,7 @@
 /**
  * Formatting utilities for Jira data
  */
-import { JiraIssue, JiraComment } from '../types.js';
+import { JiraIssue } from '../types.js';
 
 /**
  * Format a date string to a more readable format

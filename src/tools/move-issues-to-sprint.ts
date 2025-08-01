@@ -31,7 +31,7 @@ export async function handleMoveIssuesToSprint(
       }
 
       try {
-        const response = await agileAxiosInstance.post(`/sprint/${sprintId}/issue`, {
+        await agileAxiosInstance.post(`/sprint/${sprintId}/issue`, {
           issues: issueKeys,
         });
 
