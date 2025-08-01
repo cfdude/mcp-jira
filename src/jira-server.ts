@@ -9,6 +9,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { setupToolHandlers } from './tools/index.js';
 import { sessionManager, SessionState } from './session-manager.js';
+import { randomBytes } from 'crypto';
 import logger from './utils/logger.js';
 import 'dotenv/config';
 
@@ -70,8 +71,9 @@ export class JiraServer {
     logger.info('Starting MCP Jira server transport');
     const transport = new StdioServerTransport();
 
-    // Create a session for this STDIO connection
-    const sessionId = `stdio-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+    // Create a session for this STDIO connection with cryptographically secure random ID
+    const randomSuffix = randomBytes(8).toString('hex');
+    const sessionId = `stdio-${Date.now()}-${randomSuffix}`;
     this.currentSession = sessionManager.createSession(sessionId);
 
     logger.info('Created session for STDIO connection', {
