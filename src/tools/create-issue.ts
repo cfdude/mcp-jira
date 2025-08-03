@@ -6,7 +6,6 @@ import { withJiraContext } from '../utils/tool-wrapper.js';
 import { CreateIssueArgs } from '../types.js';
 import { getBoardId } from '../utils/jira-api.js';
 import { formatCreatedIssue } from '../utils/formatting.js';
-import { textToAdf } from '../utils/adf-converter.js';
 import type { SessionState } from '../session-manager.js';
 
 export async function handleCreateIssue(args: CreateIssueArgs, session?: SessionState) {
@@ -96,10 +95,14 @@ export async function handleCreateIssue(args: CreateIssueArgs, session?: Session
 
       // Add description in ADF format if provided
       if (description) {
-        const adfDescription = textToAdf(description);
+        // Import ADF converter for proper text handling
+        const { safeConvertTextToADF } = await import('../utils/adf-converter.js');
+        const adfDescription = safeConvertTextToADF(description);
         console.error(
-          '[DEBUG] Converting description to ADF:',
-          JSON.stringify(adfDescription, null, 2)
+          'Converting description to ADF, length:',
+          description.length,
+          'ADF nodes:',
+          adfDescription.content?.length
         );
         fields.description = adfDescription;
       }

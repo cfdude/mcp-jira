@@ -8,7 +8,14 @@ A comprehensive Model Context Protocol server that provides enterprise-level int
 
 ## 🚀 Features Overview
 
-This server transforms basic Jira functionality into a complete project management platform with:
+This server transforms basic Jira functionality into a complete project management platform with enterprise-level concurrency and thread safety:
+
+### **🔒 Enterprise Concurrency & Thread Safety**
+- **Thread-Safe Multi-Client Support**: Multiple Claude Code sessions can safely use the same server simultaneously
+- **Session-Based State Isolation**: Each client connection gets its own isolated session state
+- **Per-Session Configuration Caching**: Prevents race conditions and improves performance
+- **Automatic Session Management**: 30-minute session timeout with graceful cleanup
+- **Production-Ready Architecture**: Designed for high-concurrency enterprise environments
 
 ### **Core Issue Management**
 - Create, update, delete, and manage Jira issues
@@ -135,6 +142,15 @@ Workflow and status configuration analysis
 Issue type discovery and configuration analysis
 - **Features**: Type hierarchy, field requirements, usage guidelines
 
+#### `detect_project_fields`
+**🆕 Field Configuration Discovery** - Essential for new user onboarding
+- **Parameters**: working_dir, projectKey, instance (optional)
+- **Purpose**: Automatically detect custom field IDs required for project configuration
+- **Output**: Ready-to-copy configuration snippets for .jira-config.json
+- **Detects**: Story Points, Sprint, and Epic Link field IDs using intelligent heuristics
+- **Multi-Instance**: Full support for multiple Jira environments
+- **Use Case**: Eliminates manual field ID hunting in Jira admin interface
+
 ### **🎯 Strategic Planning Tools**
 
 #### `list_plans`
@@ -166,6 +182,12 @@ Closes active sprints and handles remaining work
 #### `create_epic`
 Creates new epics for large feature organization
 - **Parameters**: name, summary, description, priority, labels, projectKey
+
+#### `create_epic_with_issues`
+Creates an epic with linked issues in a single operation ⚡
+- **Parameters**: epic (name, summary, description, priority, labels), issues (array of issue data)
+- **Features**: Reduces API calls, ensures proper linking, comprehensive error handling
+- **Benefits**: Atomic operation, validates all issue types, automatic assignee resolution
 
 #### `update_epic_details`
 Updates epic properties and status
@@ -441,6 +463,59 @@ await bulk_update_issues({
 });
 ```
 
+### Epic with Issues - Bulk Creation ⚡
+
+The new `create_epic_with_issues` tool allows you to create an epic and multiple linked issues in a single operation:
+
+```javascript
+// Create epic with linked issues in one operation
+await create_epic_with_issues({
+  working_dir: "/path/to/config",
+  projectKey: "PROJ",
+  epic: {
+    name: "User Authentication System",
+    summary: "Complete user authentication and authorization",
+    description: "Implement secure user authentication with OAuth2 and role-based access control",
+    priority: "High",
+    labels: ["security", "authentication"]
+  },
+  issues: [
+    {
+      summary: "Design OAuth2 integration",
+      description: "Research and design OAuth2 flow for user authentication",
+      type: "Task",
+      story_points: 5,
+      assignee: "john.doe@company.com",
+      priority: "High"
+    },
+    {
+      summary: "Implement user registration API",
+      description: "Create REST API endpoints for user registration",
+      type: "Story",
+      story_points: 8,
+      assignee: "Jane Smith",
+      labels: ["api", "backend"]
+    },
+    {
+      summary: "Build login form UI",
+      description: "Create responsive login form with validation",
+      type: "Task", 
+      story_points: 3,
+      assignee: "mike.wilson@company.com",
+      priority: "Medium"
+    }
+  ]
+});
+```
+
+**Benefits of Bulk Creation:**
+- **Reduced API Calls**: Single operation instead of multiple separate calls
+- **Automatic Linking**: All issues are automatically linked to the epic
+- **Atomic Operation**: Either all items are created successfully or none are
+- **Comprehensive Validation**: Validates epic and all issues before creation
+- **Enhanced Error Handling**: Detailed feedback on any validation failures
+- **Intelligent Assignee Resolution**: Automatically resolves user names/emails to account IDs
+
 ### Assignee Management Examples
 
 The MCP Jira Server provides intelligent assignee resolution that accepts display names, emails, or account IDs and automatically resolves them to the correct Jira account.
@@ -549,6 +624,8 @@ npm run watch  # Auto-rebuild on changes
 ### Common Issues
 
 #### **Field Detection Problems**
+- **New Users**: Use `detect_project_fields` tool to automatically discover field IDs
+- **Missing Fields**: Tools now provide automatic guidance on first project access per session
 - Check debug logs for "Found [Field] field" messages
 - Verify custom field IDs in project admin
 - Ensure proper field permissions
@@ -577,6 +654,37 @@ npm run watch  # Auto-rebuild on changes
 - Use batch operations where available
 - Monitor API response headers for rate limit status
 
+### Enhanced Error Messages 🎯
+
+The server now provides detailed, user-friendly error messages with specific troubleshooting guidance:
+
+#### **Field Validation Errors**
+- **Detailed Field Issues**: Clear explanations for each field problem
+- **User-Friendly Names**: Technical field IDs converted to readable names (e.g., `customfield_10011` → `Epic Name`)
+- **Field-Specific Guidance**: Targeted advice for common field issues
+
+#### **Context-Aware Troubleshooting**
+- **Permission Issues**: Specific steps for resolving access problems
+- **Configuration Problems**: Guidance for field and project setup issues
+- **Validation Failures**: Clear explanation of what went wrong and how to fix it
+
+#### **Example Enhanced Error**
+```
+# Invalid Request: epic creation failed
+
+The request contains invalid data or violates Jira field requirements.
+
+## Field Issues
+- **Epic Name:** Field 'customfield_10011' is not supported for issue type 'Epic' in this project
+- **Priority:** Priority 'Critical' is not available. Available priorities: Highest, High, Medium, Low, Lowest
+
+## Troubleshooting Steps
+1. Epic Name field may not be available in this project
+2. Try creating the epic without the Epic Name field  
+3. Check available priorities for this project
+4. Common values: Highest, High, Medium, Low, Lowest
+```
+
 ### Error Codes & Resolution
 
 | Error Type | Common Causes | Resolution |
@@ -584,7 +692,7 @@ npm run watch  # Auto-rebuild on changes
 | `401 Unauthorized` | Invalid API token or email | Verify credentials in MCP config |
 | `403 Forbidden` | Insufficient project permissions | Check Jira project roles and permissions |
 | `404 Not Found` | Invalid project key or issue key | Verify project/issue exists and is accessible |
-| `400 Bad Request` | Invalid field values or transitions | Check field requirements and workflow rules |
+| `400 Bad Request` | Invalid field values or transitions | **Enhanced**: Detailed field validation with specific guidance |
 
 ## 🚀 Development
 

@@ -10,6 +10,7 @@ export interface SessionState {
   configCache: Map<string, any>;
   lastActivity: Date;
   createdAt: Date;
+  accessedProjects: Map<string, Set<string>>; // Map<instanceName, Set<projectKey>>
 }
 
 export class SessionManager {
@@ -64,6 +65,7 @@ export class SessionManager {
       configCache: new Map(),
       lastActivity: now,
       createdAt: now,
+      accessedProjects: new Map(),
     };
 
     this.sessions.set(id, session);
@@ -192,6 +194,60 @@ export class SessionManager {
    */
   getAllSessionIds(): string[] {
     return Array.from(this.sessions.keys());
+  }
+
+  /**
+   * Track that a project has been accessed in this session
+   */
+  trackProjectAccess(sessionId: string, instanceName: string, projectKey: string): boolean {
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      return false;
+    }
+
+    // Update activity timestamp
+    session.lastActivity = new Date();
+
+    // Check if this is the first access to this project in this instance
+    if (!session.accessedProjects.has(instanceName)) {
+      session.accessedProjects.set(instanceName, new Set());
+    }
+
+    const instanceProjects = session.accessedProjects.get(instanceName)!;
+    const isFirstAccess = !instanceProjects.has(projectKey);
+
+    if (isFirstAccess) {
+      instanceProjects.add(projectKey);
+      logger.info('First project access tracked', {
+        sessionId,
+        instanceName,
+        projectKey,
+        totalProjectsInInstance: instanceProjects.size,
+      });
+    }
+
+    return isFirstAccess;
+  }
+
+  /**
+   * Check if a project has been accessed before in this session
+   */
+  hasAccessedProject(sessionId: string, instanceName: string, projectKey: string): boolean {
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      return false;
+    }
+
+    const instanceProjects = session.accessedProjects.get(instanceName);
+    return instanceProjects?.has(projectKey) ?? false;
+  }
+
+  /**
+   * Get all accessed projects for a session
+   */
+  getAccessedProjects(sessionId: string): Map<string, Set<string>> {
+    const session = this.sessions.get(sessionId);
+    return session?.accessedProjects ?? new Map();
   }
 
   /**

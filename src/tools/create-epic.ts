@@ -4,6 +4,7 @@
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { BaseArgs } from '../types.js';
+import { formatJiraError, formatErrorAsMarkdown } from '../utils/error-formatter.js';
 import type { SessionState } from '../session-manager.js';
 
 export interface CreateEpicArgs extends BaseArgs {
@@ -67,9 +68,18 @@ export async function handleCreateEpic(args: CreateEpicArgs, session?: SessionSt
         labels: labels || [],
       };
 
-      // Add description if provided
+      // Add description with ADF conversion if provided
       if (description) {
-        fields.description = description;
+        // Import ADF converter for proper text handling
+        const { safeConvertTextToADF } = await import('../utils/adf-converter.js');
+        const adfDescription = safeConvertTextToADF(description);
+        console.error(
+          'Converting epic description to ADF, length:',
+          description.length,
+          'ADF nodes:',
+          adfDescription.content?.length
+        );
+        fields.description = adfDescription;
       }
 
       // Add Epic Name (usually customfield_10011 but may vary)
@@ -144,17 +154,29 @@ Use \`update_issue\` to modify the epic or \`move_issues_to_epic\` to add issues
               ],
             };
           } catch (retryError: any) {
-            throw new McpError(
-              ErrorCode.InternalError,
-              `Failed to create epic: ${retryError.response?.data?.message || retryError.message}`
-            );
+            const formattedError = formatJiraError(retryError, 'epic creation');
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: formatErrorAsMarkdown(formattedError),
+                },
+              ],
+              isError: true,
+            };
           }
         }
 
-        throw new McpError(
-          ErrorCode.InternalError,
-          `Failed to create epic: ${error.response?.data?.message || error.message}`
-        );
+        const formattedError = formatJiraError(error, 'epic creation');
+        return {
+          content: [
+            {
+              type: 'text',
+              text: formatErrorAsMarkdown(formattedError),
+            },
+          ],
+          isError: true,
+        };
       }
     },
     session

@@ -61,6 +61,26 @@ export async function loadMultiInstanceConfig(
         console.error('Available instances:', Object.keys(globalConfig.instances));
         console.error('Configured projects:', Object.keys(globalConfig.projects || {}));
 
+        // Validate configuration
+        const { validateMultiInstanceConfig, formatValidationResults } = await import(
+          './utils/config-validator.js'
+        );
+        const validation = validateMultiInstanceConfig(globalConfig);
+
+        if (!validation.isValid) {
+          console.error('❌ Configuration validation failed:');
+          console.error(formatValidationResults(validation, 'Jira Configuration'));
+          throw new McpError(
+            ErrorCode.InvalidRequest,
+            `Invalid Jira configuration: ${validation.errors.join(', ')}`
+          );
+        }
+
+        if (validation.warnings.length > 0) {
+          console.error('⚠️ Configuration warnings:');
+          validation.warnings.forEach(warning => console.error(`  - ${warning}`));
+        }
+
         return globalConfig;
       } else if (rawConfig.projectKey) {
         // Legacy single-instance configuration - convert to multi-instance format

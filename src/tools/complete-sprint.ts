@@ -61,14 +61,44 @@ The sprint has been marked as completed. Use \`get_sprint_details\` to view fina
         };
       } catch (error: any) {
         console.error('Error completing sprint:', error);
+        console.error('Error details:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message,
+        });
+
+        if (error.response?.status === 401) {
+          throw new McpError(
+            ErrorCode.InvalidRequest,
+            'Authentication failed: Invalid API token or email. Please check your credentials in .jira-config.json.'
+          );
+        }
+
+        if (error.response?.status === 403) {
+          throw new McpError(
+            ErrorCode.InvalidRequest,
+            `Permission denied: You don't have permission to complete sprints. Required permissions: 'Manage Sprints' in the project or board.`
+          );
+        }
 
         if (error.response?.status === 404) {
-          throw new McpError(ErrorCode.InvalidRequest, `Sprint ${sprintId} not found`);
+          throw new McpError(
+            ErrorCode.InvalidRequest,
+            `Sprint ${sprintId} not found. Check: 1) Sprint ID is correct, 2) Sprint exists in your accessible projects, 3) You have permission to view the board.`
+          );
+        }
+
+        if (error.response?.status === 400) {
+          const errorMessage = error.response?.data?.errorMessages?.join(', ') || 'Invalid request';
+          throw new McpError(
+            ErrorCode.InvalidRequest,
+            `Cannot complete sprint: ${errorMessage}. Common issues: 1) Sprint is not in 'active' state, 2) Sprint has incomplete required fields, 3) Board configuration prevents completion.`
+          );
         }
 
         throw new McpError(
           ErrorCode.InternalError,
-          `Failed to complete sprint: ${error.response?.data?.message || error.message}`
+          `Failed to complete sprint: ${error.response?.data?.errorMessages?.join(', ') || error.message}`
         );
       }
     },

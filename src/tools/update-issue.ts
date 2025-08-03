@@ -1,7 +1,6 @@
 /**
  * Handler for the update_issue tool
  */
-import axios from 'axios';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { UpdateIssueArgs } from '../types.js';
@@ -14,7 +13,7 @@ export async function handleUpdateIssue(args: UpdateIssueArgs, session?: Session
   return withJiraContext(
     args,
     { extractProjectFromIssueKey: true },
-    async (toolArgs, { axiosInstance, agileAxiosInstance, projectConfig }) => {
+    async (toolArgs, { axiosInstance, agileAxiosInstance, projectConfig, instanceConfig }) => {
       const {
         issue_key,
         summary,
@@ -30,6 +29,9 @@ export async function handleUpdateIssue(args: UpdateIssueArgs, session?: Session
         rank_after_issue,
       } = toolArgs;
 
+      // Import text field handler for complex text handling
+      const { updateIssueWithTextFallback } = await import('../utils/text-field-handler.js');
+
       // Get story points field from project config
       const storyPointsField = projectConfig.storyPointsField || null;
 
@@ -39,7 +41,15 @@ export async function handleUpdateIssue(args: UpdateIssueArgs, session?: Session
 
       // Add fields to update if provided
       if (summary) updateData.fields.summary = summary;
-      if (description) updateData.fields.description = description;
+      if (description) {
+        // Keep description as plain text - the text handler will convert to ADF if needed
+        updateData.fields.description = description;
+        console.error('Setting description, length:', description.length);
+      }
+      if (status) {
+        updateData.fields.status = { name: status };
+        console.error('Setting status:', status);
+      }
       if (priority) {
         updateData.fields.priority = { name: priority };
         console.error('Setting priority:', priority);
@@ -79,171 +89,135 @@ export async function handleUpdateIssue(args: UpdateIssueArgs, session?: Session
       // Handle sprint field update
       if (sprint !== undefined) {
         // Get field configuration to find Sprint field ID
-        const fieldConfigResponse = await axiosInstance.get(`/field`, {
+        const fieldConfigResponse = await axiosInstance.get('/field');
+        const sprintFields = fieldConfigResponse.data.filter((field: any) =>
+          field.name?.toLowerCase().includes('sprint')
+        );
+
+        let sprintFieldId = projectConfig.sprintField;
+        if (!sprintFieldId && sprintFields.length > 0) {
+          // Use the first Sprint field found
+          sprintFieldId = sprintFields[0].id;
+          console.error(`Auto-detected Sprint field: ${sprintFieldId}`);
+        }
+
+        if (sprintFieldId) {
+          if (sprint === 'remove' || sprint === '' || sprint === null) {
+            updateData.fields[sprintFieldId] = null;
+            console.error('Removing from sprint');
+          } else if (sprint === 'current') {
+            // Find active sprint for the project
+            try {
+              const boardId = await getBoardId(agileAxiosInstance, projectConfig.projectKey);
+              const sprintsResponse = await agileAxiosInstance.get(`/board/${boardId}/sprint`, {
+                params: { state: 'active' },
+              });
+
+              if (sprintsResponse.data.values.length > 0) {
+                const activeSprint = sprintsResponse.data.values[0];
+                updateData.fields[sprintFieldId] = activeSprint.id;
+                console.error('Adding to current active sprint:', activeSprint.name);
+              } else {
+                throw new Error('No active sprint found');
+              }
+            } catch (error: any) {
+              throw new McpError(
+                ErrorCode.InvalidRequest,
+                `Failed to find current sprint: ${error.message}`
+              );
+            }
+          } else {
+            // Assume sprint is a sprint name or ID
+            try {
+              const boardId = await getBoardId(agileAxiosInstance, projectConfig.projectKey);
+              const sprintsResponse = await agileAxiosInstance.get(`/board/${boardId}/sprint`, {
+                params: { state: 'active,closed,future' },
+              });
+
+              const targetSprint = sprintsResponse.data.values.find(
+                (s: any) => s.name === sprint || s.id.toString() === sprint
+              );
+
+              if (targetSprint) {
+                updateData.fields[sprintFieldId] = targetSprint.id;
+                console.error('Adding to sprint:', targetSprint.name);
+              } else {
+                throw new Error(`Sprint "${sprint}" not found`);
+              }
+            } catch (error: any) {
+              throw new McpError(
+                ErrorCode.InvalidRequest,
+                `Failed to find sprint "${sprint}": ${error.message}`
+              );
+            }
+          }
+        } else {
+          console.error('Sprint field not found, skipping sprint assignment');
+        }
+      }
+
+      try {
+        // Use the comprehensive text field handler for the update
+        const result = await updateIssueWithTextFallback(
+          axiosInstance,
+          instanceConfig,
+          issue_key,
+          updateData
+        );
+
+        if (!result.success) {
+          throw new McpError(ErrorCode.InternalError, `Failed to update issue: ${result.error}`);
+        }
+
+        console.error(`✅ Issue updated successfully using method: ${result.method}`);
+
+        // Handle ranking after the main update
+        if (rank_before_issue || rank_after_issue) {
+          try {
+            const rankData: any = {
+              issues: [issue_key],
+            };
+
+            if (rank_before_issue) {
+              rankData.rankBeforeIssue = rank_before_issue;
+            } else if (rank_after_issue) {
+              rankData.rankAfterIssue = rank_after_issue;
+            }
+
+            await agileAxiosInstance.put('/issue/rank', rankData);
+            console.error('Issue ranking updated successfully');
+          } catch (rankError: any) {
+            console.error('Ranking failed but main update succeeded:', rankError.message);
+            // Don't fail the entire operation for ranking issues
+          }
+        }
+
+        // Get the updated issue to return current information
+        const updatedIssue = await axiosInstance.get(`/issue/${issue_key}`, {
           params: {
-            expand: 'names',
+            expand: 'renderedFields,names',
+            fields:
+              'summary,description,status,assignee,priority,labels,created,creator,parent,comment',
           },
         });
 
-        let sprintFieldId;
-        for (const field of fieldConfigResponse.data) {
-          if (field.name === 'Sprint') {
-            sprintFieldId = field.id;
-            break;
-          }
-        }
-
-        if (!sprintFieldId) {
-          throw new McpError(ErrorCode.InvalidRequest, 'Sprint field not found');
-        }
-
-        if (sprint === '') {
-          // Remove from sprint
-          updateData.fields[sprintFieldId] = null;
-          console.error('Removing issue from sprint');
-        } else {
-          // Add to specified sprint
-          const boardId = await getBoardId(agileAxiosInstance, toolArgs.issue_key.split('-')[0]);
-          const sprintsResponse = await agileAxiosInstance.get(`/board/${boardId}/sprint`, {
-            params: {
-              state: sprint.toLowerCase() === 'current' ? 'active' : 'active,future',
+        return {
+          content: [
+            {
+              type: 'text',
+              text:
+                formatIssue(updatedIssue.data, projectConfig.storyPointsField) +
+                `\n\n✅ Update method: ${result.method}`,
             },
-          });
-
-          console.error('Available sprints:', JSON.stringify(sprintsResponse.data, null, 2));
-
-          // Find the requested sprint
-          const sprintObj =
-            sprint.toLowerCase() === 'current'
-              ? sprintsResponse.data.values.find((s: any) => s.state === 'active')
-              : sprintsResponse.data.values.find(
-                  (s: any) => s.name.toLowerCase() === sprint.toLowerCase()
-                );
-
-          if (!sprintObj) {
-            throw new McpError(
-              ErrorCode.InvalidRequest,
-              `Sprint "${sprint}" not found. Available sprints: ${sprintsResponse.data.values.map((s: any) => s.name).join(', ')}`
-            );
-          }
-
-          // Convert sprint ID to number and validate
-          const numericSprintId = Number(sprintObj.id);
-          if (isNaN(numericSprintId)) {
-            throw new McpError(
-              ErrorCode.InvalidRequest,
-              `Invalid sprint ID: ${sprintObj.id} is not a number`
-            );
-          }
-
-          // Set sprint field with just the numeric ID
-          updateData.fields[sprintFieldId] = numericSprintId;
-          console.error('Adding issue to sprint:', {
-            fieldId: sprintFieldId,
-            sprintId: numericSprintId,
-            sprintName: sprintObj.name,
-            fieldValue: updateData.fields[sprintFieldId],
-          });
-        }
-      }
-
-      // Handle status transitions
-      if (status) {
-        console.error(`Fetching transitions for status update to ${status}...`);
-        const transitions = await axiosInstance.get(`/issue/${issue_key}/transitions`);
-        const transition = transitions.data.transitions.find(
-          (t: any) => t.name.toLowerCase() === status.toLowerCase()
-        );
-        if (transition) {
-          console.error(`Applying transition ID ${transition.id}...`);
-          await axiosInstance.post(`/issue/${issue_key}/transitions`, {
-            transition: { id: transition.id },
-          });
-        } else {
-          console.error(`No transition found for status: ${status}`);
-          console.error(
-            `Available transitions: ${transitions.data.transitions.map((t: any) => t.name).join(', ')}`
-          );
-        }
-      }
-
-      // Apply updates if there are any
-      if (Object.keys(updateData.fields).length > 0) {
-        console.error('Applying field updates:', JSON.stringify(updateData, null, 2));
-        await axiosInstance.put(`/issue/${issue_key}`, updateData);
-      } else {
-        console.error('No field updates to apply');
-      }
-
-      // Handle rank update if specified
-      if (rank_before_issue || rank_after_issue) {
-        if (rank_before_issue && rank_after_issue) {
-          throw new McpError(
-            ErrorCode.InvalidRequest,
-            'Cannot specify both rank_before_issue and rank_after_issue'
-          );
-        }
-
-        console.error('Updating issue rank...');
-        const rankData: any = {
-          issues: [issue_key],
+          ],
         };
-
-        if (rank_before_issue) {
-          rankData.rankBeforeIssue = rank_before_issue;
-          console.error(`Ranking issue ${issue_key} before ${rank_before_issue}`);
-        } else {
-          rankData.rankAfterIssue = rank_after_issue;
-          console.error(`Ranking issue ${issue_key} after ${rank_after_issue}`);
-        }
-
-        // Default rank field ID is 10019 (standard Jira rank field)
-        rankData.rankCustomFieldId = 10019;
-
-        try {
-          // Use the Agile API to update the rank
-          const rankResponse = await agileAxiosInstance.put('/issue/rank', rankData);
-          console.error('Rank update response:', rankResponse.status);
-
-          if (rankResponse.status === 207) {
-            // Partial success - some issues may have failed
-            console.error(
-              'Partial success in rank update:',
-              JSON.stringify(rankResponse.data, null, 2)
-            );
-          }
-        } catch (error: any) {
-          if (axios.isAxiosError(error)) {
-            console.error('Rank update error:', {
-              status: error.response?.status,
-              statusText: error.response?.statusText,
-              data: error.response?.data,
-            });
-            throw new McpError(
-              ErrorCode.InternalError,
-              `Rank update error: ${JSON.stringify(error.response?.data ?? error.message)}`
-            );
-          }
-          throw error;
-        }
+      } catch (error: any) {
+        console.error('Issue update failed:', error);
+        throw new McpError(
+          ErrorCode.InternalError,
+          `Failed to update issue: ${error.response?.data?.errorMessages?.join(', ') || error.message}`
+        );
       }
-
-      // Fetch updated issue
-      console.error('Fetching updated issue...');
-      const updatedIssue = await axiosInstance.get(`/issue/${issue_key}`, {
-        params: {
-          expand: 'renderedFields,names,schema,transitions,operations,editmeta,changelog',
-        },
-      });
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: formatIssue(updatedIssue.data, storyPointsField),
-          },
-        ],
-      };
     },
     session
   );
