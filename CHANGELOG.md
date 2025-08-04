@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Field Detection UX Enhancement**: New `detect_project_fields` tool for automatic custom field discovery
+- **Cross-Server Integration**: Health check tools (`jira_health_check`, `confluence_health_check`) for monitoring server connectivity
+- **Session-Aware Project Tracking**: Automatic configuration guidance on first project access per session
+- **Configuration Validation**: Enhanced field validation with intelligent suggestions and ready-to-copy config snippets
+- **Multi-Instance Field Detection**: Full support for custom field discovery across multiple Jira instances
+- **Confluence Integration Support**: Configuration structure for cross-server Jira-Confluence workflows
+
+### Enhanced
+- **User Experience**: Eliminated manual custom field ID hunting with automated detection and guidance
+- **Configuration Management**: Automatic detection of missing field configurations with targeted guidance
+- **Error Handling**: Improved field validation error messages with specific troubleshooting steps
+- **Documentation**: Comprehensive updates to README.md, CLAUDE.md, and configuration examples
+
+### Technical Improvements
+- **Session State Isolation**: Extended session management with per-session project access tracking
+- **Config Field Checker**: New utility for checking missing field configurations and providing guidance
+- **Tool Wrapper Enhancement**: Integrated automatic config guidance without breaking existing tools
+- **Test Coverage**: Updated test suite with proper imports and enhanced validation
+
 ## [0.1.0] - 2025-07-31
 
 ### Added

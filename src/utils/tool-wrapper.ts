@@ -5,10 +5,14 @@
 import { AxiosInstance } from 'axios';
 import { BaseArgs, JiraConfig, JiraInstanceConfig } from '../types.js';
 import { getInstanceForProject } from '../config.js';
-import { getInstanceForProjectWithSession } from '../session-config.js';
+import {
+  getInstanceForProjectWithSession,
+  loadMultiInstanceConfigForSession,
+} from '../session-config.js';
 import { createJiraApiInstances } from './jira-api.js';
 import logger from './logger.js';
 import type { SessionState } from '../session-manager.js';
+import { checkProjectConfigAndProvideGuidance } from './config-field-checker.js';
 
 export interface JiraContext {
   axiosInstance: AxiosInstance;
@@ -16,6 +20,7 @@ export interface JiraContext {
   instanceConfig: JiraInstanceConfig;
   projectConfig: JiraConfig;
   projectKey: string;
+  configGuidance?: string; // Optional guidance for missing field configurations
 }
 
 export interface ToolOptions {
@@ -122,6 +127,53 @@ export async function withJiraContext<TArgs extends BaseArgs, TResult>(
     const { axiosInstance, agileAxiosInstance } = createJiraApiInstances(instanceConfig);
     logger.debug('API instances created successfully', logContext);
 
+    // Check for missing field configuration and provide guidance if needed
+    let configGuidance: string | undefined;
+    if (session && projectKey) {
+      try {
+        // Load the full multi-instance config to check field completeness
+        const fullConfig = await loadMultiInstanceConfigForSession(working_dir, session);
+
+        // Find which instance is being used for this project
+        let resolvedInstanceName = instance;
+        if (!resolvedInstanceName) {
+          // Use the same logic as getInstanceForProjectWithSession
+          if (fullConfig.projects?.[projectKey]?.instance) {
+            resolvedInstanceName = fullConfig.projects[projectKey].instance;
+          } else {
+            // Check which instance has this project in its projects array
+            for (const [instanceName, instanceConfig] of Object.entries(fullConfig.instances)) {
+              if (instanceConfig.projects?.includes(projectKey)) {
+                resolvedInstanceName = instanceName;
+                break;
+              }
+            }
+            // Fall back to default instance
+            if (!resolvedInstanceName) {
+              resolvedInstanceName =
+                fullConfig.defaultInstance || Object.keys(fullConfig.instances)[0];
+            }
+          }
+        }
+
+        if (resolvedInstanceName) {
+          configGuidance =
+            checkProjectConfigAndProvideGuidance(
+              session.sessionId,
+              fullConfig,
+              resolvedInstanceName,
+              projectKey
+            ) || undefined;
+        }
+      } catch (error) {
+        // Don't fail the main operation if config guidance fails
+        logger.debug('Config guidance check failed', {
+          ...logContext,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
     // Create context object with all necessary Jira resources
     const context: JiraContext = {
       axiosInstance,
@@ -129,6 +181,7 @@ export async function withJiraContext<TArgs extends BaseArgs, TResult>(
       instanceConfig,
       projectConfig,
       projectKey: projectKey || '',
+      configGuidance,
     };
 
     logger.debug('Calling tool handler', {

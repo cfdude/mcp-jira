@@ -30,6 +30,17 @@
   },
   "defaultInstance": "primary",
   
+  "crossServerIntegration": {
+    "enabled": false,
+    "confluenceMcpPath": "http://localhost:3000/mcp",
+    "timeout": 30000,
+    "maxRetries": 3,
+    "allowedIncomingModes": ["read", "create"],
+    "excludedOperations": ["delete_issue", "delete_project"],
+    "role": "slave",
+    "supportedConfluenceServers": ["confluence-cloud-mcp"]
+  },
+  
   "_comment": "Legacy single-instance format (still supported):",
   "_legacy_example": {
     "projectKey": "ABC",
@@ -46,16 +57,25 @@
       "6. Save this file as '.jira-config.json' (remove .example)"
     ],
     "finding_custom_fields": [
-      "Story Points: Usually customfield_10016 or customfield_10020",
-      "Sprint: Usually customfield_10020 or customfield_10001", 
-      "Epic Link: Usually customfield_10014 or customfield_10008",
-      "Use the list_instances tool to get field detection help"
+      "🆕 NEW: Use detect_project_fields tool to automatically discover field IDs",
+      "Example: detect_project_fields({working_dir: '.', projectKey: 'PROJ', instance: 'primary'})",
+      "Manual reference - Story Points: Usually customfield_10016 or customfield_10020",
+      "Manual reference - Sprint: Usually customfield_10020 or customfield_10001", 
+      "Manual reference - Epic Link: Usually customfield_10014 or customfield_10008",
+      "Tools now provide automatic guidance when fields are missing on first project access"
     ],
     "multi_instance_benefits": [
       "Work with multiple Jira Cloud instances from one Claude session",
       "Automatic instance selection based on project key",
       "Per-project custom field configuration",
       "Backward compatible with single-instance setups"
+    ],
+    "cross_server_integration": [
+      "Set 'crossServerIntegration.enabled' to true to enable cross-server communication",
+      "Configure 'confluenceMcpPath' to point to your Confluence MCP server",
+      "Adjust 'allowedIncomingModes' to control which operations can be received",
+      "Use 'excludedOperations' to prevent dangerous operations like deletion",
+      "Timeout and retry settings help with network reliability"
     ]
   }
 }

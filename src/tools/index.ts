@@ -31,6 +31,7 @@ import { handleManageBoardQuickfilters } from './manage-board-quickfilters.js';
 
 // Epic Management
 import { handleCreateEpic } from './create-epic.js';
+import { handleCreateEpicWithIssues } from './create-epic-with-issues.js';
 import { handleUpdateEpicDetails } from './update-epic-details.js';
 import { handleRankEpics } from './rank-epics.js';
 import { handleListEpicIssues } from './list-epic-issues.js';
@@ -76,6 +77,13 @@ import { handleTrashPlan } from './trash-plan.js';
 
 // Import session types
 import type { SessionState } from '../session-manager.js';
+
+// Health Check Tools
+import { handleJiraHealthCheck } from './jira-health-check.js';
+import { handleConfluenceHealthCheck } from './confluence-health-check.js';
+
+// Field Detection Tools
+import { detectProjectFields } from './detect-project-fields.js';
 
 /**
  * Create session-aware wrapper for tool handlers
@@ -719,6 +727,101 @@ export function setupToolHandlers(
             },
           },
           required: ['working_dir', 'name', 'summary'],
+        },
+      },
+      {
+        name: 'create_epic_with_issues',
+        description:
+          "Create an epic with linked issues in a single operation. Reduces API calls and ensures proper linking. CRITICAL FOR AI: ALWAYS specify 'instance' and 'projectKey'. Example: {working_dir: '/path', instance: 'onvex', projectKey: 'JOB', epic: {name: 'User Auth', summary: 'Authentication System'}, issues: [{summary: 'Login API', type: 'Task'}, {summary: 'User Registration', type: 'Story'}]}",
+        inputSchema: {
+          type: 'object',
+          properties: {
+            working_dir: {
+              type: 'string',
+              description: 'Working directory containing .jira-config.json',
+            },
+            projectKey: {
+              type: 'string',
+              description: 'Optional project key to override the default from config',
+            },
+            instance: {
+              type: 'string',
+              description:
+                "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
+            epic: {
+              type: 'object',
+              properties: {
+                name: {
+                  type: 'string',
+                  description: 'Epic name',
+                },
+                summary: {
+                  type: 'string',
+                  description: 'Epic summary/title',
+                },
+                description: {
+                  type: 'string',
+                  description: 'Epic description',
+                },
+                priority: {
+                  type: 'string',
+                  description: 'Epic priority',
+                },
+                labels: {
+                  type: 'array',
+                  items: {
+                    type: 'string',
+                  },
+                  description: 'Labels for the epic',
+                },
+              },
+              required: ['name', 'summary'],
+              description: 'Epic data to create',
+            },
+            issues: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  summary: {
+                    type: 'string',
+                    description: 'Issue summary/title',
+                  },
+                  description: {
+                    type: 'string',
+                    description: 'Issue description',
+                  },
+                  type: {
+                    type: 'string',
+                    description: 'Issue type (Task, Story, Bug, etc.)',
+                  },
+                  priority: {
+                    type: 'string',
+                    description: 'Issue priority',
+                  },
+                  labels: {
+                    type: 'array',
+                    items: {
+                      type: 'string',
+                    },
+                    description: 'Labels for the issue',
+                  },
+                  story_points: {
+                    type: 'number',
+                    description: 'Story points estimate',
+                  },
+                  assignee: {
+                    type: 'string',
+                    description: 'Assignee display name, email, or account ID',
+                  },
+                },
+                required: ['summary', 'type'],
+              },
+              description: 'Array of issues to create and link to the epic',
+            },
+          },
+          required: ['working_dir', 'epic', 'issues'],
         },
       },
       {
@@ -2058,6 +2161,52 @@ export function setupToolHandlers(
           required: ['working_dir'],
         },
       },
+
+      // Health Check Tools
+      {
+        name: 'jira_health_check',
+        description:
+          'Get comprehensive health information for this Jira MCP server including uptime, cross-server integration status, and server capabilities. Essential for monitoring and troubleshooting cross-server communication.',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
+      },
+      {
+        name: 'confluence_health_check',
+        description:
+          "Check the health and connectivity status with the Confluence MCP server from Jira's perspective. Returns connection information and integration capabilities.",
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
+      },
+
+      // Field Detection Tools
+      {
+        name: 'detect_project_fields',
+        description:
+          "Detect custom field IDs (story points, sprint, epic link) for a specific project and instance. Provides ready-to-copy configuration snippets for .jira-config.json setup. CRITICAL FOR AI: ALWAYS specify 'instance' parameter for multi-instance support. Example: {working_dir: '/path', instance: 'onvex', projectKey: 'JOB'}",
+        inputSchema: {
+          type: 'object',
+          properties: {
+            working_dir: {
+              type: 'string',
+              description: 'Working directory containing .jira-config.json',
+            },
+            projectKey: {
+              type: 'string',
+              description: "Project key to detect fields for (e.g., 'PROJ', 'APP')",
+            },
+            instance: {
+              type: 'string',
+              description:
+                "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
+          },
+          required: ['working_dir', 'projectKey'],
+        },
+      },
     ],
   }));
 
@@ -2087,6 +2236,7 @@ export function setupToolHandlers(
         'manage_board_quickfilters',
         // Epic Management
         'create_epic',
+        'create_epic_with_issues',
         'update_epic_details',
         'rank_epics',
         'list_epic_issues',
@@ -2124,6 +2274,11 @@ export function setupToolHandlers(
         'archive_plan',
         'duplicate_plan',
         'trash_plan',
+        // Health Check Tools
+        'jira_health_check',
+        'confluence_health_check',
+        // Field Detection Tools
+        'detect_project_fields',
       ];
 
       // Route to the appropriate handler based on the tool name
@@ -2174,6 +2329,8 @@ export function setupToolHandlers(
         // Epic Management
         case 'create_epic':
           return handleCreateEpic({ ...args, working_dir }, session);
+        case 'create_epic_with_issues':
+          return handleCreateEpicWithIssues({ ...args, working_dir }, session);
         case 'update_epic_details':
           return handleUpdateEpicDetails({ ...args, working_dir }, session);
         case 'rank_epics':
@@ -2248,6 +2405,30 @@ export function setupToolHandlers(
           return handleDuplicatePlan({ ...args, working_dir }, session);
         case 'trash_plan':
           return handleTrashPlan({ ...args, working_dir }, session);
+
+        // Health Check Tools
+        case 'jira_health_check':
+          return await handleJiraHealthCheck();
+
+        case 'confluence_health_check': {
+          // Load configuration for confluence health check
+          try {
+            const { loadMultiInstanceConfig } = await import('../config.js');
+            const config = await loadMultiInstanceConfig('.');
+            return await handleConfluenceHealthCheck(config?.crossServerIntegration);
+          } catch (error) {
+            console.error('Failed to load config for confluence health check:', error);
+            return await handleConfluenceHealthCheck();
+          }
+        }
+
+        // Field Detection Tools
+        case 'detect_project_fields':
+          return {
+            content: [
+              { type: 'text', text: await detectProjectFields({ ...args, working_dir }, session) },
+            ],
+          };
 
         default:
           throw new McpError(
