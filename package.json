@@ -1,11 +1,36 @@
 {
   "name": "jira-server",
-  "version": "0.1.0",
-  "description": "A Model Context Protocol server",
-  "private": true,
+  "version": "1.0.1",
+  "description": "Enterprise-grade Model Context Protocol server for comprehensive Jira integration with automated field detection, multi-instance support, and cross-server capabilities",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "jira",
+    "atlassian",
+    "project-management",
+    "ai-assistant",
+    "claude",
+    "integration",
+    "enterprise",
+    "multi-instance",
+    "typescript"
+  ],
+  "author": "Rob Sherman",
+  "license": "MIT",
+  "homepage": "https://github.com/cfdude/mcp-jira#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cfdude/mcp-jira.git"
+  },
+  "bugs": {
+    "url": "https://github.com/cfdude/mcp-jira/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "type": "module",
   "bin": {
-    "jira-server": "./build/index.js"
+    "jira-server": "build/index.js"
   },
   "files": [
     "build"
@@ -28,6 +53,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "0.6.0",
+    "adf-to-md": "^1.2.1",
     "axios": "^1.7.9",
     "dotenv": "^17.2.1"
   },

@@ -167,7 +167,7 @@ ${
         .slice(0, 10)
         .map(
           ([_key, role]: [string, any]) =>
-            `- **${role.name}**: ${role.description || 'No description'}`
+            `- **${role?.name || 'Unknown Role'}**: ${role?.description || 'No description'}`
         )
         .join('\n')
     : 'No roles defined.'

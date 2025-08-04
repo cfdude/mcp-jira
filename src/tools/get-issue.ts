@@ -9,6 +9,43 @@ import {
   formatStoryPoints,
 } from '../utils/tool-wrapper.js';
 import type { SessionState } from '../session-manager.js';
+import Converter from 'adf-to-md';
+
+/**
+ * Convert ADF to Markdown using the adf-to-md library
+ */
+function convertADFToMarkdown(adf: any): string {
+  if (!adf) return 'No description';
+
+  // Handle string input (already plain text)
+  if (typeof adf === 'string') {
+    return adf;
+  }
+
+  // Handle non-object input
+  if (typeof adf !== 'object') {
+    return String(adf);
+  }
+
+  try {
+    // Use adf-to-md library to convert ADF to Markdown
+    const conversionResult = Converter.convert(adf);
+
+    // The library returns an object with { result: string, warnings: Set }
+    if (typeof conversionResult === 'object' && conversionResult.result) {
+      return conversionResult.result || 'No description';
+    } else if (typeof conversionResult === 'string') {
+      return conversionResult || 'No description';
+    } else {
+      console.error('Unexpected conversion result format:', conversionResult);
+      return '[Rich text content - unable to convert]';
+    }
+  } catch (error) {
+    console.error('Error converting ADF to Markdown:', error);
+    // Fallback to showing it's complex content
+    return '[Rich text content - unable to convert]';
+  }
+}
 
 export async function handleGetIssue(args: GetIssueArgs, session?: SessionState) {
   return withJiraContext(
@@ -50,7 +87,46 @@ export async function handleGetIssue(args: GetIssueArgs, session?: SessionState)
           year: 'numeric',
         }
       )}`;
-      standardIssueInfo += `\n- Description: ${issue.fields.description || 'No description'}`;
+      // Safely handle description (could be string or ADF object)
+      let description = 'No description';
+
+      if (!issue.fields.description) {
+        description = 'No description';
+      } else if (typeof issue.fields.description === 'string') {
+        description = issue.fields.description;
+      } else if (typeof issue.fields.description === 'object') {
+        // Handle ADF (Atlassian Document Format) - check various possible structures
+        const descObj = issue.fields.description;
+
+        // Use adf2md to convert ADF to Markdown
+        description = convertADFToMarkdown(descObj);
+      }
+
+      // Ensure description is always a string before concatenation
+      if (typeof description !== 'string') {
+        console.error('Description is not a string:', typeof description, description);
+        description = String(description);
+      }
+
+      standardIssueInfo += `\n- Description: ${description}`;
+
+      // Handle environment field (could be string or ADF object)
+      if (issue.fields.environment) {
+        let environment = 'No environment';
+        if (typeof issue.fields.environment === 'string') {
+          environment = issue.fields.environment;
+        } else if (typeof issue.fields.environment === 'object') {
+          // Handle ADF (Atlassian Document Format)
+          environment = convertADFToMarkdown(issue.fields.environment);
+        }
+        // Ensure environment is always a string before concatenation
+        if (typeof environment !== 'string') {
+          console.error('Environment is not a string:', typeof environment, environment);
+          environment = String(environment);
+        }
+        standardIssueInfo += `\n- Environment: ${environment}`;
+      }
+
       standardIssueInfo += `\n- Creator: ${issue.fields.creator.displayName}`;
 
       // Add labels if any exist
@@ -75,14 +151,49 @@ export async function handleGetIssue(args: GetIssueArgs, session?: SessionState)
           day: 'numeric',
           year: 'numeric',
         });
-        standardIssueInfo += `\n- Latest Comment: "${latestComment.body.substring(0, 100)}${latestComment.body.length > 100 ? '...' : ''}" by ${latestComment.author.displayName} on ${commentDate}`;
+
+        // Safely handle comment body (could be string or ADF object)
+        let commentBody = '[No content]';
+        if (!latestComment.body) {
+          commentBody = '[No content]';
+        } else if (typeof latestComment.body === 'string') {
+          commentBody = latestComment.body;
+        } else if (typeof latestComment.body === 'object') {
+          // Handle ADF (Atlassian Document Format) - check various possible structures
+          const bodyObj = latestComment.body;
+
+          // Use adf-to-md to convert ADF to Markdown
+          commentBody = convertADFToMarkdown(bodyObj);
+        }
+
+        // Ensure commentBody is always a string before using it
+        if (typeof commentBody !== 'string') {
+          console.error('Comment body is not a string:', typeof commentBody, commentBody);
+          commentBody = String(commentBody);
+        }
+
+        const truncatedBody =
+          commentBody.length > 100 ? `${commentBody.substring(0, 100)}...` : commentBody;
+
+        standardIssueInfo += `\n- Latest Comment: "${truncatedBody}" by ${latestComment.author?.displayName || 'Unknown'} on ${commentDate}`;
       }
+
+      // Final safeguard to ensure we're returning a string
+      const finalText =
+        typeof standardIssueInfo === 'string'
+          ? standardIssueInfo
+          : (console.error(
+              'standardIssueInfo is not a string:',
+              typeof standardIssueInfo,
+              standardIssueInfo
+            ),
+            String(standardIssueInfo));
 
       return {
         content: [
           {
             type: 'text',
-            text: standardIssueInfo,
+            text: finalText,
           },
         ],
       };

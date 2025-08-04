@@ -29,10 +29,14 @@ export async function handleGetProjectStatuses(
         const response = await axiosInstance.get(`/project/${projectKey}/statuses`);
 
         const statusData = response.data;
+        console.error(
+          '[get-project-statuses] statusData structure:',
+          JSON.stringify(statusData, null, 2)
+        );
 
         // Get additional workflow information
         const workflowsResponse = await axiosInstance
-          .get(`/workflows/search`, {
+          .get(`/workflow/search`, {
             params: {
               projectId: projectKey,
               expand: 'transitions,statuses',
@@ -45,9 +49,53 @@ export async function handleGetProjectStatuses(
         // Process status information by issue type
         const statusesByIssueType: { [key: string]: any } = {};
 
-        statusData.forEach((issueTypeStatus: any) => {
-          const issueType = issueTypeStatus.issueType;
-          const statuses = issueTypeStatus.statuses || [];
+        // Check if statusData is an array
+        if (!Array.isArray(statusData)) {
+          console.error('[get-project-statuses] statusData is not an array:', typeof statusData);
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error: Unexpected response format from project statuses API. Expected array but got ${typeof statusData}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        statusData.forEach((issueTypeStatus: any, index: number) => {
+          console.error(
+            `[get-project-statuses] Processing item ${index}:`,
+            JSON.stringify(issueTypeStatus, null, 2)
+          );
+
+          // The API response has this structure: { id, name, subtask, statuses: [...] }
+          // Not { issueType: {...}, statuses: [...] }
+          let issueType: any;
+          let statuses: any[];
+
+          if (issueTypeStatus.id && issueTypeStatus.name && issueTypeStatus.statuses) {
+            // Direct issue type properties (newer API format)
+            issueType = {
+              id: issueTypeStatus.id,
+              name: issueTypeStatus.name,
+              subtask: issueTypeStatus.subtask,
+            };
+            statuses = issueTypeStatus.statuses || [];
+          } else if (issueTypeStatus.issueType && issueTypeStatus.statuses) {
+            // Nested issue type (older API format)
+            issueType = issueTypeStatus.issueType;
+            statuses = issueTypeStatus.statuses || [];
+          } else {
+            console.error('Unknown status data structure:', issueTypeStatus);
+            return;
+          }
+
+          // Guard against undefined issueType
+          if (!issueType || !issueType.name) {
+            console.error('Invalid issueType:', issueType);
+            return;
+          }
 
           statusesByIssueType[issueType.name] = {
             issueType: issueType,

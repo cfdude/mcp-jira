@@ -26,7 +26,8 @@ const formatMessage = (level: string, message: string | Error, meta?: any): stri
 const createLogger = (baseMeta?: any): Logger => ({
   info: (message: string, meta?: any) => {
     const combinedMeta = baseMeta ? { ...baseMeta, ...meta } : meta;
-    console.log(formatMessage('info', message, combinedMeta));
+    // Use stderr for all logging in MCP servers to avoid interfering with JSON-RPC on stdout
+    console.error(formatMessage('info', message, combinedMeta));
   },
   error: (message: string | Error, meta?: any) => {
     const combinedMeta = baseMeta ? { ...baseMeta, ...meta } : meta;
@@ -34,11 +35,11 @@ const createLogger = (baseMeta?: any): Logger => ({
   },
   warn: (message: string, meta?: any) => {
     const combinedMeta = baseMeta ? { ...baseMeta, ...meta } : meta;
-    console.warn(formatMessage('warn', message, combinedMeta));
+    console.error(formatMessage('warn', message, combinedMeta));
   },
   debug: (message: string, meta?: any) => {
     const combinedMeta = baseMeta ? { ...baseMeta, ...meta } : meta;
-    console.debug(formatMessage('debug', message, combinedMeta));
+    console.error(formatMessage('debug', message, combinedMeta));
   },
   child: (meta: any) => createLogger(baseMeta ? { ...baseMeta, ...meta } : meta),
 });
