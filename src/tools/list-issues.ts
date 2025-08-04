@@ -9,6 +9,55 @@ import {
   formatStoryPoints,
 } from '../utils/tool-wrapper.js';
 import type { SessionState } from '../session-manager.js';
+import Converter from 'adf-to-md';
+
+/**
+ * Convert ADF to truncated Markdown for list view
+ */
+function convertADFToTruncatedMarkdown(adf: any, maxLength: number = 150): string {
+  if (!adf) return 'No description';
+
+  // Handle string input (already plain text)
+  if (typeof adf === 'string') {
+    return adf.length > maxLength ? adf.substring(0, maxLength) + '...' : adf;
+  }
+
+  // Handle non-object input
+  if (typeof adf !== 'object') {
+    return String(adf);
+  }
+
+  try {
+    // Use adf-to-md library to convert ADF to Markdown
+    const conversionResult = Converter.convert(adf);
+
+    // The library returns an object with { result: string, warnings: Set }
+    let markdown: string;
+    if (typeof conversionResult === 'object' && conversionResult.result) {
+      markdown = conversionResult.result;
+    } else if (typeof conversionResult === 'string') {
+      markdown = conversionResult;
+    } else {
+      return 'No description';
+    }
+
+    if (!markdown) return 'No description';
+
+    // Clean up the markdown for list view - remove excessive line breaks
+    const cleanedMarkdown = markdown
+      .replace(/\n{3,}/g, '\n\n') // Replace multiple newlines with double
+      .replace(/^\s+|\s+$/g, '') // Trim whitespace
+      .replace(/\n/g, ' '); // Replace newlines with spaces for single-line display
+
+    // Truncate if too long
+    return cleanedMarkdown.length > maxLength
+      ? cleanedMarkdown.substring(0, maxLength) + '...'
+      : cleanedMarkdown;
+  } catch (error) {
+    console.error('Error converting ADF to Markdown:', error);
+    return '[Rich text content]';
+  }
+}
 
 export async function handleListIssues(args: ListIssuesArgs, session?: SessionState) {
   return withJiraContext(
@@ -86,7 +135,9 @@ export async function handleListIssues(args: ListIssuesArgs, session?: SessionSt
               year: 'numeric',
             }
           )}`;
-          formattedIssue += `\n- Description: ${issue.fields.description || 'No description'}`;
+          // Handle description - could be null, string, or ADF object
+          const description = convertADFToTruncatedMarkdown(issue.fields.description);
+          formattedIssue += `\n- Description: ${description}`;
           formattedIssue += `\n- Creator: ${issue.fields.creator.displayName}`;
 
           // Add labels if any exist

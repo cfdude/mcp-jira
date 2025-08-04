@@ -227,6 +227,7 @@ export function getStandardFields(projectConfig: JiraConfig): string[] {
   const fields = [
     'summary',
     'description',
+    'environment',
     'status',
     'issuetype',
     'created',

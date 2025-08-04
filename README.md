@@ -242,6 +242,14 @@ Advanced sprint and team performance analytics
 ### Installation
 
 
+#### Installing via npm
+
+```bash
+npm install -g jira-server
+```
+
+After installation, the `jira-server` command will be available globally.
+
 #### Installing via Smithery
 
 To install Jira Server for Claude Desktop automatically via [Smithery](https://smithery.ai/server/jira-server):
@@ -382,7 +390,9 @@ For single Jira instance setups, use the simplified format:
 
 #### 4. Cross-Server Integration Configuration
 
-For cross-server integration between Jira and Confluence MCP servers, add Confluence API configuration to your `.jira-config.json`:
+For cross-server integration between Jira and Confluence MCP servers, you'll need to install and configure the companion [confluence-cloud-mcp](https://github.com/cfdude/confluence-cloud-mcp) server alongside this Jira server.
+
+Add Confluence API configuration to your `.jira-config.json`:
 
 ```json
 {
@@ -409,6 +419,14 @@ For cross-server integration between Jira and Confluence MCP servers, add Conflu
 ```
 
 This enables tools like `jira_health_check`, `confluence_health_check`, and cross-server document creation capabilities.
+
+**Cross-Server Integration Benefits:**
+- **Bidirectional Linking**: Create smart links between Jira issues and Confluence pages
+- **Automated Documentation**: Generate Confluence pages directly from Jira issues (epics, features, etc.)
+- **Health Monitoring**: Monitor both servers and their integration status
+- **Unified Workflow**: Seamlessly switch between issue tracking and documentation within the same AI session
+
+For complete setup instructions and advanced cross-server features, see the [confluence-cloud-mcp documentation](https://github.com/cfdude/confluence-cloud-mcp).
 
 ## 🎯 Usage Examples
 
