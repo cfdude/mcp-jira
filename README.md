@@ -149,7 +149,22 @@ Issue type discovery and configuration analysis
 - **Output**: Ready-to-copy configuration snippets for .jira-config.json
 - **Detects**: Story Points, Sprint, and Epic Link field IDs using intelligent heuristics
 - **Multi-Instance**: Full support for multiple Jira environments
+- **Session-Aware**: Provides guidance only on first project access per session
 - **Use Case**: Eliminates manual field ID hunting in Jira admin interface
+
+### **🌉 Cross-Server Integration Tools**
+
+#### `jira_health_check`
+**🆕 Server Health Monitoring** - Monitor Jira server status and cross-server integration
+- **Purpose**: Check server health, uptime, and cross-server connectivity
+- **Output**: Comprehensive health status, configuration details, supported operations
+- **Cross-Server**: Shows integration status with Confluence MCP servers
+- **Session Info**: Real-time session count and activity monitoring
+
+#### `confluence_health_check`
+**🆕 Cross-Server Health Check** - Monitor Confluence server connectivity from Jira
+- **Purpose**: Verify Jira-to-Confluence integration status and capabilities
+- **Output**: Connection status, endpoint verification, integration configuration
 
 ### **🎯 Strategic Planning Tools**
 
@@ -364,6 +379,36 @@ For single Jira instance setups, use the simplified format:
   }
 }
 ```
+
+#### 4. Cross-Server Integration Configuration
+
+For cross-server integration between Jira and Confluence MCP servers, add Confluence API configuration to your `.jira-config.json`:
+
+```json
+{
+  "instances": {
+    "primary": {
+      "email": "your-email@company.com",
+      "apiToken": "your-jira-api-token",
+      "domain": "your-jira-domain",
+      "projects": ["PROJ", "DEV"]
+    }
+  },
+  "confluence": {
+    "instances": {
+      "primary": {
+        "email": "your-email@company.com",
+        "apiToken": "your-confluence-api-token",
+        "domain": "your-confluence-domain"
+      }
+    },
+    "defaultInstance": "primary"
+  },
+  "defaultInstance": "primary"
+}
+```
+
+This enables tools like `jira_health_check`, `confluence_health_check`, and cross-server document creation capabilities.
 
 ## 🎯 Usage Examples
 

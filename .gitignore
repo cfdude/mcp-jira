@@ -6,3 +6,12 @@ build/
 .claude/
 CLAUDE.md
 .mcp.json
+
+# Temporary test files
+test-*.js
+test-*.mjs
+test-*.ts
+direct-test.*
+simple-test.*
+*-test-temp.*
+temp-test-*.*
