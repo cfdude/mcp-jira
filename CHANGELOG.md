@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Time Tracking Support**: Added dedicated `original_estimate` and `remaining_estimate` parameters to `update_issue` tool
+- **Component Field Support**: Enhanced dynamic field resolution with full Component/Components field support  
+- **Issue Transitions**: Added `get_transitions` and `transition_issue` tools for workflow management
+- **Custom Field Discovery**: Added `list_custom_fields` tool for discovering available fields and configuration examples
+
+### Enhanced  
+- **Dynamic Field Resolution**: Improved component field handling with proper array object structure (`[{name: "Security"}]`)
+- **Time Tracking API**: Implemented correct CREATE vs UPDATE format handling (fields vs update section)
+- **Field Validation**: Added editable field checking to prevent screen configuration errors
+- **Error Reporting**: Enhanced field resolution feedback with match type reporting and suggestions
+
+### Fixed
+- **Component Updates**: Fixed component field to properly handle string to object conversion for Jira API
+- **Time Tracking Updates**: Resolved timetracking field update issues by implementing proper update section format
+- **Field Extraction**: Fixed time tracking field extraction from custom_fields to prevent API conflicts
+
 ## [1.0.1] - 2025-08-04
 
 ### Fixed

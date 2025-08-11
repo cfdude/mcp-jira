@@ -7,6 +7,7 @@ import { UpdateIssueArgs } from '../types.js';
 import { getBoardId } from '../utils/jira-api.js';
 import { formatIssue } from '../utils/formatting.js';
 import { resolveAssigneeValue } from '../utils/user-resolver.js';
+import { buildDynamicFields } from '../utils/dynamic-field-resolver.js';
 import type { SessionState } from '../session-manager.js';
 
 export async function handleUpdateIssue(args: UpdateIssueArgs, session?: SessionState) {
@@ -14,6 +15,8 @@ export async function handleUpdateIssue(args: UpdateIssueArgs, session?: Session
     args,
     { extractProjectFromIssueKey: true },
     async (toolArgs, { axiosInstance, agileAxiosInstance, projectConfig, instanceConfig }) => {
+      // Extract the instance name from the original args for dynamic field resolution
+      const instanceName = args.instance || 'default';
       const {
         issue_key,
         summary,
@@ -27,17 +30,26 @@ export async function handleUpdateIssue(args: UpdateIssueArgs, session?: Session
         labels,
         rank_before_issue,
         rank_after_issue,
+        issuetype,
+        original_estimate,
+        remaining_estimate,
+        custom_fields: userCustomFields,
       } = toolArgs;
+
+      // Mutable copy for adding convenience fields to dynamic resolution
+      let custom_fields = userCustomFields ? { ...userCustomFields } : {};
 
       // Import text field handler for complex text handling
       const { updateIssueWithTextFallback } = await import('../utils/text-field-handler.js');
 
-      // Get story points field from project config
-      const storyPointsField = projectConfig.storyPointsField || null;
+      // We'll handle story points through dynamic resolution if no field ID is configured
 
       const updateData: any = {
         fields: {},
       };
+
+      // Initialize update section for special fields that require it
+      const updateSection: any = {};
 
       // Add fields to update if provided
       if (summary) updateData.fields.summary = summary;
@@ -45,6 +57,10 @@ export async function handleUpdateIssue(args: UpdateIssueArgs, session?: Session
         // Keep description as plain text - the text handler will convert to ADF if needed
         updateData.fields.description = description;
         console.error('Setting description, length:', description.length);
+      }
+      if (issuetype) {
+        updateData.fields.issuetype = { name: issuetype };
+        console.error('Setting issue type:', issuetype);
       }
       if (status) {
         updateData.fields.status = { name: status };
@@ -54,9 +70,16 @@ export async function handleUpdateIssue(args: UpdateIssueArgs, session?: Session
         updateData.fields.priority = { name: priority };
         console.error('Setting priority:', priority);
       }
-      if (story_points !== undefined && storyPointsField) {
-        updateData.fields[storyPointsField] = story_points;
-        console.error('Setting story points:', story_points);
+      if (story_points !== undefined) {
+        // Try configured field first, fall back to dynamic resolution
+        if (projectConfig.storyPointsField) {
+          updateData.fields[projectConfig.storyPointsField] = story_points;
+          console.error('Setting story points via configured field:', story_points);
+        } else {
+          // Add to custom_fields for dynamic resolution
+          custom_fields['Story Points'] = story_points;
+          console.error('Adding story points to dynamic resolution:', story_points);
+        }
       }
       if (labels !== undefined) {
         updateData.fields.labels = labels || [];
@@ -80,10 +103,17 @@ export async function handleUpdateIssue(args: UpdateIssueArgs, session?: Session
         }
       }
       if (epic_link) {
-        updateData.fields.parent = {
-          key: epic_link,
-        };
-        console.error('Adding Epic link using parent field:', epic_link);
+        // Try configured field first, fall back to dynamic resolution
+        if (projectConfig.epicLinkField) {
+          updateData.fields[projectConfig.epicLinkField] = epic_link;
+          console.error('Setting epic link via configured field:', epic_link);
+        } else {
+          // Try parent field first, then dynamic resolution
+          updateData.fields.parent = {
+            key: epic_link,
+          };
+          console.error('Adding Epic link using parent field:', epic_link);
+        }
       }
 
       // Handle sprint field update
@@ -156,7 +186,126 @@ export async function handleUpdateIssue(args: UpdateIssueArgs, session?: Session
         }
       }
 
+      // Handle dedicated time tracking parameters FIRST
+      let timeTrackingUpdate: any = {};
+      if (original_estimate || remaining_estimate) {
+        console.error('Processing dedicated time tracking parameters:');
+        if (original_estimate) {
+          timeTrackingUpdate.originalEstimate = original_estimate;
+          console.error(`  Original Estimate: ${original_estimate}`);
+        }
+        if (remaining_estimate) {
+          timeTrackingUpdate.remainingEstimate = remaining_estimate;
+          console.error(`  Remaining Estimate: ${remaining_estimate}`);
+        }
+      }
+
+      // Extract time tracking fields from custom_fields (for backwards compatibility)
+      const timeTrackingFields: any = {};
+      if (custom_fields) {
+        console.error(
+          'Checking custom_fields for time tracking fields:',
+          Object.keys(custom_fields)
+        );
+        // Check for time tracking related fields and extract them
+        for (const [key, value] of Object.entries(custom_fields)) {
+          const lowerKey = key.toLowerCase();
+          if (
+            lowerKey === 'time tracking' ||
+            lowerKey === 'timetracking' ||
+            lowerKey === 'original estimate' ||
+            lowerKey === 'originalestimate' ||
+            lowerKey === 'remaining estimate' ||
+            lowerKey === 'remainingestimate'
+          ) {
+            console.error(`Found time tracking field: "${key}" = "${value}"`);
+            timeTrackingFields[key] = value;
+            delete custom_fields[key]; // Remove from custom_fields so it's not processed by dynamic resolver
+          }
+        }
+        console.error('Extracted time tracking fields:', timeTrackingFields);
+        console.error('Remaining custom_fields after extraction:', Object.keys(custom_fields));
+      }
+
+      // Handle time tracking fields in update section (for updates, not creates)
+      // Merge fields from custom_fields into timeTrackingUpdate
+      if (Object.keys(timeTrackingFields).length > 0) {
+        for (const [key, value] of Object.entries(timeTrackingFields)) {
+          const lowerKey = key.toLowerCase();
+          if (lowerKey === 'time tracking' || lowerKey === 'timetracking') {
+            timeTrackingUpdate.originalEstimate = value as string;
+          } else if (lowerKey === 'original estimate' || lowerKey === 'originalestimate') {
+            // Only set if not already set by dedicated parameter
+            if (!timeTrackingUpdate.originalEstimate) {
+              timeTrackingUpdate.originalEstimate = value as string;
+            }
+          } else if (lowerKey === 'remaining estimate' || lowerKey === 'remainingestimate') {
+            // Only set if not already set by dedicated parameter
+            if (!timeTrackingUpdate.remainingEstimate) {
+              timeTrackingUpdate.remainingEstimate = value as string;
+            }
+          }
+        }
+      }
+
+      // Add time tracking to update section if we have any time tracking updates
+      if (Object.keys(timeTrackingUpdate).length > 0) {
+        updateSection.timetracking = [
+          {
+            edit: timeTrackingUpdate,
+          },
+        ];
+        console.error(
+          'Setting time tracking in update section:',
+          JSON.stringify(updateSection.timetracking, null, 2)
+        );
+      }
+
+      // Handle dynamic custom fields (user-specified only for updates - no defaults)
+      if (custom_fields && Object.keys(custom_fields).length > 0) {
+        console.error('Processing user custom fields:', Object.keys(custom_fields));
+
+        // Build dynamic fields with proper resolution and type conversion
+        const result = await buildDynamicFields(
+          custom_fields,
+          axiosInstance,
+          instanceName,
+          session,
+          issue_key // Pass issue key for editability validation
+        );
+
+        // Report field resolution results
+        for (const resolution of result.fieldResolutions) {
+          if (resolution.error) {
+            console.error(`❌ ${resolution.error}`);
+          } else {
+            console.error(
+              `✅ Resolved "${resolution.input}" -> "${resolution.fieldName}" (${resolution.matchType} match)`
+            );
+          }
+        }
+
+        // Merge dynamic fields into update data
+        if (Object.keys(result.resolvedFields).length > 0) {
+          Object.assign(updateData.fields, result.resolvedFields);
+          console.error('Added dynamic fields:', Object.keys(result.resolvedFields));
+        } else {
+          console.error('❌ No dynamic fields could be resolved');
+        }
+      }
+
+      // Merge update section into updateData if it has content
+      if (Object.keys(updateSection).length > 0) {
+        updateData.update = updateSection;
+        console.error('Added update section to payload:', JSON.stringify(updateSection, null, 2));
+      }
+
       try {
+        console.error(
+          'FINAL Update data being sent to Jira API:',
+          JSON.stringify(updateData, null, 2)
+        );
+
         // Use the comprehensive text field handler for the update
         const result = await updateIssueWithTextFallback(
           axiosInstance,
@@ -193,30 +342,61 @@ export async function handleUpdateIssue(args: UpdateIssueArgs, session?: Session
         }
 
         // Get the updated issue to return current information
-        const updatedIssue = await axiosInstance.get(`/issue/${issue_key}`, {
-          params: {
-            expand: 'renderedFields,names',
-            fields:
-              'summary,description,status,assignee,priority,labels,created,creator,parent,comment',
-          },
-        });
+        let formattedText = '';
+        try {
+          const updatedIssue = await axiosInstance.get(`/issue/${issue_key}`, {
+            params: {
+              expand: 'renderedFields,names',
+              fields: '*all', // Fetch all fields to support dynamic field discovery
+            },
+          });
+
+          console.error('Retrieved updated issue:', issue_key);
+          console.error('Issue type:', updatedIssue.data.fields?.issuetype);
+
+          formattedText = formatIssue(updatedIssue.data, projectConfig.storyPointsField);
+        } catch (fetchError: any) {
+          console.error('Error fetching/formatting updated issue:', fetchError);
+          console.error('Error stack:', fetchError.stack);
+          // Return success message even if we can't fetch the updated issue
+          formattedText = `✅ Issue ${issue_key} updated successfully!`;
+        }
 
         return {
           content: [
             {
               type: 'text',
-              text:
-                formatIssue(updatedIssue.data, projectConfig.storyPointsField) +
-                `\n\n✅ Update method: ${result.method}`,
+              text: formattedText + `\n\n✅ Update method: ${result.method}`,
             },
           ],
         };
       } catch (error: any) {
         console.error('Issue update failed:', error);
-        throw new McpError(
-          ErrorCode.InternalError,
-          `Failed to update issue: ${error.response?.data?.errorMessages?.join(', ') || error.message}`
-        );
+        console.error('Error type:', typeof error);
+        console.error('Error stack:', error.stack);
+
+        let errorMessage = error.message;
+        if (error.response?.data?.errorMessages) {
+          errorMessage = error.response.data.errorMessages.join(', ');
+        }
+
+        // Check for issue type hierarchy conversion error
+        if (errorMessage.toLowerCase().includes('issue type selected is invalid') && issuetype) {
+          throw new McpError(
+            ErrorCode.InvalidRequest,
+            `Cannot change issue type: ${errorMessage}\n\n` +
+              `⚠️ Jira API Limitation: Converting between Epic and Story/Task/Bug is not supported via API.\n\n` +
+              `This operation must be performed manually in the Jira UI:\n` +
+              `1. Open the issue in Jira web interface\n` +
+              `2. Click "More" menu (•••) → "Move"\n` +
+              `3. Select the new issue type\n` +
+              `4. Map any required fields\n` +
+              `5. Confirm the move\n\n` +
+              `The Jira UI handles all field mappings and custom fields correctly.`
+          );
+        }
+
+        throw new McpError(ErrorCode.InternalError, `Failed to update issue: ${errorMessage}`);
       }
     },
     session

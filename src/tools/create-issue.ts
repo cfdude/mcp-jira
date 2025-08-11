@@ -6,6 +6,7 @@ import { withJiraContext } from '../utils/tool-wrapper.js';
 import { CreateIssueArgs } from '../types.js';
 import { getBoardId } from '../utils/jira-api.js';
 import { formatCreatedIssue } from '../utils/formatting.js';
+import { buildDynamicFields } from '../utils/dynamic-field-resolver.js';
 import type { SessionState } from '../session-manager.js';
 
 export async function handleCreateIssue(args: CreateIssueArgs, session?: SessionState) {
@@ -13,6 +14,8 @@ export async function handleCreateIssue(args: CreateIssueArgs, session?: Session
     args,
     { requiresProject: true },
     async (toolArgs, { axiosInstance, agileAxiosInstance, instanceConfig, projectConfig }) => {
+      // Extract the instance name from the original args for dynamic field resolution
+      const instanceName = args.instance || 'default';
       const {
         summary,
         description,
@@ -23,7 +26,11 @@ export async function handleCreateIssue(args: CreateIssueArgs, session?: Session
         story_points,
         labels,
         projectKey,
+        custom_fields: userCustomFields,
       } = toolArgs;
+
+      // Mutable copy for adding convenience fields to dynamic resolution
+      let custom_fields = userCustomFields ? { ...userCustomFields } : {};
 
       const effectiveProjectKey = projectKey || 'UNKNOWN';
 
@@ -78,9 +85,28 @@ export async function handleCreateIssue(args: CreateIssueArgs, session?: Session
         );
       }
 
-      // Use configured sprint field or default
-      const sprintFieldId = projectConfig.sprintField || 'customfield_10020';
-      console.error('Using sprint field ID:', sprintFieldId);
+      // Try to find sprint field dynamically if not configured
+      let sprintFieldId = projectConfig.sprintField;
+
+      if (!sprintFieldId && sprint) {
+        // Get field configuration to find Sprint field ID dynamically
+        const fieldConfigResponse = await axiosInstance.get('/field');
+        const sprintFields = fieldConfigResponse.data.filter((field: any) =>
+          field.name?.toLowerCase().includes('sprint')
+        );
+
+        if (sprintFields.length > 0) {
+          // Use the first Sprint field found
+          sprintFieldId = sprintFields[0].id;
+          console.error(`Auto-detected Sprint field: ${sprintFieldId}`);
+        } else {
+          console.error('No Sprint field found in instance configuration');
+        }
+      }
+
+      if (sprintFieldId) {
+        console.error('Using sprint field ID:', sprintFieldId);
+      }
 
       const fields: any = {
         project: {
@@ -116,14 +142,16 @@ export async function handleCreateIssue(args: CreateIssueArgs, session?: Session
       }
 
       // Add story points if specified
-      if (story_points !== undefined && projectConfig.storyPointsField) {
-        fields[projectConfig.storyPointsField] = story_points;
-        console.error(
-          'Setting story points:',
-          story_points,
-          'using field:',
-          projectConfig.storyPointsField
-        );
+      if (story_points !== undefined) {
+        // Try configured field first, fall back to dynamic resolution
+        if (projectConfig.storyPointsField) {
+          fields[projectConfig.storyPointsField] = story_points;
+          console.error('Setting story points via configured field:', story_points);
+        } else {
+          // Add to custom_fields for dynamic resolution
+          custom_fields['Story Points'] = story_points;
+          console.error('Adding story points to dynamic resolution:', story_points);
+        }
       }
 
       // Handle sprint assignment if requested
@@ -175,6 +203,55 @@ export async function handleCreateIssue(args: CreateIssueArgs, session?: Session
             fieldValue: fields[sprintFieldId],
           });
 
+          // Apply field defaults first (if any)
+          let combinedCustomFields = {};
+
+          if (projectConfig.fieldDefaults && Object.keys(projectConfig.fieldDefaults).length > 0) {
+            console.error(
+              'Applying project field defaults:',
+              Object.keys(projectConfig.fieldDefaults)
+            );
+            combinedCustomFields = { ...projectConfig.fieldDefaults };
+          }
+
+          // Override defaults with user-specified custom fields
+          if (custom_fields) {
+            console.error('Processing user custom fields:', Object.keys(custom_fields));
+            combinedCustomFields = { ...combinedCustomFields, ...custom_fields };
+          }
+
+          // Process all custom fields (defaults + user-specified) through dynamic resolution
+          if (Object.keys(combinedCustomFields).length > 0) {
+            console.error('Processing combined custom fields:', Object.keys(combinedCustomFields));
+
+            // Build dynamic fields with proper resolution and type conversion
+            const result = await buildDynamicFields(
+              combinedCustomFields,
+              axiosInstance,
+              instanceName,
+              session
+            );
+
+            // Report field resolution results
+            for (const resolution of result.fieldResolutions) {
+              if (resolution.error) {
+                console.error(`❌ ${resolution.error}`);
+              } else {
+                console.error(
+                  `✅ Resolved "${resolution.input}" -> "${resolution.fieldName}" (${resolution.matchType} match)`
+                );
+              }
+            }
+
+            // Merge dynamic fields into create data
+            if (Object.keys(result.resolvedFields).length > 0) {
+              Object.assign(fields, result.resolvedFields);
+              console.error('Added dynamic fields:', Object.keys(result.resolvedFields));
+            } else {
+              console.error('❌ No dynamic fields could be resolved');
+            }
+          }
+
           // Create issue with sprint field
           const createResponse = await axiosInstance.post('/issue', {
             fields,
@@ -195,19 +272,62 @@ export async function handleCreateIssue(args: CreateIssueArgs, session?: Session
       }
 
       if (epic_link) {
-        // Use configured epic link field or try parent field
+        // Try configured field first, fall back to parent field
         if (projectConfig.epicLinkField) {
           fields[projectConfig.epicLinkField] = epic_link;
-          console.error(
-            'Adding Epic link using configured field:',
-            projectConfig.epicLinkField,
-            epic_link
-          );
+          console.error('Setting epic link via configured field:', epic_link);
         } else {
+          // Use parent field as fallback
           fields.parent = {
             key: epic_link,
           };
           console.error('Adding Epic link using parent field:', epic_link);
+        }
+      }
+
+      // Apply field defaults first (if any)
+      let combinedCustomFields = {};
+
+      if (projectConfig.fieldDefaults && Object.keys(projectConfig.fieldDefaults).length > 0) {
+        console.error('Applying project field defaults:', Object.keys(projectConfig.fieldDefaults));
+        combinedCustomFields = { ...projectConfig.fieldDefaults };
+      }
+
+      // Override defaults with user-specified custom fields
+      if (custom_fields) {
+        console.error('Processing user custom fields:', Object.keys(custom_fields));
+        combinedCustomFields = { ...combinedCustomFields, ...custom_fields };
+      }
+
+      // Process all custom fields (defaults + user-specified) through dynamic resolution
+      if (Object.keys(combinedCustomFields).length > 0) {
+        console.error('Processing combined custom fields:', Object.keys(combinedCustomFields));
+
+        // Build dynamic fields with proper resolution and type conversion
+        const result = await buildDynamicFields(
+          combinedCustomFields,
+          axiosInstance,
+          instanceName,
+          session
+        );
+
+        // Report field resolution results
+        for (const resolution of result.fieldResolutions) {
+          if (resolution.error) {
+            console.error(`❌ ${resolution.error}`);
+          } else {
+            console.error(
+              `✅ Resolved "${resolution.input}" -> "${resolution.fieldName}" (${resolution.matchType} match)`
+            );
+          }
+        }
+
+        // Merge dynamic fields into create data
+        if (Object.keys(result.resolvedFields).length > 0) {
+          Object.assign(fields, result.resolvedFields);
+          console.error('Added dynamic fields:', Object.keys(result.resolvedFields));
+        } else {
+          console.error('❌ No dynamic fields could be resolved');
         }
       }
 

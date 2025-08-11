@@ -151,7 +151,22 @@ export async function updateIssueWithTextFallback(
     console.error('✅ Issue updated successfully via API v3');
     return { success: true, method: 'v3-adf' };
   } catch (v3Error: any) {
-    console.error('❌ API v3 complete update failed:', v3Error.response?.status);
+    console.error(
+      '❌ API v3 complete update failed:',
+      v3Error.response?.status || 'Unknown status'
+    );
+
+    // Check if the error is the "Cannot read properties" error
+    if (v3Error.message && v3Error.message.includes('Cannot read properties')) {
+      console.error('JavaScript error detected:', v3Error.message);
+      console.error('Stack trace:', v3Error.stack);
+      throw v3Error; // Re-throw to see where it's coming from
+    }
+
+    console.error('V3 Error details:', {
+      message: v3Error.message,
+      data: v3Error.response?.data,
+    });
 
     // Extract text fields and non-text fields
     const textFields: any = {};
@@ -175,8 +190,9 @@ export async function updateIssueWithTextFallback(
         await axiosInstance.put(`/issue/${issueKey}`, { fields: nonTextFields });
         methods.push('v3-fields');
         console.error('✅ Non-text fields updated via API v3');
-      } catch (error) {
-        console.error('❌ Non-text fields update failed:', error);
+      } catch (error: any) {
+        console.error('❌ Non-text fields update failed:', error.message || error);
+        console.error('Error response:', error.response?.data);
         success = false;
       }
     }
@@ -196,8 +212,8 @@ export async function updateIssueWithTextFallback(
         });
         methods.push('v2-text');
         console.error('✅ Text fields updated via API v2');
-      } catch (error) {
-        console.error('❌ Text fields update failed:', error);
+      } catch (error: any) {
+        console.error('❌ Text fields update failed:', error.message || error);
         success = false;
       }
     }
@@ -205,7 +221,13 @@ export async function updateIssueWithTextFallback(
     if (success) {
       return { success: true, method: methods.join('+') as any };
     } else {
-      const errorMsg = `Mixed update failed. V3 error: ${v3Error.response?.status} ${JSON.stringify(v3Error.response?.data)}`;
+      let errorDetails = '';
+      try {
+        errorDetails = JSON.stringify(v3Error.response?.data);
+      } catch (e) {
+        errorDetails = 'Unable to stringify error data';
+      }
+      const errorMsg = `Mixed update failed. V3 error: ${v3Error.response?.status} ${errorDetails}`;
       return { success: false, method: 'failed', error: errorMsg };
     }
   }
