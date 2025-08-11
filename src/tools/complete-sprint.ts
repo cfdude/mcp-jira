@@ -36,10 +36,20 @@ export async function handleCompleteSprint(args: CompleteSprintArgs, session?: S
           );
         }
 
-        // Complete the sprint by setting state to closed
-        const response = await agileAxiosInstance.put(`/sprint/${sprintId}`, {
+        // Complete the sprint by updating state to 'closed'
+        // This matches the exact curl command that works
+        const requestBody = {
+          completeDate: new Date().toISOString(),
+          endDate: sprint.endDate,
+          goal: sprint.goal,
+          name: sprint.name,
+          startDate: sprint.startDate,
           state: 'closed',
-        });
+        };
+
+        console.error('Completing sprint with request body:', JSON.stringify(requestBody, null, 2));
+
+        const response = await agileAxiosInstance.put(`/sprint/${sprintId}`, requestBody);
 
         return {
           content: [
@@ -90,9 +100,25 @@ The sprint has been marked as completed. Use \`get_sprint_details\` to view fina
 
         if (error.response?.status === 400) {
           const errorMessage = error.response?.data?.errorMessages?.join(', ') || 'Invalid request';
+          const errorDetails = error.response?.data?.errors
+            ? Object.entries(error.response.data.errors)
+                .map(([field, msg]) => `${field}: ${msg}`)
+                .join(', ')
+            : '';
+          const detailedError = errorDetails
+            ? `${errorMessage} | Field errors: ${errorDetails}`
+            : errorMessage;
+
+          console.error('Detailed 400 error for sprint completion:', {
+            sprintId,
+            errorMessages: error.response?.data?.errorMessages,
+            errors: error.response?.data?.errors,
+            fullResponse: error.response?.data,
+          });
+
           throw new McpError(
             ErrorCode.InvalidRequest,
-            `Cannot complete sprint: ${errorMessage}. Common issues: 1) Sprint is not in 'active' state, 2) Sprint has incomplete required fields, 3) Board configuration prevents completion.`
+            `Cannot complete sprint: ${detailedError}. Common issues: 1) Sprint is not in 'active' state, 2) Sprint has incomplete required fields, 3) Board configuration prevents completion.`
           );
         }
 

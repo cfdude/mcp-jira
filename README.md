@@ -23,6 +23,8 @@ This server transforms basic Jira functionality into a complete project manageme
 - Story points and sprint management
 - Epic linking and hierarchy management
 - Comment and attachment handling
+- **🆕 Time Tracking Support**: Native time tracking with `original_estimate` and `remaining_estimate` fields
+- **🆕 Workflow Transitions**: Complete workflow management with transition tools
 - **Multi-instance support**: Work with multiple Jira Cloud environments from one session
 
 ### **🏗️ Project Structure & Organization**
@@ -58,9 +60,9 @@ Lists project issues with filtering and sorting options
 - **Features**: Visual separators, sprint information display, rank-based sorting
 
 #### `update_issue`
-Updates existing issues with full field support
-- **Parameters**: issue_key, summary, description, status, assignee, epic_link, priority, story_points, labels, sprint, rank_after_issue, rank_before_issue, projectKey
-- **Features**: Issue ranking, sprint management, epic linking, intelligent assignee resolution
+Updates existing issues with full field support including time tracking
+- **Parameters**: issue_key, summary, description, status, assignee, epic_link, priority, story_points, labels, sprint, rank_after_issue, rank_before_issue, original_estimate, remaining_estimate, custom_fields, projectKey
+- **Features**: Issue ranking, sprint management, epic linking, intelligent assignee resolution, **time tracking support**, dynamic component field handling
 
 #### `get_issue`
 Retrieves detailed issue information
@@ -74,6 +76,24 @@ Safely removes issues from projects
 #### `add_comment`
 Adds comments to existing issues
 - **Parameters**: issue_key, comment
+
+#### `get_transitions` **🆕 v1.1.0**
+Get available workflow transitions for an issue
+- **Parameters**: issue_key, working_dir, instance (optional)
+- **Features**: Lists available transitions, required fields, and transition IDs
+- **Use Case**: Understand workflow options before performing transitions
+
+#### `transition_issue` **🆕 v1.1.0**
+Perform workflow transitions on issues (e.g., move to "In Progress", "Done")
+- **Parameters**: issue_key, transition_id OR transition_name, comment (optional), resolution (optional), fields (optional), working_dir, instance (optional)
+- **Features**: Transition by name or ID, automatic resolution setting, comment addition
+- **Use Case**: Automate status changes and workflow progression
+
+#### `list_custom_fields` **🆕 v1.1.0**
+Discover available custom fields for configuration
+- **Parameters**: working_dir, instance (optional), projectKey (optional), showSystemFields (optional)
+- **Features**: Field discovery, configuration examples, type classification
+- **Use Case**: New user onboarding, field configuration, system exploration
 
 ### **⚙️ Configuration & Instance Management**
 
@@ -524,6 +544,94 @@ await bulk_update_issues({
   issueKeys: ["PROJ-1", "PROJ-2", "PROJ-3"],
   updates: { sprint: "Sprint 5", storyPoints: 3 }
 });
+```
+
+### 🆕 Time Tracking & Workflow Management (v1.1.0)
+
+#### Time Tracking Examples
+```javascript
+// Set time estimates on issue creation
+await create_issue({
+  working_dir: "/path/to/config",
+  projectKey: "PROJ",
+  summary: "Implement user authentication",
+  description: "Build OAuth2 integration",
+  type: "Task",
+  story_points: 5,
+  original_estimate: "2w",  // 2 weeks
+  // Time automatically displayed in get_issue
+});
+
+// Update time tracking on existing issues
+await update_issue({
+  working_dir: "/path/to/config",
+  issue_key: "PROJ-123",
+  original_estimate: "1w 2d",     // 1 week 2 days
+  remaining_estimate: "3d 4h"     // 3 days 4 hours
+});
+
+// Use with component assignment
+await update_issue({
+  working_dir: "/path/to/config", 
+  issue_key: "PROJ-124",
+  custom_fields: {
+    "Component": "Security"  // Automatically converts to [{name: "Security"}]
+  },
+  original_estimate: "5d"
+});
+```
+
+#### Workflow Transition Examples
+```javascript
+// Discover available transitions for an issue
+await get_transitions({
+  working_dir: "/path/to/config",
+  issue_key: "PROJ-123"
+});
+
+// Transition issue to "In Progress" with comment
+await transition_issue({
+  working_dir: "/path/to/config",
+  issue_key: "PROJ-123",
+  transition_name: "Start Progress",  // or transition_id: "21"
+  comment: "Beginning work on this issue"
+});
+
+// Complete issue with resolution
+await transition_issue({
+  working_dir: "/path/to/config",
+  issue_key: "PROJ-123", 
+  transition_name: "Done",
+  comment: "Implementation completed and tested",
+  resolution: "Fixed"
+});
+
+// Workflow automation - bulk transition
+const issueKeys = ["PROJ-101", "PROJ-102", "PROJ-103"];
+for (const key of issueKeys) {
+  await transition_issue({
+    working_dir: "/path/to/config",
+    issue_key: key,
+    transition_name: "Ready for Review"
+  });
+}
+```
+
+#### Field Discovery Examples
+```javascript
+// Discover all available fields for configuration
+await list_custom_fields({
+  working_dir: "/path/to/config",
+  instance: "primary",
+  projectKey: "PROJ",  // Optional: project-specific fields
+  showSystemFields: false  // Show only custom fields
+});
+
+// Get ready-to-copy configuration snippets
+// Output includes examples like:
+// - Story Points: customfield_10036
+// - Sprint: customfield_10020  
+// - Components: Built-in system field
 ```
 
 ### Epic with Issues - Bulk Creation ⚡

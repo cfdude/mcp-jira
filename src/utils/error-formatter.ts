@@ -70,7 +70,9 @@ function format400Error(details: JiraErrorDetails, context: string): FormattedEr
     Object.entries(details.fieldErrors).forEach(([field, message]) => {
       // Provide user-friendly field names
       const friendlyFieldName = getFriendlyFieldName(field);
-      fieldIssues.push(`**${friendlyFieldName}:** ${message}`);
+      if (friendlyFieldName && message) {
+        fieldIssues.push(`**${friendlyFieldName}:** ${message}`);
+      }
 
       // Add field-specific troubleshooting
       const fieldTroubleshooting = getFieldTroubleshooting(field, message);

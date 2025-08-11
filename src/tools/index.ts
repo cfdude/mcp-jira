@@ -84,6 +84,7 @@ import { handleConfluenceHealthCheck } from './confluence-health-check.js';
 
 // Field Detection Tools
 import { detectProjectFields } from './detect-project-fields.js';
+import { listCustomFields } from './list-custom-fields.js';
 
 /**
  * Create session-aware wrapper for tool handlers
@@ -288,6 +289,21 @@ export function setupToolHandlers(
               type: 'string',
               description:
                 "Issue key to rank the issue after (e.g., 'APA-123'). Cannot be used with rank_before_issue.",
+            },
+            original_estimate: {
+              type: 'string',
+              description:
+                "Time tracking: original estimate (e.g., '2d', '4h', '1w 2d'). Use Jira time format.",
+            },
+            remaining_estimate: {
+              type: 'string',
+              description:
+                "Time tracking: remaining estimate (e.g., '2d', '4h', '1w 2d'). Use Jira time format.",
+            },
+            custom_fields: {
+              type: 'object',
+              description:
+                'Additional custom fields as key-value pairs. Keys can be field names (e.g., "Story Points", "T-Shirt Size") or IDs (e.g., "customfield_10001"). Field names are fuzzy-matched to actual Jira field names.',
             },
           },
           required: ['working_dir', 'issue_key'],
@@ -2207,6 +2223,33 @@ export function setupToolHandlers(
           required: ['working_dir', 'projectKey'],
         },
       },
+      {
+        name: 'list_custom_fields',
+        description:
+          'List all available custom and system fields for a Jira instance. Shows field IDs, types, and provides configuration examples. Useful for discovering what fields can be added to your configuration.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            working_dir: {
+              type: 'string',
+              description: 'Working directory containing .jira-config.json',
+            },
+            instance: {
+              type: 'string',
+              description: 'Optional instance name (e.g., "highway", "onvex")',
+            },
+            projectKey: {
+              type: 'string',
+              description: 'Optional project key to show project-specific fields',
+            },
+            showSystemFields: {
+              type: 'boolean',
+              description: 'Include system fields in the output (default: false)',
+            },
+          },
+          required: ['working_dir'],
+        },
+      },
     ],
   }));
 
@@ -2264,6 +2307,8 @@ export function setupToolHandlers(
         'list_plans',
         'get_project_statuses',
         'get_issue_types',
+        'detect_project_fields',
+        'list_custom_fields',
         // Plans Management
         'create_plan',
         'get_plan',
@@ -2427,6 +2472,13 @@ export function setupToolHandlers(
           return {
             content: [
               { type: 'text', text: await detectProjectFields({ ...args, working_dir }, session) },
+            ],
+          };
+
+        case 'list_custom_fields':
+          return {
+            content: [
+              { type: 'text', text: await listCustomFields({ ...args, working_dir }, session) },
             ],
           };
 

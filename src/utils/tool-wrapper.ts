@@ -239,7 +239,7 @@ export function getStandardFields(projectConfig: JiraConfig): string[] {
     'comment',
   ];
 
-  // Add configured custom fields
+  // Add configured custom fields (backwards compatibility)
   if (projectConfig.sprintField) {
     fields.push(projectConfig.sprintField);
   }
@@ -250,19 +250,40 @@ export function getStandardFields(projectConfig: JiraConfig): string[] {
     fields.push(projectConfig.epicLinkField);
   }
 
-  // Add common fields
-  fields.push('customfield_10019'); // Rank field
-
-  return fields;
+  // Instead of hardcoding field IDs, use *all to fetch all fields
+  // This is more reliable across different Jira instances and configurations
+  return ['*all'];
 }
 
 /**
  * Helper function to format sprint information consistently
  */
 export function formatSprintInfo(issue: any, projectConfig: JiraConfig): string {
-  const sprintField = projectConfig.sprintField || 'customfield_10020';
+  // Try configured field first, then look for any field containing sprint data
+  let sprintField = projectConfig.sprintField;
+
+  if (!sprintField) {
+    // Dynamically find Sprint field by looking for fields with array of sprint objects
+    for (const [fieldId, fieldValue] of Object.entries(issue.fields)) {
+      if (
+        fieldId.startsWith('customfield_') &&
+        Array.isArray(fieldValue) &&
+        fieldValue.length > 0 &&
+        fieldValue[0] &&
+        typeof fieldValue[0] === 'object' &&
+        'name' in fieldValue[0] &&
+        'state' in fieldValue[0] &&
+        'id' in fieldValue[0]
+      ) {
+        // This looks like a sprint field
+        sprintField = fieldId;
+        break;
+      }
+    }
+  }
 
   if (
+    !sprintField ||
     !issue.fields[sprintField] ||
     !Array.isArray(issue.fields[sprintField]) ||
     issue.fields[sprintField].length === 0
@@ -301,12 +322,14 @@ export function formatSprintInfo(issue: any, projectConfig: JiraConfig): string 
  * Helper function to format story points consistently
  */
 export function formatStoryPoints(issue: any, projectConfig: JiraConfig): string {
+  // Try configured field first
   if (
-    !projectConfig.storyPointsField ||
-    issue.fields[projectConfig.storyPointsField] === undefined
+    projectConfig.storyPointsField &&
+    issue.fields[projectConfig.storyPointsField] !== undefined
   ) {
-    return '';
+    return `\n- Story Points: ${issue.fields[projectConfig.storyPointsField] || 'Not set'}`;
   }
 
-  return `\n- Story Points: ${issue.fields[projectConfig.storyPointsField] || 'Not set'}`;
+  // Story Points field not configured - will be shown in dynamic custom fields section
+  return '';
 }

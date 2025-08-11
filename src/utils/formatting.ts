@@ -18,9 +18,14 @@ export function formatDate(dateString: string): string {
  * Format a Jira issue for display
  */
 export function formatIssue(issue: JiraIssue, storyPointsField: string | null = null): string {
-  let output = `${issue.key}: ${issue.fields.summary}
-- Type: ${issue.fields.issuetype.name}
-- Status: ${issue.fields.status.name}
+  // Add defensive checks for required fields
+  if (!issue || !issue.fields) {
+    return 'Invalid issue data';
+  }
+
+  let output = `${issue.key}: ${issue.fields.summary || 'No summary'}
+- Type: ${issue.fields.issuetype?.name || 'Unknown type'}
+- Status: ${issue.fields.status?.name || 'Unknown status'}
 - Priority: ${issue.fields.priority?.name || 'Not set'}
 - Assignee: ${issue.fields.assignee?.displayName || 'Unassigned'}`;
 
@@ -34,7 +39,9 @@ export function formatIssue(issue: JiraIssue, storyPointsField: string | null = 
     output += `\n- Rank: ${issue.fields.customfield_10019}`;
   }
 
-  output += `\n- Created: ${formatDate(issue.fields.created)}`;
+  if (issue.fields.created) {
+    output += `\n- Created: ${formatDate(issue.fields.created)}`;
+  }
 
   // Add Sprint information if available - using try/catch to handle potential issues
   try {
@@ -55,8 +62,21 @@ export function formatIssue(issue: JiraIssue, storyPointsField: string | null = 
     console.error('Error formatting sprint information:', error);
   }
 
-  output += `\n- Description: ${issue.fields.description || 'No description'}
-- Creator: ${issue.fields.creator.displayName}`;
+  // Handle description - could be string, ADF object, or null
+  let description = 'No description';
+  if (issue.fields.description) {
+    if (typeof issue.fields.description === 'string') {
+      description = issue.fields.description;
+    } else if (typeof issue.fields.description === 'object') {
+      // For ADF format, just indicate it exists (full conversion would be complex)
+      description = '[Rich text content]';
+    }
+  }
+  output += `\n- Description: ${description}`;
+
+  if (issue.fields.creator?.displayName) {
+    output += `\n- Creator: ${issue.fields.creator.displayName}`;
+  }
 
   // Add labels if any exist
   if (issue.fields.labels && issue.fields.labels.length > 0) {
@@ -64,23 +84,24 @@ export function formatIssue(issue: JiraIssue, storyPointsField: string | null = 
   }
 
   if (issue.fields.parent) {
-    output += `\n- Parent Epic: ${issue.fields.parent.key} - ${issue.fields.parent.fields.summary}`;
-  }
-
-  // Add Epic link information if available
-  for (const [fieldId, value] of Object.entries(issue.fields)) {
-    if (fieldId.startsWith('customfield_') && value && typeof value === 'string') {
-      output += `\n- Epic Link: ${value}`;
+    output += `\n- Parent Epic: ${issue.fields.parent.key}`;
+    if (issue.fields.parent.fields?.summary) {
+      output += ` - ${issue.fields.parent.fields.summary}`;
     }
   }
+
+  // Note: Epic link is now handled via the parent field above
+  // Legacy Epic Link field support would go here if needed
 
   const comments = issue.fields.comment?.comments;
   if (comments && comments.length > 0) {
     output += '\n\nComments:';
     comments.forEach(comment => {
-      output += `\n\n[${formatDate(comment.created)} by ${
-        comment.author.displayName
-      }]\n${comment.body}`;
+      if (comment && comment.created && comment.author?.displayName && comment.body) {
+        output += `\n\n[${formatDate(comment.created)} by ${
+          comment.author.displayName
+        }]\n${comment.body}`;
+      }
     });
   }
 

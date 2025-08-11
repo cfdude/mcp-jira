@@ -167,12 +167,20 @@ export async function getInstanceForProjectWithSession(
   // Get project-specific config if available
   const projectConfig = config.projects?.[projectKey];
 
-  // Build project configuration (project-specific fields only)
+  // Build project configuration - merge instance and project field defaults
+  // Project defaults override instance defaults
+  const fieldDefaults: Record<string, any> = {
+    ...instanceConfig.fieldDefaults, // Start with instance defaults
+    ...projectConfig?.fieldDefaults, // Override with project-specific defaults
+  };
+
   const finalProjectConfig: JiraConfig = {
     projectKey,
+    // Keep backwards compatibility for explicit field IDs
     storyPointsField: projectConfig?.storyPointsField,
     sprintField: projectConfig?.sprintField,
     epicLinkField: projectConfig?.epicLinkField,
+    fieldDefaults,
   };
 
   logger.debug('Built project config for session', {

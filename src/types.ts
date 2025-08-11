@@ -4,9 +4,10 @@
 
 export interface JiraConfig {
   projectKey: string;
-  storyPointsField?: string; // Custom field ID for story points (e.g., 'customfield_10016')
-  sprintField?: string; // Custom field ID for sprint
-  epicLinkField?: string; // Custom field ID for epic link
+  storyPointsField?: string; // Custom field ID for story points (backwards compatibility)
+  sprintField?: string; // Custom field ID for sprint (backwards compatibility)
+  epicLinkField?: string; // Custom field ID for epic link (backwards compatibility)
+  fieldDefaults?: Record<string, any>; // Default field values for this project
 }
 
 export interface JiraInstanceConfig {
@@ -14,6 +15,7 @@ export interface JiraInstanceConfig {
   apiToken: string;
   domain: string;
   projects?: string[]; // Optional: list of project keys this instance supports
+  fieldDefaults?: Record<string, any>; // Instance-level default field values
 }
 
 export interface CrossServerIntegrationConfig {
@@ -34,9 +36,10 @@ export interface MultiInstanceJiraConfig {
   projects: {
     [projectKey: string]: {
       instance: string; // which instance to use for this project
-      storyPointsField?: string;
-      sprintField?: string;
-      epicLinkField?: string;
+      storyPointsField?: string; // Backwards compatibility
+      sprintField?: string; // Backwards compatibility
+      epicLinkField?: string; // Backwards compatibility
+      fieldDefaults?: Record<string, any>; // Project-specific default field values
     };
   };
   defaultInstance?: string; // fallback instance if project not found
@@ -105,6 +108,7 @@ export interface CreateIssueArgs extends BaseArgs {
   story_points?: number;
   labels?: string[];
   sprint?: string;
+  custom_fields?: Record<string, any>; // Dynamic custom fields by name or ID
 }
 
 export interface ListIssuesArgs extends BaseArgs {
@@ -129,6 +133,10 @@ export interface UpdateIssueArgs extends BaseArgs {
   sprint?: string;
   rank_before_issue?: string;
   rank_after_issue?: string;
+  issuetype?: string; // Issue type name (e.g., "Story", "Task", "Epic")
+  original_estimate?: string; // Time tracking: original estimate (e.g., "2d", "4h", "1w 2d")
+  remaining_estimate?: string; // Time tracking: remaining estimate
+  custom_fields?: Record<string, any>; // Dynamic custom fields by name or ID
 }
 
 export interface GetIssueArgs extends BaseArgs {
@@ -331,4 +339,18 @@ export interface SearchIssuesJqlArgs extends BaseArgs {
   fields?: string;
   expand?: string;
   validateQuery?: boolean;
+}
+
+// Workflow Transition Args
+export interface GetTransitionsArgs extends BaseArgs {
+  issue_key: string;
+}
+
+export interface TransitionIssueArgs extends BaseArgs {
+  issue_key: string;
+  transition_id?: string;
+  transition_name?: string;
+  comment?: string;
+  resolution?: string;
+  fields?: { [key: string]: any };
 }
