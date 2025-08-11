@@ -24,9 +24,11 @@ export async function handleGetBoardReports(args: GetBoardReportsArgs, session?:
         const boardResponse = await agileAxiosInstance.get(`/board/${boardId}`);
         const board = boardResponse.data;
 
-        // Get available reports
-        const reportsResponse = await agileAxiosInstance.get(`/board/${boardId}/reports`);
-        const reports = reportsResponse.data.reports || [];
+        // Get current and future sprints
+        const sprintsResponse = await agileAxiosInstance.get(`/board/${boardId}/sprint`, {
+          params: { state: 'active,future', maxResults: 50 },
+        });
+        const sprints = sprintsResponse.data.values || [];
 
         // Get current board issues for basic metrics
         const issuesResponse = await agileAxiosInstance.get(`/board/${boardId}/issue`, {
@@ -60,20 +62,55 @@ export async function handleGetBoardReports(args: GetBoardReportsArgs, session?:
           }
         });
 
+        // Format sprints section
+        const sprintsSection =
+          sprints.length > 0
+            ? sprints
+                .map((sprint: any) => {
+                  const startDate = sprint.startDate
+                    ? new Date(sprint.startDate).toLocaleDateString()
+                    : 'Not set';
+                  const endDate = sprint.endDate
+                    ? new Date(sprint.endDate).toLocaleDateString()
+                    : 'Not set';
+                  const goal = sprint.goal ? `\n  - Goal: ${sprint.goal}` : '';
+                  return `- **${sprint.name}** (ID: ${sprint.id})\n  - State: ${sprint.state}\n  - Start: ${startDate}\n  - End: ${endDate}${goal}`;
+                })
+                .join('\n\n')
+            : 'No active or future sprints found';
+
+        // Format issues by status section
+        const issuesByStatusSection = Object.entries(issuesByStatus)
+          .map(([status, count]) => `- **${status}:** ${count}`)
+          .join('\n');
+
+        // Format issues by type section
+        const issuesByTypeSection = Object.entries(issuesByType)
+          .map(([type, count]) => `- **${type}:** ${count}`)
+          .join('\n');
+
+        // Format story points section
+        const storyPointsSection =
+          totalStoryPoints > 0
+            ? `**Story Points Analysis:**
+- **Total Story Points:** ${totalStoryPoints}
+
+**Story Points by Status:**
+${Object.entries(storyPointsByStatus)
+  .map(([status, points]) => `- **${status}:** ${points} points`)
+  .join('\n')}
+
+`
+            : '';
+
         return {
           content: [
             {
               type: 'text',
               text: `📊 **Board Reports: ${board.name}**
 
-**Available Reports:**
-${
-  reports.length > 0
-    ? reports
-        .map((report: any) => `- **${report.name}**: ${report.description || 'No description'}`)
-        .join('\n')
-    : 'No specific reports available via API'
-}
+**Current & Future Sprints:**
+${sprintsSection}
 
 **Current Board Metrics:**
 
@@ -81,34 +118,18 @@ ${
 - **Total Issues:** ${totalIssues}
 
 **Issues by Status:**
-${Object.entries(issuesByStatus)
-  .map(([status, count]) => `- **${status}:** ${count}`)
-  .join('\n')}
+${issuesByStatusSection}
 
 **Issues by Type:**
-${Object.entries(issuesByType)
-  .map(([type, count]) => `- **${type}:** ${count}`)
-  .join('\n')}
+${issuesByTypeSection}
 
-${
-  totalStoryPoints > 0
-    ? `**Story Points Analysis:**
-- **Total Story Points:** ${totalStoryPoints}
-
-**Story Points by Status:**
-${Object.entries(storyPointsByStatus)
-  .map(([status, points]) => `- **${status}:** ${points} points`)
-  .join('\n')}
-`
-    : ''
-}
-
-**Board Information:**
+${storyPointsSection}**Board Information:**
 - **Board ID:** ${board.id}
 - **Type:** ${board.type}
 - **Project:** ${board.location?.projectKey || 'N/A'}
 
-For detailed sprint analytics, use \`get_sprint_report\` with specific sprint IDs.`,
+For detailed sprint analytics, use \`get_sprint_details\` with specific sprint IDs.
+For sprint management, use \`update_sprint\`, \`move_issues_to_sprint\`, or \`complete_sprint\`.`,
             },
           ],
         };

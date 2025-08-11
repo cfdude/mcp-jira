@@ -224,7 +224,7 @@ export async function updateIssueWithTextFallback(
       let errorDetails = '';
       try {
         errorDetails = JSON.stringify(v3Error.response?.data);
-      } catch (e) {
+      } catch {
         errorDetails = 'Unable to stringify error data';
       }
       const errorMsg = `Mixed update failed. V3 error: ${v3Error.response?.status} ${errorDetails}`;
