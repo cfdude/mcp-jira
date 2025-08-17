@@ -101,7 +101,7 @@ export async function withJiraContext<TArgs extends BaseArgs, TResult>(
     if (!session) {
       throw new Error('Session is required for configuration loading');
     }
-    
+
     const configResult = await getInstanceForProjectWithSession(
       working_dir,
       projectKey || '',

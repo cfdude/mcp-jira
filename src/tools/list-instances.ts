@@ -14,7 +14,7 @@ export async function handleListInstances(args: ListInstancesArgs, session?: Ses
     if (!session) {
       throw new Error('Session is required for configuration loading');
     }
-    
+
     const config = await loadMultiInstanceConfigForSession(args.working_dir, session);
     const instances = Object.entries(config.instances || {}).map(([name, instance]) => ({
       name,
@@ -77,7 +77,7 @@ export async function handleListInstances(args: ListInstancesArgs, session?: Ses
       result += `### ${index + 1}. ${instance.name}\n`;
       result += `- **Domain**: ${instance.domain}.atlassian.net\n`;
       result += `- **Email**: ${instance.email}\n`;
-      result += `- **Pre-configured Projects**: ${(instance.projects && instance.projects.length > 0) ? instance.projects.join(', ') : 'None'}\n\n`;
+      result += `- **Pre-configured Projects**: ${instance.projects && instance.projects.length > 0 ? instance.projects.join(', ') : 'None'}\n\n`;
     });
 
     // List project mappings
