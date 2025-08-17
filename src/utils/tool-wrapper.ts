@@ -4,7 +4,6 @@
  */
 import { AxiosInstance } from 'axios';
 import { BaseArgs, JiraConfig, JiraInstanceConfig } from '../types.js';
-import { getInstanceForProject } from '../config.js';
 import {
   getInstanceForProjectWithSession,
   loadMultiInstanceConfigForSession,
@@ -98,22 +97,19 @@ export async function withJiraContext<TArgs extends BaseArgs, TResult>(
     let instanceConfig: JiraInstanceConfig;
     let projectConfig: JiraConfig;
 
-    if (session && projectKey) {
-      // Use session-aware configuration loading
-      const configResult = await getInstanceForProjectWithSession(
-        working_dir,
-        projectKey,
-        session,
-        instance
-      );
-      instanceConfig = configResult.instance;
-      projectConfig = configResult.projectConfig;
-    } else {
-      // Fall back to legacy global configuration
-      const configResult = await getInstanceForProject(working_dir, projectKey, instance);
-      instanceConfig = configResult.instance;
-      projectConfig = configResult.projectConfig;
+    // Always use session-aware configuration loading
+    if (!session) {
+      throw new Error('Session is required for configuration loading');
     }
+
+    const configResult = await getInstanceForProjectWithSession(
+      working_dir,
+      projectKey || '',
+      session,
+      instance
+    );
+    instanceConfig = configResult.instance;
+    projectConfig = configResult.projectConfig;
 
     logger.info('Instance configuration resolved', {
       ...logContext,

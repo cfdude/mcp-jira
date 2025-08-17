@@ -1,7 +1,7 @@
 /**
  * Tool to list available Jira instances and their configurations
  */
-import { listAvailableInstances } from '../config.js';
+import { loadMultiInstanceConfigForSession } from '../session-config.js';
 import type { SessionState } from '../session-manager.js';
 
 interface ListInstancesArgs {
@@ -9,9 +9,18 @@ interface ListInstancesArgs {
   instance?: string;
 }
 
-export async function handleListInstances(args: ListInstancesArgs, _session?: SessionState) {
+export async function handleListInstances(args: ListInstancesArgs, session?: SessionState) {
   try {
-    const { instances, projects } = await listAvailableInstances(args.working_dir);
+    if (!session) {
+      throw new Error('Session is required for configuration loading');
+    }
+
+    const config = await loadMultiInstanceConfigForSession(args.working_dir, session);
+    const instances = Object.entries(config.instances || {}).map(([name, instance]) => ({
+      name,
+      ...instance,
+    }));
+    const projects = config.projects || {};
 
     let result = '# Available Jira Instances\n\n';
 
@@ -68,14 +77,15 @@ export async function handleListInstances(args: ListInstancesArgs, _session?: Se
       result += `### ${index + 1}. ${instance.name}\n`;
       result += `- **Domain**: ${instance.domain}.atlassian.net\n`;
       result += `- **Email**: ${instance.email}\n`;
-      result += `- **Pre-configured Projects**: ${instance.configuredProjects.length > 0 ? instance.configuredProjects.join(', ') : 'None'}\n\n`;
+      result += `- **Pre-configured Projects**: ${instance.projects && instance.projects.length > 0 ? instance.projects.join(', ') : 'None'}\n\n`;
     });
 
     // List project mappings
-    if (projects.length > 0) {
+    const projectEntries = Object.entries(projects);
+    if (projectEntries.length > 0) {
       result += '## Project-to-Instance Mappings\n\n';
-      projects.forEach(project => {
-        result += `- **${project.projectKey}** → ${project.instance}\n`;
+      projectEntries.forEach(([projectKey, projectConfig]) => {
+        result += `- **${projectKey}** → ${projectConfig.instance}\n`;
       });
       result += '\n';
     }

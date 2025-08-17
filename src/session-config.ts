@@ -3,6 +3,7 @@
  */
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { JiraConfig, MultiInstanceJiraConfig, JiraInstanceConfig } from './types.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import type { SessionState } from './session-manager.js';
@@ -36,12 +37,13 @@ export async function loadMultiInstanceConfigForSession(
     workingDir,
   });
 
-  // List of potential config locations
+  // List of potential config locations (see CONFIG_SEARCH_PATHS.md for details)
   const configLocations = [
-    workingDir,
-    process.cwd(),
-    path.resolve(path.dirname(new URL(import.meta.url).pathname), '..'),
-    path.join(process.cwd(), '..'),
+    workingDir, // Project-specific config
+    path.join(os.homedir(), '.claude'), // Claude Code global config
+    process.cwd(), // Current working directory (legacy)
+    path.resolve(path.dirname(new URL(import.meta.url).pathname), '..'), // Server directory (legacy)
+    path.join(process.cwd(), '..'), // Parent directory (legacy)
   ];
 
   let lastError: Error | null = null;

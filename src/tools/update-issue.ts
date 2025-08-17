@@ -42,6 +42,33 @@ export async function handleUpdateIssue(args: UpdateIssueArgs, session?: Session
       // Import text field handler for complex text handling
       const { updateIssueWithTextFallback } = await import('../utils/text-field-handler.js');
 
+      // IMPORTANT: Check for workflow transition attempts
+      if (status) {
+        throw new McpError(
+          ErrorCode.InvalidRequest,
+          `❌ Cannot update issue status directly. Status transitions must be performed using workflow transitions.
+
+🔄 **Correct approach:**
+1. First, get available transitions:
+   mcp__jira__get_transitions({
+     working_dir: "${args.working_dir}",
+     instance: "${instanceName}",
+     issueKey: "${issue_key}"
+   })
+
+2. Then, perform the transition:
+   mcp__jira__transition_issue({
+     working_dir: "${args.working_dir}",
+     instance: "${instanceName}",
+     issueKey: "${issue_key}",
+     transitionId: "TRANSITION_ID_FROM_STEP_1",
+     comment: "Optional comment explaining the transition"
+   })
+
+The 'status' field cannot be set directly via update_issue. Use the workflow transition tools instead.`
+        );
+      }
+
       // We'll handle story points through dynamic resolution if no field ID is configured
 
       const updateData: any = {
@@ -61,10 +88,6 @@ export async function handleUpdateIssue(args: UpdateIssueArgs, session?: Session
       if (issuetype) {
         updateData.fields.issuetype = { name: issuetype };
         console.error('Setting issue type:', issuetype);
-      }
-      if (status) {
-        updateData.fields.status = { name: status };
-        console.error('Setting status:', status);
       }
       if (priority) {
         updateData.fields.priority = { name: priority };

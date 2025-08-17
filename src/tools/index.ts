@@ -16,6 +16,10 @@ import { handleGetIssue } from './get-issue.js';
 import { handleDeleteIssue } from './delete-issue.js';
 import { handleAddComment } from './add-comment.js';
 
+// Workflow Transitions
+import { handleGetTransitions } from './get-transitions.js';
+import { handleTransitionIssue } from './transition-issue.js';
+
 // Sprint Management
 import { handleCreateSprint } from './create-sprint.js';
 import { handleUpdateSprint } from './update-sprint.js';
@@ -383,6 +387,66 @@ export function setupToolHandlers(
             },
           },
           required: ['working_dir', 'issue_key', 'comment'],
+        },
+      },
+      {
+        name: 'get_transitions',
+        description:
+          "Get available workflow transitions for a Jira issue. CRITICAL FOR AI: Use this BEFORE attempting to change issue status. ALWAYS specify 'instance' parameter. Example: {working_dir: '/path', instance: 'onvex', issueKey: 'JOB-123'}",
+        inputSchema: {
+          type: 'object',
+          properties: {
+            working_dir: {
+              type: 'string',
+              description: 'Working directory containing .jira-config.json',
+            },
+            instance: {
+              type: 'string',
+              description:
+                "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
+            issue_key: {
+              type: 'string',
+              description: 'Issue key (e.g., PRJ-123)',
+            },
+          },
+          required: ['working_dir', 'issue_key'],
+        },
+      },
+      {
+        name: 'transition_issue',
+        description:
+          "Perform a workflow transition on a Jira issue. CRITICAL FOR AI: ALWAYS use get_transitions first to get valid transition IDs. ALWAYS specify 'instance' parameter. Example: {working_dir: '/path', instance: 'onvex', issueKey: 'JOB-123', transitionId: '5'}",
+        inputSchema: {
+          type: 'object',
+          properties: {
+            working_dir: {
+              type: 'string',
+              description: 'Working directory containing .jira-config.json',
+            },
+            instance: {
+              type: 'string',
+              description:
+                "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
+            },
+            issue_key: {
+              type: 'string',
+              description: 'Issue key (e.g., PRJ-123)',
+            },
+            transition_id: {
+              type: 'string',
+              description: 'Transition ID from get_transitions response',
+            },
+            comment: {
+              type: 'string',
+              description: 'Optional comment explaining the transition',
+            },
+            fields: {
+              type: 'object',
+              description: 'Optional fields required for the transition (e.g., resolution)',
+            },
+          },
+          required: ['working_dir', 'issue_key', 'transition_id'],
         },
       },
       {
@@ -2342,6 +2406,12 @@ export function setupToolHandlers(
 
         case 'add_comment':
           return handleAddComment({ ...args, working_dir }, session);
+
+        case 'get_transitions':
+          return handleGetTransitions({ ...args, working_dir }, session);
+
+        case 'transition_issue':
+          return handleTransitionIssue({ ...args, working_dir }, session);
 
         case 'list_issues':
           return handleListIssues({ ...args, working_dir }, session);
