@@ -3,7 +3,7 @@
  */
 import axios, { AxiosInstance } from 'axios';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
-import { JIRA_DOMAIN, JIRA_EMAIL, JIRA_API_TOKEN } from '../config.js';
+import { JIRA_DOMAIN, JIRA_EMAIL, JIRA_API_TOKEN } from '../session-config.js';
 import { JiraInstanceConfig } from '../types.js';
 
 /**

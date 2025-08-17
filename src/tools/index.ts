@@ -405,12 +405,12 @@ export function setupToolHandlers(
               description:
                 "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
             },
-            issueKey: {
+            issue_key: {
               type: 'string',
               description: 'Issue key (e.g., PRJ-123)',
             },
           },
-          required: ['working_dir', 'issueKey'],
+          required: ['working_dir', 'issue_key'],
         },
       },
       {
@@ -429,11 +429,11 @@ export function setupToolHandlers(
               description:
                 "Optional instance name to override automatic instance selection (e.g., 'highway', 'onvex')",
             },
-            issueKey: {
+            issue_key: {
               type: 'string',
               description: 'Issue key (e.g., PRJ-123)',
             },
-            transitionId: {
+            transition_id: {
               type: 'string',
               description: 'Transition ID from get_transitions response',
             },
@@ -446,7 +446,7 @@ export function setupToolHandlers(
               description: 'Optional fields required for the transition (e.g., resolution)',
             },
           },
-          required: ['working_dir', 'issueKey', 'transitionId'],
+          required: ['working_dir', 'issue_key', 'transition_id'],
         },
       },
       {
