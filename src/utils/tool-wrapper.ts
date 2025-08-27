@@ -246,9 +246,9 @@ export function getStandardFields(projectConfig: JiraConfig): string[] {
     fields.push(projectConfig.epicLinkField);
   }
 
-  // Instead of hardcoding field IDs, use *all to fetch all fields
-  // This is more reliable across different Jira instances and configurations
-  return ['*all'];
+  // Return the actual field names for the new /search/jql API
+  // The new API requires specific field names, not '*all'
+  return fields;
 }
 
 /**

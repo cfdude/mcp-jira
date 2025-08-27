@@ -117,6 +117,8 @@ export interface ListIssuesArgs extends BaseArgs {
   sortField?: string;
   sortOrder?: 'ASC' | 'DESC';
   epic_key?: string;
+  maxResults?: number;
+  nextPageToken?: string;
 }
 
 export interface UpdateIssueArgs extends BaseArgs {

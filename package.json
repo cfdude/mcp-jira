@@ -1,6 +1,6 @@
 {
   "name": "jira-server",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Enterprise-grade Model Context Protocol server for comprehensive Jira integration with automated field detection, multi-instance support, and cross-server capabilities",
   "keywords": [
     "mcp",
