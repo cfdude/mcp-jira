@@ -35,12 +35,10 @@ export async function handleGetComponentProgress(
         //   `/component/${toolArgs.componentId}/relatedIssueCounts`
         // );
         // Get detailed issue breakdown by searching for issues in this component
-        const searchResponse = await axiosInstance.get(`/search`, {
-          params: {
-            jql: `project = "${projectKey}" AND component = "${component.name}"`,
-            fields: 'status,priority,assignee,summary,issuetype,created,updated',
-            maxResults: 1000,
-          },
+        const searchResponse = await axiosInstance.post(`/search/jql`, {
+          jql: `project = "${projectKey}" AND component = "${component.name}"`,
+          fields: ['status', 'priority', 'assignee', 'summary', 'issuetype', 'created', 'updated'],
+          maxResults: 1000,
         });
 
         const issues = searchResponse.data.issues;

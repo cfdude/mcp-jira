@@ -213,6 +213,16 @@ export function setupToolHandlers(
               description:
                 "Filter issues by epic (e.g., 'MIG-5615'). Only shows issues linked to this epic.",
             },
+            maxResults: {
+              type: 'number',
+              description:
+                'Maximum number of issues to return (default: 20). Can be increased for larger queries but impacts performance.',
+            },
+            nextPageToken: {
+              type: 'string',
+              description:
+                'Token for pagination to get the next page of results. Use the token returned from a previous request.',
+            },
           },
           required: ['working_dir'],
         },

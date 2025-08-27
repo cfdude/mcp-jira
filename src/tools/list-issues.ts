@@ -64,7 +64,7 @@ export async function handleListIssues(args: ListIssuesArgs, session?: SessionSt
     args,
     { requiresProject: true },
     async (
-      { status, projectKey, sortField, sortOrder, epic_key },
+      { status, projectKey, sortField, sortOrder, epic_key, maxResults, nextPageToken },
       { axiosInstance, projectConfig, projectKey: resolvedProjectKey }
     ) => {
       // Use the provided projectKey or fall back to resolved project key
@@ -98,13 +98,39 @@ export async function handleListIssues(args: ListIssuesArgs, session?: SessionSt
       // Get fields to retrieve using helper function
       const fields = getStandardFields(projectConfig);
 
-      // Search for issues
-      const searchResponse = await axiosInstance.get('/search', {
-        params: {
-          jql,
-          fields,
-        },
-      });
+      // Search for issues using POST method with fields in request body
+      console.error('DEBUG: Request fields:', fields);
+      console.error('DEBUG: Request JQL:', jql);
+      // Use provided maxResults or default to 20 for performance
+      const effectiveMaxResults = maxResults || 20;
+
+      // Build request body with optional nextPageToken
+      const requestBody: any = {
+        jql,
+        fields: fields,
+        maxResults: effectiveMaxResults,
+      };
+
+      // Add nextPageToken if provided for pagination
+      if (nextPageToken) {
+        requestBody.nextPageToken = nextPageToken;
+      }
+
+      const searchResponse = await axiosInstance.post('/search/jql', requestBody);
+      console.error('DEBUG: Response status:', searchResponse.status);
+      console.error('DEBUG: Response data keys:', Object.keys(searchResponse.data));
+      if (searchResponse.data.issues) {
+        console.error('DEBUG: Issues length:', searchResponse.data.issues.length);
+        if (searchResponse.data.issues.length > 0) {
+          console.error('DEBUG: First issue keys:', Object.keys(searchResponse.data.issues[0]));
+          if (searchResponse.data.issues[0].fields) {
+            console.error(
+              'DEBUG: First issue fields keys:',
+              Object.keys(searchResponse.data.issues[0].fields)
+            );
+          }
+        }
+      }
 
       // Process each issue to create custom formatted output with sprint information
       const issues = searchResponse.data.issues;
@@ -154,7 +180,15 @@ export async function handleListIssues(args: ListIssuesArgs, session?: SessionSt
         })
         .join('\n\n' + '='.repeat(80) + '\n\n');
 
-      const output = `Latest Jira Issues in ${effectiveProjectKey} Project:\n\n${formattedIssues}\n\nTotal Issues: ${issues.length}`;
+      let output = `Latest Jira Issues in ${effectiveProjectKey} Project:\n\n${formattedIssues}\n\nTotal Issues: ${issues.length}`;
+
+      // Add pagination info if nextPageToken is available for more results
+      if (searchResponse.data.nextPageToken) {
+        output += `\n\n📄 **Pagination**: More results available. To get the next ${effectiveMaxResults} issues, use:\n`;
+        output += `nextPageToken: "${searchResponse.data.nextPageToken}"`;
+      } else {
+        output += `\n\n📄 **Pagination**: End of results (no more pages available)`;
+      }
 
       return {
         content: [

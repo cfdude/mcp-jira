@@ -5,91 +5,114 @@ import { withJiraContext } from '../utils/tool-wrapper.js';
 import { SearchIssuesJqlArgs } from '../types.js';
 import type { SessionState } from '../session-manager.js';
 
-export async function handleSearchIssuesJql(args: SearchIssuesJqlArgs, _session?: SessionState) {
-  return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
-    try {
-      const params: any = {
-        jql: toolArgs.jql,
-        startAt: toolArgs.startAt || 0,
-        maxResults: toolArgs.maxResults || 50,
-        fields:
-          toolArgs.fields ||
-          'summary,status,priority,assignee,created,updated,components,fixVersions,labels,issueType,epic,sprint',
-        expand: toolArgs.expand || 'names,schema',
-      };
-
-      if (toolArgs.validateQuery !== undefined) {
-        params.validateQuery = toolArgs.validateQuery;
-      }
-
-      const response = await axiosInstance.get(`/search`, { params });
-
-      const data = response.data;
-      const issues = data.issues || [];
-
-      // Process and format issues
-      const formattedIssues = issues.map((issue: any) => {
-        const fields = issue.fields;
-        return {
-          key: issue.key,
-          id: issue.id,
-          summary: fields.summary,
-          status: fields.status?.name || 'No Status',
-          priority: fields.priority?.name || 'No Priority',
-          assignee: fields.assignee?.displayName || 'Unassigned',
-          assigneeAccountId: fields.assignee?.accountId || null,
-          issueType: fields.issuetype?.name || 'Unknown',
-          created: fields.created,
-          updated: fields.updated,
-          components: fields.components?.map((c: any) => c.name) || [],
-          fixVersions: fields.fixVersions?.map((v: any) => v.name) || [],
-          labels: fields.labels || [],
-          epic: fields.epic?.name || fields.parent?.fields?.summary || null,
-          sprint: fields.sprint?.name || fields.customfield_10020?.name || null,
-          description: fields.description || 'No description',
-          reporter: fields.reporter?.displayName || 'Unknown',
-          project: fields.project?.key || 'Unknown',
+export async function handleSearchIssuesJql(args: SearchIssuesJqlArgs, session?: SessionState) {
+  return withJiraContext(
+    args,
+    { requiresProject: false },
+    async (toolArgs, { axiosInstance }) => {
+      try {
+        const params: any = {
+          jql: toolArgs.jql,
+          startAt: toolArgs.startAt || 0,
+          maxResults: toolArgs.maxResults || 50,
+          fields:
+            toolArgs.fields ||
+            'summary,status,priority,assignee,created,updated,components,fixVersions,labels,issueType,epic,sprint',
+          expand: toolArgs.expand || 'names,schema',
         };
-      });
 
-      // Generate analytics
-      const analytics = {
-        totalIssues: data.total || formattedIssues.length,
-        statusBreakdown: {} as { [key: string]: number },
-        priorityBreakdown: {} as { [key: string]: number },
-        assigneeBreakdown: {} as { [key: string]: number },
-        componentBreakdown: {} as { [key: string]: number },
-        issueTypeBreakdown: {} as { [key: string]: number },
-      };
+        // Note: validateQuery parameter was removed in the new /search/jql endpoint
+        // The new endpoint requires POST method with fields in request body
 
-      formattedIssues.forEach((issue: any) => {
-        // Status breakdown
-        analytics.statusBreakdown[issue.status] =
-          (analytics.statusBreakdown[issue.status] || 0) + 1;
+        const requestBody: any = {
+          jql: toolArgs.jql,
+          maxResults: toolArgs.maxResults || 50,
+          fields: (
+            toolArgs.fields ||
+            'summary,status,priority,assignee,created,updated,components,fixVersions,labels,issueType,epic,sprint'
+          )
+            .split(',')
+            .map(f => f.trim()),
+        };
 
-        // Priority breakdown
-        analytics.priorityBreakdown[issue.priority] =
-          (analytics.priorityBreakdown[issue.priority] || 0) + 1;
+        // Add startAt only if provided (use nextPageToken for pagination instead)
+        if (toolArgs.startAt) {
+          requestBody.startAt = toolArgs.startAt;
+        }
 
-        // Assignee breakdown
-        analytics.assigneeBreakdown[issue.assignee] =
-          (analytics.assigneeBreakdown[issue.assignee] || 0) + 1;
+        // Add expand if provided
+        if (toolArgs.expand) {
+          requestBody.expand = toolArgs.expand.split(',').map(e => e.trim());
+        }
 
-        // Component breakdown
-        issue.components.forEach((comp: string) => {
-          analytics.componentBreakdown[comp] = (analytics.componentBreakdown[comp] || 0) + 1;
+        const response = await axiosInstance.post(`/search/jql`, requestBody);
+
+        const data = response.data;
+        const issues = data.issues || [];
+
+        // Process and format issues
+        const formattedIssues = issues.map((issue: any) => {
+          const fields = issue.fields;
+          return {
+            key: issue.key,
+            id: issue.id,
+            summary: fields.summary,
+            status: fields.status?.name || 'No Status',
+            priority: fields.priority?.name || 'No Priority',
+            assignee: fields.assignee?.displayName || 'Unassigned',
+            assigneeAccountId: fields.assignee?.accountId || null,
+            issueType: fields.issuetype?.name || 'Unknown',
+            created: fields.created,
+            updated: fields.updated,
+            components: fields.components?.map((c: any) => c.name) || [],
+            fixVersions: fields.fixVersions?.map((v: any) => v.name) || [],
+            labels: fields.labels || [],
+            epic: fields.epic?.name || fields.parent?.fields?.summary || null,
+            sprint: fields.sprint?.name || fields.customfield_10020?.name || null,
+            description: fields.description || 'No description',
+            reporter: fields.reporter?.displayName || 'Unknown',
+            project: fields.project?.key || 'Unknown',
+          };
         });
 
-        // Issue type breakdown
-        analytics.issueTypeBreakdown[issue.issueType] =
-          (analytics.issueTypeBreakdown[issue.issueType] || 0) + 1;
-      });
+        // Generate analytics
+        const analytics = {
+          totalIssues: data.total || formattedIssues.length,
+          statusBreakdown: {} as { [key: string]: number },
+          priorityBreakdown: {} as { [key: string]: number },
+          assigneeBreakdown: {} as { [key: string]: number },
+          componentBreakdown: {} as { [key: string]: number },
+          issueTypeBreakdown: {} as { [key: string]: number },
+        };
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `# JQL Search Results
+        formattedIssues.forEach((issue: any) => {
+          // Status breakdown
+          analytics.statusBreakdown[issue.status] =
+            (analytics.statusBreakdown[issue.status] || 0) + 1;
+
+          // Priority breakdown
+          analytics.priorityBreakdown[issue.priority] =
+            (analytics.priorityBreakdown[issue.priority] || 0) + 1;
+
+          // Assignee breakdown
+          analytics.assigneeBreakdown[issue.assignee] =
+            (analytics.assigneeBreakdown[issue.assignee] || 0) + 1;
+
+          // Component breakdown
+          issue.components.forEach((comp: string) => {
+            analytics.componentBreakdown[comp] = (analytics.componentBreakdown[comp] || 0) + 1;
+          });
+
+          // Issue type breakdown
+          analytics.issueTypeBreakdown[issue.issueType] =
+            (analytics.issueTypeBreakdown[issue.issueType] || 0) + 1;
+        });
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `# JQL Search Results
 
 ## 🔍 Query Information
 - **JQL**: \`${toolArgs.jql}\`
@@ -155,19 +178,21 @@ ${
     ? `\n**Note**: Showing ${formattedIssues.length} of ${data.total} total results. Use pagination parameters to see more.`
     : ''
 }`,
-          },
-        ],
-      };
-    } catch (error: any) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Error executing JQL search: ${error.response?.data?.errorMessages?.join(', ') || error.message}`,
-          },
-        ],
-        isError: true,
-      };
-    }
-  });
+            },
+          ],
+        };
+      } catch (error: any) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error executing JQL search: ${error.response?.data?.errorMessages?.join(', ') || error.message}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    },
+    session
+  );
 }

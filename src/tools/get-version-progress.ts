@@ -37,12 +37,10 @@ export async function handleGetVersionProgress(
         const issueCounts = issueCountsResponse.data;
 
         // Get detailed issue breakdown by searching for issues in this version
-        const searchResponse = await axiosInstance.get(`/search`, {
-          params: {
-            jql: `project = "${projectKey}" AND fixVersion = "${version.name}"`,
-            fields: 'status,priority,assignee,summary',
-            maxResults: 1000,
-          },
+        const searchResponse = await axiosInstance.post(`/search/jql`, {
+          jql: `project = "${projectKey}" AND fixVersion = "${version.name}"`,
+          fields: ['status', 'priority', 'assignee', 'summary'],
+          maxResults: 1000,
         });
 
         const issues = searchResponse.data.issues;
