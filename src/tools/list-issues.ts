@@ -1,12 +1,14 @@
 /**
  * Handler for the list_issues tool with multi-instance support
  */
-import { ListIssuesArgs } from '../types.js';
+import { ListIssuesArgs, JiraSearchRequestBody } from '../types.js';
 import {
   withJiraContext,
   getStandardFields,
   formatSprintInfo,
   formatStoryPoints,
+  validateNextPageToken,
+  handlePaginationError,
 } from '../utils/tool-wrapper.js';
 import type { SessionState } from '../session-manager.js';
 import Converter from 'adf-to-md';
@@ -93,43 +95,31 @@ export async function handleListIssues(args: ListIssuesArgs, session?: SessionSt
 
       const jql = `${jqlConditions.join(' AND ')} ORDER BY ${effectiveSortField} ${effectiveSortOrder}`;
 
-      console.error(`JQL Query: ${jql}`); // Log the JQL query for debugging
-
       // Get fields to retrieve using helper function
       const fields = getStandardFields(projectConfig);
 
       // Search for issues using POST method with fields in request body
-      console.error('DEBUG: Request fields:', fields);
-      console.error('DEBUG: Request JQL:', jql);
       // Use provided maxResults or default to 20 for performance
       const effectiveMaxResults = maxResults || 20;
 
       // Build request body with optional nextPageToken
-      const requestBody: any = {
+      const requestBody: JiraSearchRequestBody = {
         jql,
         fields: fields,
         maxResults: effectiveMaxResults,
       };
 
-      // Add nextPageToken if provided for pagination
+      // Validate and add nextPageToken if provided for pagination
+      validateNextPageToken(nextPageToken);
       if (nextPageToken) {
         requestBody.nextPageToken = nextPageToken;
       }
 
-      const searchResponse = await axiosInstance.post('/search/jql', requestBody);
-      console.error('DEBUG: Response status:', searchResponse.status);
-      console.error('DEBUG: Response data keys:', Object.keys(searchResponse.data));
-      if (searchResponse.data.issues) {
-        console.error('DEBUG: Issues length:', searchResponse.data.issues.length);
-        if (searchResponse.data.issues.length > 0) {
-          console.error('DEBUG: First issue keys:', Object.keys(searchResponse.data.issues[0]));
-          if (searchResponse.data.issues[0].fields) {
-            console.error(
-              'DEBUG: First issue fields keys:',
-              Object.keys(searchResponse.data.issues[0].fields)
-            );
-          }
-        }
+      let searchResponse;
+      try {
+        searchResponse = await axiosInstance.post('/search/jql', requestBody);
+      } catch (error: any) {
+        handlePaginationError(error);
       }
 
       // Process each issue to create custom formatted output with sprint information

@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2025-08-27
+
+### Fixed
+- **Pagination Consistency**: Standardized pagination implementation across all search tools to use `nextPageToken` instead of mixed `startAt`/`nextPageToken` approaches
+- **Production Debug Code**: Removed all console.error debug statements from production code paths in list-issues and search tools
+- **Type Safety**: Replaced generic `any` types with proper TypeScript interfaces for JQL search requests and pagination
+- **Input Validation**: Added comprehensive validation for `nextPageToken` parameter to prevent invalid pagination requests
+- **Error Handling**: Enhanced pagination error handling to properly differentiate between token errors and other API failures
+
+### Enhanced
+- **Test Coverage**: Added comprehensive pagination test suite covering validation, error handling, and multi-page scenarios
+- **Code Quality**: Resolved all ESLint errors and achieved consistent code formatting across pagination-related files
+- **API Consistency**: Aligned `search-issues-jql` tool with Jira REST API v3 pagination standards for better reliability
+
+### Technical Improvements
+- **Pagination Validation**: New `validateNextPageToken` utility function ensures token integrity
+- **Error Differentiation**: New `handlePaginationError` utility properly handles and re-throws different error types
+- **Interface Definitions**: Added `JiraSearchRequestBody` interface for type-safe API requests
+- **Template Literal Fixes**: Resolved TypeScript compilation errors in response formatting
+
 ## [1.1.0] - 2025-08-11
 
 ### Added
