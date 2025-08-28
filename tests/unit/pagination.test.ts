@@ -74,7 +74,7 @@ describe('Pagination Utilities', () => {
       };
 
       expect(() => handlePaginationError(error)).toThrow();
-      
+
       // Verify the exact error object is thrown
       try {
         handlePaginationError(error);
@@ -94,7 +94,7 @@ describe('Pagination Utilities', () => {
       };
 
       expect(() => handlePaginationError(error)).toThrow();
-      
+
       // Verify the exact error object is thrown
       try {
         handlePaginationError(error);
