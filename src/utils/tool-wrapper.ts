@@ -329,3 +329,38 @@ export function formatStoryPoints(issue: any, projectConfig: JiraConfig): string
   // Story Points field not configured - will be shown in dynamic custom fields section
   return '';
 }
+
+/**
+ * Validate nextPageToken format and handle pagination errors
+ */
+export function validateNextPageToken(token?: string): void {
+  if (!token) return;
+
+  // Basic validation - tokens should be non-empty strings
+  if (typeof token !== 'string' || token.trim().length === 0) {
+    throw new Error('nextPageToken must be a non-empty string');
+  }
+
+  // Additional validation could be added here if token format is known
+  // For now, we'll rely on the Jira API to validate the token
+}
+
+/**
+ * Handle pagination errors and provide helpful error messages
+ */
+export function handlePaginationError(error: any): never {
+  if (
+    error.response?.status === 400 &&
+    error.response?.data?.errorMessages?.some(
+      (msg: string) =>
+        msg.toLowerCase().includes('token') || msg.toLowerCase().includes('pagination')
+    )
+  ) {
+    throw new Error(
+      `Invalid pagination token. Please use a valid nextPageToken from a previous search response.`
+    );
+  }
+
+  // Re-throw the original error if it's not pagination-related
+  throw error;
+}

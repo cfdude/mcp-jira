@@ -92,6 +92,28 @@ export interface JiraIssue {
   };
 }
 
+// Request/Response interfaces for type safety
+export interface JiraSearchRequestBody {
+  jql: string;
+  maxResults: number;
+  fields: string[];
+  nextPageToken?: string;
+  expand?: string[];
+}
+
+export interface JiraSearchResponse {
+  issues: JiraIssue[];
+  total: number;
+  nextPageToken?: string;
+}
+
+export interface PaginationInfo {
+  hasMore: boolean;
+  nextPageToken?: string;
+  totalResults?: number;
+  currentPageSize: number;
+}
+
 // Tool argument types
 export interface BaseArgs {
   working_dir: string;
@@ -336,7 +358,7 @@ export interface GetBoardCumulativeFlowArgs extends BaseArgs {
 
 export interface SearchIssuesJqlArgs extends BaseArgs {
   jql: string;
-  startAt?: number;
+  nextPageToken?: string;
   maxResults?: number;
   fields?: string;
   expand?: string;

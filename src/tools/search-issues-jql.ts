@@ -1,8 +1,12 @@
 /**
  * Advanced issue search using JQL for custom project queries
  */
-import { withJiraContext } from '../utils/tool-wrapper.js';
-import { SearchIssuesJqlArgs } from '../types.js';
+import {
+  withJiraContext,
+  validateNextPageToken,
+  handlePaginationError,
+} from '../utils/tool-wrapper.js';
+import { SearchIssuesJqlArgs, JiraSearchRequestBody } from '../types.js';
 import type { SessionState } from '../session-manager.js';
 
 export async function handleSearchIssuesJql(args: SearchIssuesJqlArgs, session?: SessionState) {
@@ -11,20 +15,10 @@ export async function handleSearchIssuesJql(args: SearchIssuesJqlArgs, session?:
     { requiresProject: false },
     async (toolArgs, { axiosInstance }) => {
       try {
-        const params: any = {
-          jql: toolArgs.jql,
-          startAt: toolArgs.startAt || 0,
-          maxResults: toolArgs.maxResults || 50,
-          fields:
-            toolArgs.fields ||
-            'summary,status,priority,assignee,created,updated,components,fixVersions,labels,issueType,epic,sprint',
-          expand: toolArgs.expand || 'names,schema',
-        };
-
         // Note: validateQuery parameter was removed in the new /search/jql endpoint
         // The new endpoint requires POST method with fields in request body
 
-        const requestBody: any = {
+        const requestBody: JiraSearchRequestBody = {
           jql: toolArgs.jql,
           maxResults: toolArgs.maxResults || 50,
           fields: (
@@ -35,9 +29,10 @@ export async function handleSearchIssuesJql(args: SearchIssuesJqlArgs, session?:
             .map(f => f.trim()),
         };
 
-        // Add startAt only if provided (use nextPageToken for pagination instead)
-        if (toolArgs.startAt) {
-          requestBody.startAt = toolArgs.startAt;
+        // Validate and add nextPageToken for pagination if provided
+        validateNextPageToken(toolArgs.nextPageToken);
+        if (toolArgs.nextPageToken) {
+          requestBody.nextPageToken = toolArgs.nextPageToken;
         }
 
         // Add expand if provided
@@ -45,7 +40,12 @@ export async function handleSearchIssuesJql(args: SearchIssuesJqlArgs, session?:
           requestBody.expand = toolArgs.expand.split(',').map(e => e.trim());
         }
 
-        const response = await axiosInstance.post(`/search/jql`, requestBody);
+        let response;
+        try {
+          response = await axiosInstance.post(`/search/jql`, requestBody);
+        } catch (error: any) {
+          handlePaginationError(error);
+        }
 
         const data = response.data;
         const issues = data.issues || [];
@@ -117,8 +117,7 @@ export async function handleSearchIssuesJql(args: SearchIssuesJqlArgs, session?:
 ## 🔍 Query Information
 - **JQL**: \`${toolArgs.jql}\`
 - **Total Found**: ${analytics.totalIssues}
-- **Showing**: ${formattedIssues.length} issues
-- **Page**: ${Math.floor((toolArgs.startAt || 0) / (toolArgs.maxResults || 50)) + 1}
+- **Showing**: ${formattedIssues.length} issues${toolArgs.nextPageToken ? '\n- **Page**: Paginated results (using nextPageToken)' : '\n- **Page**: First page'}
 
 ## 📊 Quick Analytics
 
@@ -174,9 +173,11 @@ ${issue.sprint ? `- **Sprint**: ${issue.sprint}` : ''}`
 - Date ranges: \`created >= -30d\` (last 30 days)
 
 ${
-  data.total > formattedIssues.length
-    ? `\n**Note**: Showing ${formattedIssues.length} of ${data.total} total results. Use pagination parameters to see more.`
-    : ''
+  data.nextPageToken
+    ? `\n\n📄 **Pagination**: More results available. To get the next ${toolArgs.maxResults || 50} issues, use:\nnextPageToken: "${data.nextPageToken}"`
+    : data.total > formattedIssues.length
+      ? `\n\n📄 **Note**: Showing ${formattedIssues.length} of ${data.total} total results, but no nextPageToken available.`
+      : `\n\n📄 **Pagination**: End of results (no more pages available)`
 }`,
             },
           ],
