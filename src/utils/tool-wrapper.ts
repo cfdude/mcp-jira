@@ -236,14 +236,20 @@ export function getStandardFields(projectConfig: JiraConfig): string[] {
   ];
 
   // Add configured custom fields (backwards compatibility)
-  if (projectConfig.sprintField) {
-    fields.push(projectConfig.sprintField);
+  const sprintFieldId = projectConfig.sprintField || projectConfig.defaultFields?.sprintField;
+  if (sprintFieldId && !fields.includes(sprintFieldId)) {
+    fields.push(sprintFieldId);
   }
-  if (projectConfig.storyPointsField) {
-    fields.push(projectConfig.storyPointsField);
+
+  const storyPointsFieldId =
+    projectConfig.storyPointsField || projectConfig.defaultFields?.storyPointsField;
+  if (storyPointsFieldId && !fields.includes(storyPointsFieldId)) {
+    fields.push(storyPointsFieldId);
   }
-  if (projectConfig.epicLinkField) {
-    fields.push(projectConfig.epicLinkField);
+
+  const epicLinkFieldId = projectConfig.epicLinkField || projectConfig.defaultFields?.epicLinkField;
+  if (epicLinkFieldId && !fields.includes(epicLinkFieldId)) {
+    fields.push(epicLinkFieldId);
   }
 
   // Return the actual field names for the new /search/jql API
@@ -318,15 +324,36 @@ export function formatSprintInfo(issue: any, projectConfig: JiraConfig): string 
  * Helper function to format story points consistently
  */
 export function formatStoryPoints(issue: any, projectConfig: JiraConfig): string {
-  // Try configured field first
-  if (
-    projectConfig.storyPointsField &&
-    issue.fields[projectConfig.storyPointsField] !== undefined
-  ) {
-    return `\n- Story Points: ${issue.fields[projectConfig.storyPointsField] || 'Not set'}`;
+  if (!issue?.fields) {
+    return '';
   }
 
-  // Story Points field not configured - will be shown in dynamic custom fields section
+  const candidateFieldIds: string[] = [];
+
+  const configuredField = projectConfig.storyPointsField;
+  if (configuredField) candidateFieldIds.push(configuredField);
+
+  const defaultField = projectConfig.defaultFields?.storyPointsField;
+  if (defaultField && !candidateFieldIds.includes(defaultField)) {
+    candidateFieldIds.push(defaultField);
+  }
+
+  // Common Jira story point custom field IDs for fallback coverage
+  ['customfield_10016', 'customfield_10026', 'customfield_10036'].forEach(candidate => {
+    if (candidate && !candidateFieldIds.includes(candidate)) {
+      candidateFieldIds.push(candidate);
+    }
+  });
+
+  for (const fieldId of candidateFieldIds) {
+    if (fieldId && Object.prototype.hasOwnProperty.call(issue.fields, fieldId)) {
+      const value = issue.fields[fieldId];
+      const hasValue = value !== undefined && value !== null && value !== '';
+      return `\n- Story Points: ${hasValue ? value : 'Not set'}`;
+    }
+  }
+
+  // Story Points field not detected
   return '';
 }
 

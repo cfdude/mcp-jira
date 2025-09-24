@@ -2,12 +2,21 @@
  * Type definitions for the Jira MCP server
  */
 
+export interface FieldIdDefaults {
+  storyPointsField?: string;
+  sprintField?: string;
+  epicLinkField?: string;
+  rankField?: string;
+}
+
 export interface JiraConfig {
   projectKey: string;
   storyPointsField?: string; // Custom field ID for story points (backwards compatibility)
   sprintField?: string; // Custom field ID for sprint (backwards compatibility)
   epicLinkField?: string; // Custom field ID for epic link (backwards compatibility)
+  rankField?: string; // Custom field ID for rank (backwards compatibility)
   fieldDefaults?: Record<string, any>; // Default field values for this project
+  defaultFields?: FieldIdDefaults; // Optional: declarative default field IDs for this project
 }
 
 export interface JiraInstanceConfig {
@@ -16,6 +25,7 @@ export interface JiraInstanceConfig {
   domain: string;
   projects?: string[]; // Optional: list of project keys this instance supports
   fieldDefaults?: Record<string, any>; // Instance-level default field values
+  defaultFields?: FieldIdDefaults; // Optional: declarative default field IDs for this instance
 }
 
 export interface CrossServerIntegrationConfig {
@@ -39,7 +49,9 @@ export interface MultiInstanceJiraConfig {
       storyPointsField?: string; // Backwards compatibility
       sprintField?: string; // Backwards compatibility
       epicLinkField?: string; // Backwards compatibility
+      rankField?: string; // Backwards compatibility
       fieldDefaults?: Record<string, any>; // Project-specific default field values
+      defaultFields?: FieldIdDefaults; // Optional: declarative default field IDs for this project
     };
   };
   defaultInstance?: string; // fallback instance if project not found

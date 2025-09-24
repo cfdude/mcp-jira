@@ -39,6 +39,48 @@ export async function handleUpdateIssue(args: UpdateIssueArgs, session?: Session
       // Mutable copy for adding convenience fields to dynamic resolution
       let custom_fields = userCustomFields ? { ...userCustomFields } : {};
 
+      let resolvedStoryPointsField = projectConfig.storyPointsField || null;
+      let editMetaFields: Record<string, any> | undefined;
+
+      const loadEditMetaFields = async (): Promise<Record<string, any>> => {
+        if (editMetaFields !== undefined) {
+          return editMetaFields;
+        }
+
+        try {
+          const editMetaResponse = await axiosInstance.get(`/issue/${issue_key}/editmeta`);
+          editMetaFields = editMetaResponse.data?.fields || {};
+        } catch (error: any) {
+          console.error(
+            'Warning: Unable to load edit metadata for story points detection:',
+            error?.response?.status,
+            error?.message
+          );
+          editMetaFields = {};
+        }
+
+        return editMetaFields!;
+      };
+
+      const detectEditableStoryPointsField = (fields: Record<string, any>) => {
+        for (const [fieldId, meta] of Object.entries(fields)) {
+          const name = (meta?.name || '').toLowerCase();
+          const schema = meta?.schema || {};
+          const operations: string[] = meta?.operations || [];
+
+          const isStoryPointsSchema =
+            schema?.custom === 'com.pyxis.greenhopper.jira:jsw-story-points' ||
+            schema?.custom === 'com.atlassian.jira.plugin.system.customfieldtypes:float';
+
+          const nameMatches = name.includes('story point');
+
+          if (operations.includes('set') && (nameMatches || isStoryPointsSchema)) {
+            return fieldId;
+          }
+        }
+        return null;
+      };
+
       // Import text field handler for complex text handling
       const { updateIssueWithTextFallback } = await import('../utils/text-field-handler.js');
 
@@ -94,14 +136,37 @@ The 'status' field cannot be set directly via update_issue. Use the workflow tra
         console.error('Setting priority:', priority);
       }
       if (story_points !== undefined) {
-        // Try configured field first, fall back to dynamic resolution
-        if (projectConfig.storyPointsField) {
-          updateData.fields[projectConfig.storyPointsField] = story_points;
-          console.error('Setting story points via configured field:', story_points);
+        const fields = await loadEditMetaFields();
+
+        let targetStoryPointsField = resolvedStoryPointsField;
+
+        if (targetStoryPointsField && !fields[targetStoryPointsField]) {
+          console.error(
+            `Configured story points field ${targetStoryPointsField} is not editable on ${issue_key}, attempting detection`
+          );
+          targetStoryPointsField = null;
+        }
+
+        if (!targetStoryPointsField) {
+          const detectedField = detectEditableStoryPointsField(fields);
+          if (detectedField) {
+            targetStoryPointsField = detectedField;
+            console.error(
+              `Detected editable story points field ${detectedField} for issue ${issue_key}`
+            );
+          }
+        }
+
+        if (targetStoryPointsField) {
+          updateData.fields[targetStoryPointsField] = story_points;
+          resolvedStoryPointsField = targetStoryPointsField;
+          projectConfig.storyPointsField = targetStoryPointsField;
+          console.error(`Setting story points via field ${targetStoryPointsField}:`, story_points);
         } else {
-          // Add to custom_fields for dynamic resolution
-          custom_fields['Story Points'] = story_points;
-          console.error('Adding story points to dynamic resolution:', story_points);
+          throw new McpError(
+            ErrorCode.InvalidRequest,
+            `Story points field is not editable on issue ${issue_key}. Add the field to the edit screen or update your configuration.`
+          );
         }
       }
       if (labels !== undefined) {
@@ -377,7 +442,9 @@ The 'status' field cannot be set directly via update_issue. Use the workflow tra
           console.error('Retrieved updated issue:', issue_key);
           console.error('Issue type:', updatedIssue.data.fields?.issuetype);
 
-          formattedText = formatIssue(updatedIssue.data, projectConfig.storyPointsField);
+          const formattingStoryPointsField =
+            projectConfig.storyPointsField || resolvedStoryPointsField;
+          formattedText = formatIssue(updatedIssue.data, formattingStoryPointsField);
         } catch (fetchError: any) {
           console.error('Error fetching/formatting updated issue:', fetchError);
           console.error('Error stack:', fetchError.stack);

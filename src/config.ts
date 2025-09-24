@@ -3,7 +3,12 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { JiraConfig, MultiInstanceJiraConfig, JiraInstanceConfig } from './types.js';
+import {
+  JiraConfig,
+  MultiInstanceJiraConfig,
+  JiraInstanceConfig,
+  FieldIdDefaults,
+} from './types.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 
 // Legacy environment variables (for backward compatibility)
@@ -155,6 +160,63 @@ export async function loadMultiInstanceConfig(
   );
 }
 
+function buildProjectConfig(
+  projectKey: string,
+  instanceConfig: JiraInstanceConfig,
+  projectEntry?: {
+    storyPointsField?: string;
+    sprintField?: string;
+    epicLinkField?: string;
+    rankField?: string;
+    fieldDefaults?: Record<string, any>;
+    defaultFields?: FieldIdDefaults;
+  }
+): JiraConfig {
+  const instanceDefaultFields = instanceConfig.defaultFields || {};
+  const projectDefaultFields = projectEntry?.defaultFields || {};
+
+  const mergedFieldDefaults = {
+    ...(instanceConfig.fieldDefaults || {}),
+    ...(projectEntry?.fieldDefaults || {}),
+  };
+
+  const fieldDefaults = Object.keys(mergedFieldDefaults).length ? mergedFieldDefaults : undefined;
+
+  const combinedDefaultFields = Object.entries({
+    ...instanceDefaultFields,
+    ...projectDefaultFields,
+  }).reduce<Partial<FieldIdDefaults>>((acc, [key, value]) => {
+    if (value) {
+      acc[key as keyof FieldIdDefaults] = value;
+    }
+    return acc;
+  }, {});
+
+  const defaultFields = Object.keys(combinedDefaultFields).length
+    ? combinedDefaultFields
+    : undefined;
+
+  return {
+    projectKey,
+    storyPointsField:
+      projectEntry?.storyPointsField ||
+      projectDefaultFields.storyPointsField ||
+      instanceDefaultFields.storyPointsField,
+    sprintField:
+      projectEntry?.sprintField ||
+      projectDefaultFields.sprintField ||
+      instanceDefaultFields.sprintField,
+    epicLinkField:
+      projectEntry?.epicLinkField ||
+      projectDefaultFields.epicLinkField ||
+      instanceDefaultFields.epicLinkField,
+    rankField:
+      projectEntry?.rankField || projectDefaultFields.rankField || instanceDefaultFields.rankField,
+    fieldDefaults,
+    defaultFields,
+  };
+}
+
 /**
  * Get instance configuration for a specific project
  */
@@ -179,44 +241,31 @@ export async function getInstanceForProject(
     }
 
     // Get project config or create default
-    const projectConfig = (projectKey ? multiConfig.projects[projectKey] : undefined) || {
-      instance: instanceOverride,
-    };
-
+    const projectConfigEntry = projectKey ? multiConfig.projects[projectKey] : undefined;
     return {
       instance,
-      projectConfig: {
-        projectKey: projectKey || '',
-        storyPointsField: projectConfig.storyPointsField,
-        sprintField: projectConfig.sprintField,
-        epicLinkField: projectConfig.epicLinkField,
-      },
+      projectConfig: buildProjectConfig(projectKey || '', instance, projectConfigEntry),
     };
   }
 
   // Check if project is explicitly configured
   if (projectKey) {
-    const projectConfig = multiConfig.projects[projectKey];
-    if (projectConfig) {
+    const projectConfigEntry = multiConfig.projects[projectKey];
+    if (projectConfigEntry) {
       console.error(
-        `Found configured project ${projectKey} using instance: ${projectConfig.instance}`
+        `Found configured project ${projectKey} using instance: ${projectConfigEntry.instance}`
       );
-      const instance = multiConfig.instances[projectConfig.instance];
+      const instance = multiConfig.instances[projectConfigEntry.instance];
       if (!instance) {
         throw new McpError(
           ErrorCode.InvalidRequest,
-          `Instance '${projectConfig.instance}' configured for project '${projectKey}' not found`
+          `Instance '${projectConfigEntry.instance}' configured for project '${projectKey}' not found`
         );
       }
 
       return {
         instance,
-        projectConfig: {
-          projectKey,
-          storyPointsField: projectConfig.storyPointsField,
-          sprintField: projectConfig.sprintField,
-          epicLinkField: projectConfig.epicLinkField,
-        },
+        projectConfig: buildProjectConfig(projectKey, instance, projectConfigEntry),
       };
     }
 
@@ -228,12 +277,7 @@ export async function getInstanceForProject(
         console.error(`Auto-discovered project ${projectKey} in instance: ${instanceName}`);
         return {
           instance: instanceConfig,
-          projectConfig: {
-            projectKey,
-            storyPointsField: undefined,
-            sprintField: undefined,
-            epicLinkField: undefined,
-          },
+          projectConfig: buildProjectConfig(projectKey, instanceConfig),
         };
       }
     }
@@ -247,12 +291,7 @@ export async function getInstanceForProject(
     const instance = multiConfig.instances[multiConfig.defaultInstance];
     return {
       instance,
-      projectConfig: {
-        projectKey: projectKey || '',
-        storyPointsField: undefined,
-        sprintField: undefined,
-        epicLinkField: undefined,
-      },
+      projectConfig: buildProjectConfig(projectKey || '', instance),
     };
   }
 
@@ -263,12 +302,7 @@ export async function getInstanceForProject(
     console.error(`Only one instance available. Using ${instanceName} for project: ${projectKey}`);
     return {
       instance: multiConfig.instances[instanceName],
-      projectConfig: {
-        projectKey: projectKey || '',
-        storyPointsField: undefined,
-        sprintField: undefined,
-        epicLinkField: undefined,
-      },
+      projectConfig: buildProjectConfig(projectKey || '', multiConfig.instances[instanceName]),
     };
   }
 
