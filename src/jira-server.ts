@@ -240,6 +240,11 @@ export class JiraServer {
 
   private async initializeCrossServerIntegration() {
     try {
+      if (process.env.NODE_ENV === 'test') {
+        logger.debug('Skipping cross-server integration in test environment');
+        return;
+      }
+
       logger.info('Initializing cross-server integration...');
 
       // Load configuration to get cross-server settings
