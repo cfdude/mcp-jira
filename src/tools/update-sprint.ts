@@ -4,6 +4,7 @@
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { BaseArgs } from '../types.js';
+import { normalizeIsoDate, assertStartBeforeEnd } from '../utils/date-utils.js';
 import type { SessionState } from '../session-manager.js';
 
 export interface UpdateSprintArgs extends BaseArgs {
@@ -13,22 +14,6 @@ export interface UpdateSprintArgs extends BaseArgs {
   startDate?: string;
   endDate?: string;
   state?: 'active' | 'closed' | 'future';
-}
-
-/**
- * Helper function to format dates for Jira API
- * Converts various date formats to ISO 8601 format with timezone
- */
-function formatJiraDate(dateString: string): string {
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) {
-    throw new Error(`Invalid date format: ${dateString}`);
-  }
-
-  // Format to ISO string and ensure timezone offset
-  const isoString = date.toISOString();
-  // Convert Z to +00:00 format for Jira compatibility
-  return isoString.replace('Z', '+00:00');
 }
 
 export async function handleUpdateSprint(args: UpdateSprintArgs, session?: SessionState) {
@@ -52,9 +37,13 @@ export async function handleUpdateSprint(args: UpdateSprintArgs, session?: Sessi
       if (goal !== undefined) updateData.goal = goal;
 
       // Format dates properly for Jira API
+      let normalizedStartDate: string | undefined;
+      let normalizedEndDate: string | undefined;
+
       if (startDate !== undefined) {
         try {
-          updateData.startDate = formatJiraDate(startDate);
+          normalizedStartDate = normalizeIsoDate(startDate);
+          updateData.startDate = normalizedStartDate;
         } catch {
           throw new McpError(
             ErrorCode.InvalidRequest,
@@ -65,13 +54,24 @@ export async function handleUpdateSprint(args: UpdateSprintArgs, session?: Sessi
 
       if (endDate !== undefined) {
         try {
-          updateData.endDate = formatJiraDate(endDate);
+          normalizedEndDate = normalizeIsoDate(endDate);
+          updateData.endDate = normalizedEndDate;
         } catch {
           throw new McpError(
             ErrorCode.InvalidRequest,
             `Invalid endDate format: ${endDate}. Use ISO format like "2025-08-12T23:59:59Z" or "2025-08-12"`
           );
         }
+      }
+
+      try {
+        assertStartBeforeEnd(
+          normalizedStartDate ?? updateData.startDate,
+          normalizedEndDate ?? updateData.endDate,
+          'Sprint dates'
+        );
+      } catch (error: any) {
+        throw new McpError(ErrorCode.InvalidRequest, error.message);
       }
 
       if (state !== undefined) {

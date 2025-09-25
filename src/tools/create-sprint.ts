@@ -5,6 +5,7 @@ import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { getBoardId } from '../utils/jira-api.js';
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { BaseArgs } from '../types.js';
+import { normalizeIsoDate, assertStartBeforeEnd } from '../utils/date-utils.js';
 import type { SessionState } from '../session-manager.js';
 
 export interface CreateSprintArgs extends BaseArgs {
@@ -34,38 +35,31 @@ export async function handleCreateSprint(args: CreateSprintArgs, session?: Sessi
         boardId,
       });
 
-      const normalizeDate = (value?: string) => {
-        if (!value) return undefined;
+      let normalizedStartDate: string | undefined;
+      let normalizedEndDate: string | undefined;
 
-        const trimmed = value.trim();
-        if (!trimmed) return undefined;
+      try {
+        normalizedStartDate = normalizeIsoDate(startDate);
+      } catch {
+        throw new McpError(
+          ErrorCode.InvalidRequest,
+          `Invalid startDate format: ${startDate}. Use ISO format like "2025-09-29T00:00:00Z" or "2025-09-29"`
+        );
+      }
 
-        const matchesDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(trimmed);
-        const isoCandidate = matchesDateOnly ? `${trimmed}T00:00:00.000Z` : trimmed;
+      try {
+        normalizedEndDate = normalizeIsoDate(endDate);
+      } catch {
+        throw new McpError(
+          ErrorCode.InvalidRequest,
+          `Invalid endDate format: ${endDate}. Use ISO format like "2025-10-12T23:59:59Z" or "2025-10-12"`
+        );
+      }
 
-        const date = new Date(isoCandidate);
-        if (Number.isNaN(date.getTime())) {
-          throw new McpError(
-            ErrorCode.InvalidRequest,
-            `Invalid date value provided. Expected ISO 8601 string (e.g. 2025-09-29T00:00:00Z). Received: ${value}`
-          );
-        }
-
-        return date.toISOString();
-      };
-
-      const normalizedStartDate = normalizeDate(startDate);
-      const normalizedEndDate = normalizeDate(endDate);
-
-      if (normalizedStartDate && normalizedEndDate) {
-        const startTime = Date.parse(normalizedStartDate);
-        const endTime = Date.parse(normalizedEndDate);
-        if (startTime > endTime) {
-          throw new McpError(
-            ErrorCode.InvalidRequest,
-            `Sprint start date must be before end date. Received start=${normalizedStartDate}, end=${normalizedEndDate}`
-          );
-        }
+      try {
+        assertStartBeforeEnd(normalizedStartDate, normalizedEndDate, 'Sprint dates');
+      } catch (error: any) {
+        throw new McpError(ErrorCode.InvalidRequest, error.message);
       }
 
       // Get board ID if not provided
