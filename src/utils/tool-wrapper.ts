@@ -10,6 +10,7 @@ import {
 } from '../session-config.js';
 import { createJiraApiInstances } from './jira-api.js';
 import logger from './logger.js';
+import { COMMON_STORY_POINT_FIELD_IDS } from './story-point-fields.js';
 import type { SessionState } from '../session-manager.js';
 import { checkProjectConfigAndProvideGuidance } from './config-field-checker.js';
 
@@ -339,7 +340,7 @@ export function formatStoryPoints(issue: any, projectConfig: JiraConfig): string
   }
 
   // Common Jira story point custom field IDs for fallback coverage
-  ['customfield_10016', 'customfield_10026', 'customfield_10036'].forEach(candidate => {
+  COMMON_STORY_POINT_FIELD_IDS.forEach(candidate => {
     if (candidate && !candidateFieldIds.includes(candidate)) {
       candidateFieldIds.push(candidate);
     }

@@ -196,6 +196,7 @@ export async function getInstanceForProjectWithSession(
     return acc;
   }, {});
 
+  // Field precedence: explicit project config -> project defaultFields -> instance defaultFields
   const storyPointsField =
     projectConfig?.storyPointsField ||
     projectDefaultFields.storyPointsField ||

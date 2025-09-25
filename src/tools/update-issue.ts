@@ -160,7 +160,6 @@ The 'status' field cannot be set directly via update_issue. Use the workflow tra
         if (targetStoryPointsField) {
           updateData.fields[targetStoryPointsField] = story_points;
           resolvedStoryPointsField = targetStoryPointsField;
-          projectConfig.storyPointsField = targetStoryPointsField;
           console.error(`Setting story points via field ${targetStoryPointsField}:`, story_points);
         } else {
           throw new McpError(

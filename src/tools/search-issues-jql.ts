@@ -7,6 +7,7 @@ import {
   handlePaginationError,
   formatStoryPoints,
 } from '../utils/tool-wrapper.js';
+import { COMMON_STORY_POINT_FIELD_IDS } from '../utils/story-point-fields.js';
 import { SearchIssuesJqlArgs, JiraSearchRequestBody } from '../types.js';
 import type { SessionState } from '../session-manager.js';
 
@@ -41,9 +42,7 @@ export async function handleSearchIssuesJql(args: SearchIssuesJqlArgs, session?:
           storyPointFieldCandidates.add(projectConfig.defaultFields.storyPointsField);
         }
 
-        ['customfield_10016', 'customfield_10026', 'customfield_10036'].forEach(fieldId =>
-          storyPointFieldCandidates.add(fieldId)
-        );
+        COMMON_STORY_POINT_FIELD_IDS.forEach(fieldId => storyPointFieldCandidates.add(fieldId));
 
         const fieldSet = new Set(requestBody.fields.filter(Boolean));
         storyPointFieldCandidates.forEach(fieldId => {

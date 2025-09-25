@@ -34,18 +34,52 @@ export async function handleCreateSprint(args: CreateSprintArgs, session?: Sessi
         boardId,
       });
 
+      const normalizeDate = (value?: string) => {
+        if (!value) return undefined;
+
+        const trimmed = value.trim();
+        if (!trimmed) return undefined;
+
+        const matchesDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(trimmed);
+        const isoCandidate = matchesDateOnly ? `${trimmed}T00:00:00.000Z` : trimmed;
+
+        const date = new Date(isoCandidate);
+        if (Number.isNaN(date.getTime())) {
+          throw new McpError(
+            ErrorCode.InvalidRequest,
+            `Invalid date value provided. Expected ISO 8601 string (e.g. 2025-09-29T00:00:00Z). Received: ${value}`
+          );
+        }
+
+        return date.toISOString();
+      };
+
+      const normalizedStartDate = normalizeDate(startDate);
+      const normalizedEndDate = normalizeDate(endDate);
+
+      if (normalizedStartDate && normalizedEndDate) {
+        const startTime = Date.parse(normalizedStartDate);
+        const endTime = Date.parse(normalizedEndDate);
+        if (startTime > endTime) {
+          throw new McpError(
+            ErrorCode.InvalidRequest,
+            `Sprint start date must be before end date. Received start=${normalizedStartDate}, end=${normalizedEndDate}`
+          );
+        }
+      }
+
       // Get board ID if not provided
       const effectiveBoardId =
         boardId || (await getBoardId(agileAxiosInstance, effectiveProjectKey));
 
-      const sprintData: any = {
+      const sprintData: Record<string, unknown> = {
         name,
         originBoardId: effectiveBoardId,
       };
 
       if (goal) sprintData.goal = goal;
-      if (startDate) sprintData.startDate = startDate;
-      if (endDate) sprintData.endDate = endDate;
+      if (normalizedStartDate) sprintData.startDate = normalizedStartDate;
+      if (normalizedEndDate) sprintData.endDate = normalizedEndDate;
 
       try {
         console.error('Sprint creation request:', JSON.stringify(sprintData, null, 2));

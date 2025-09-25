@@ -198,6 +198,7 @@ function buildProjectConfig(
 
   return {
     projectKey,
+    // Field precedence: explicit project config -> project defaultFields -> instance defaultFields
     storyPointsField:
       projectEntry?.storyPointsField ||
       projectDefaultFields.storyPointsField ||
