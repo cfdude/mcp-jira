@@ -36,6 +36,24 @@ export async function handleUpdateSprint(args: UpdateSprintArgs, session?: Sessi
       if (name !== undefined) updateData.name = name;
       if (goal !== undefined) updateData.goal = goal;
 
+      let existingSprintData: any | null = null;
+      const loadExistingSprint = async () => {
+        if (existingSprintData) {
+          return existingSprintData;
+        }
+        try {
+          const response = await agileAxiosInstance.get(`/sprint/${sprintId}`);
+          existingSprintData = response.data;
+          return existingSprintData;
+        } catch (error: any) {
+          console.error('Failed to load existing sprint before update:', error);
+          throw new McpError(
+            ErrorCode.InternalError,
+            `Unable to load sprint ${sprintId} details before update: ${error.response?.data?.message || error.message}`
+          );
+        }
+      };
+
       // Format dates properly for Jira API
       let normalizedStartDate: string | undefined;
       let normalizedEndDate: string | undefined;
@@ -93,6 +111,21 @@ export async function handleUpdateSprint(args: UpdateSprintArgs, session?: Sessi
           ErrorCode.InvalidRequest,
           'At least one field must be provided to update'
         );
+      }
+
+      if (updateData.name === undefined) {
+        const existingSprint = await loadExistingSprint();
+        if (!existingSprint?.name) {
+          throw new McpError(
+            ErrorCode.InvalidRequest,
+            `Sprint ${sprintId} is missing a name in Jira; provide 'name' when updating.`
+          );
+        }
+        updateData.name = existingSprint.name;
+
+        if (goal === undefined && existingSprint.goal !== undefined) {
+          updateData.goal = existingSprint.goal;
+        }
       }
 
       try {

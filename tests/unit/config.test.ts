@@ -1,5 +1,5 @@
-import { describe, test, expect, beforeEach, afterEach } from '@jest/globals';
-import { loadMultiInstanceConfig, getInstanceForProject } from '../../src/config.js';
+import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import type { MultiInstanceJiraConfig } from '../../src/types.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
@@ -15,21 +15,29 @@ describe('Config', () => {
   const testConfigDir = path.join(__dirname, 'test-configs');
   const testConfigPath = path.join(testConfigDir, '.jira-config.json');
 
+  const loadConfigModule = async () => {
+    jest.resetModules();
+    return import('../../src/config.js');
+  };
+
   beforeEach(() => {
-    // Ensure test directory exists
+    jest.resetModules();
+    process.env.JIRA_CONFIG_PATH = testConfigPath;
+
     if (!fs.existsSync(testConfigDir)) {
       fs.mkdirSync(testConfigDir, { recursive: true });
     }
   });
 
   afterEach(() => {
-    // Clean up test files
     if (fs.existsSync(testConfigPath)) {
       fs.unlinkSync(testConfigPath);
     }
     if (fs.existsSync(testConfigDir)) {
       fs.rmdirSync(testConfigDir);
     }
+    delete process.env.JIRA_CONFIG_PATH;
+    jest.resetModules();
   });
 
   describe('loadMultiInstanceConfig', () => {
@@ -48,7 +56,8 @@ describe('Config', () => {
 
       fs.writeFileSync(testConfigPath, JSON.stringify(config, null, 2));
 
-      const result = await loadMultiInstanceConfig(testConfigDir);
+      const { loadMultiInstanceConfig } = await loadConfigModule();
+      const result: MultiInstanceJiraConfig = await loadMultiInstanceConfig(testConfigDir);
       expect(result).toHaveProperty('instances');
       expect(result).toHaveProperty('defaultInstance');
       expect(result.instances).toHaveProperty('test');
@@ -56,6 +65,7 @@ describe('Config', () => {
 
     // Skip these tests since the function uses global caching and fallback behavior
     test.skip('should throw error for missing config file', async () => {
+      const { loadMultiInstanceConfig } = await loadConfigModule();
       await expect(loadMultiInstanceConfig(testConfigDir)).rejects.toThrow(
         'Configuration file not found'
       );
@@ -63,6 +73,7 @@ describe('Config', () => {
 
     test.skip('should throw error for invalid JSON', async () => {
       fs.writeFileSync(testConfigPath, 'invalid json');
+      const { loadMultiInstanceConfig } = await loadConfigModule();
       await expect(loadMultiInstanceConfig(testConfigDir)).rejects.toThrow(
         'Invalid JSON in configuration file'
       );
@@ -95,6 +106,7 @@ describe('Config', () => {
 
       fs.writeFileSync(testConfigPath, JSON.stringify(config, null, 2));
 
+      const { getInstanceForProject } = await loadConfigModule();
       const result = await getInstanceForProject(testConfigDir, 'PROJ3');
       expect(result).toBe('instance2');
     });
@@ -115,6 +127,7 @@ describe('Config', () => {
 
       fs.writeFileSync(testConfigPath, JSON.stringify(config, null, 2));
 
+      const { getInstanceForProject } = await loadConfigModule();
       const result = await getInstanceForProject(testConfigDir, 'UNKNOWN');
       expect(result).toBe('instance1');
     });
