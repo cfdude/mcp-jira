@@ -154,31 +154,41 @@ ${response.data.endDate ? `- **End Date:** ${response.data.endDate}` : ''}`,
         console.error('Sprint update data that failed:', JSON.stringify(updateData, null, 2));
         console.error('Error response:', error.response?.data);
 
-        let errorMessage = `Failed to update sprint: ${error.response?.data?.message || error.message}`;
+        const statusCode = error.response?.status;
+        const baseMessage = error.response?.data?.message || error.message;
+        const headline = `Failed to update sprint ${sprintId}${statusCode ? ` (HTTP ${statusCode})` : ''}: ${baseMessage}`;
 
-        if (error.response?.status === 400) {
-          const errorData = error.response.data;
-          if (errorData?.errorMessages?.length) {
-            errorMessage += `\nErrors: ${errorData.errorMessages.join(', ')}`;
-          }
-          if (errorData?.errors) {
-            const fieldErrors = Object.entries(errorData.errors)
-              .map(([field, message]) => `${field}: ${message}`)
-              .join(', ');
-            errorMessage += `\nField errors: ${fieldErrors}`;
-          }
+        const details: string[] = [];
 
-          // Add specific guidance for sprint state transitions
-          if (updateData.state === 'active') {
-            errorMessage += `\n\nSprint State Transition Issue:
-- Attempting to change sprint ${sprintId} to ACTIVE state
-- Current parameters: ${JSON.stringify(updateData, null, 2)}
-- Common causes: Missing startDate/endDate, invalid date format, or sprint already active
-- Try: Ensure startDate and endDate are provided in ISO format (YYYY-MM-DDTHH:mm:ss.sssZ)`;
-          }
+        const errorData = error.response?.data;
+        if (errorData?.errorMessages?.length) {
+          details.push(`Jira messages: ${errorData.errorMessages.join(', ')}`);
         }
 
-        throw new McpError(ErrorCode.InternalError, errorMessage);
+        if (errorData?.errors && Object.keys(errorData.errors).length > 0) {
+          const fieldErrors = Object.entries(errorData.errors)
+            .map(([field, message]) => `${field}: ${message}`)
+            .join('; ');
+          details.push(`Field errors: ${fieldErrors}`);
+        }
+
+        if (updateData.state === 'active') {
+          details.push(
+            `Sprint state transition guidance: activating a sprint requires valid startDate/endDate in ISO format (YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss.sssZ).`
+          );
+        }
+
+        const errorText = [headline, ...details].join(details.length ? '\n' : '');
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `❌ Sprint update failed\n\n${errorText}`,
+            },
+          ],
+          isError: true,
+        };
       }
     },
     session

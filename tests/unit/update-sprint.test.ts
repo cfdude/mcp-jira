@@ -98,4 +98,37 @@ describe('handleUpdateSprint', () => {
 
     expect(mockPut).not.toHaveBeenCalled();
   });
+
+  test('returns informative error when Jira rejects update with field errors', async () => {
+    mockGet.mockResolvedValue({ data: { name: 'Existing Sprint' } });
+
+    const error: any = new Error('Request failed with status code 400');
+    error.response = {
+      status: 400,
+      data: {
+        errors: {
+          name: 'Sprint name must be shorter than 30 characters.',
+        },
+        errorMessages: [],
+      },
+    };
+
+    mockPut.mockRejectedValue(error);
+
+    const args: UpdateSprintArgs = {
+      working_dir: '/tmp/project',
+      instance: 'onvex',
+      sprintId: 1391,
+      name: 'Sprint 3 – Automation Hardening',
+      startDate: '2025-10-02',
+      endDate: '2025-10-16',
+    };
+
+    const result: any = await handleUpdateSprint(args);
+
+    expect(result.isError).toBe(true);
+    expect(result.content?.[0]?.text).toContain(
+      'Field errors: name: Sprint name must be shorter than 30 characters.'
+    );
+  });
 });
