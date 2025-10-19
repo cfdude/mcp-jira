@@ -5,7 +5,9 @@ import {
   withJiraContext,
   validateNextPageToken,
   handlePaginationError,
+  formatStoryPoints,
 } from '../utils/tool-wrapper.js';
+import { COMMON_STORY_POINT_FIELD_IDS } from '../utils/story-point-fields.js';
 import { SearchIssuesJqlArgs, JiraSearchRequestBody } from '../types.js';
 import type { SessionState } from '../session-manager.js';
 
@@ -13,7 +15,7 @@ export async function handleSearchIssuesJql(args: SearchIssuesJqlArgs, session?:
   return withJiraContext(
     args,
     { requiresProject: false },
-    async (toolArgs, { axiosInstance }) => {
+    async (toolArgs, { axiosInstance, projectConfig }) => {
       try {
         // Note: validateQuery parameter was removed in the new /search/jql endpoint
         // The new endpoint requires POST method with fields in request body
@@ -28,6 +30,27 @@ export async function handleSearchIssuesJql(args: SearchIssuesJqlArgs, session?:
             .split(',')
             .map(f => f.trim()),
         };
+
+        // Ensure story point fields are requested when known
+        const storyPointFieldCandidates = new Set<string>();
+
+        if (projectConfig.storyPointsField) {
+          storyPointFieldCandidates.add(projectConfig.storyPointsField);
+        }
+
+        if (projectConfig.defaultFields?.storyPointsField) {
+          storyPointFieldCandidates.add(projectConfig.defaultFields.storyPointsField);
+        }
+
+        COMMON_STORY_POINT_FIELD_IDS.forEach(fieldId => storyPointFieldCandidates.add(fieldId));
+
+        const fieldSet = new Set(requestBody.fields.filter(Boolean));
+        storyPointFieldCandidates.forEach(fieldId => {
+          if (fieldId) {
+            fieldSet.add(fieldId);
+          }
+        });
+        requestBody.fields = Array.from(fieldSet);
 
         // Validate and add nextPageToken for pagination if provided
         validateNextPageToken(toolArgs.nextPageToken);
@@ -50,9 +73,42 @@ export async function handleSearchIssuesJql(args: SearchIssuesJqlArgs, session?:
         const data = response.data;
         const issues = data.issues || [];
 
+        const resolveStoryPoints = (issue: any) => {
+          for (const fieldId of storyPointFieldCandidates) {
+            if (!fieldId) continue;
+            if (Object.prototype.hasOwnProperty.call(issue.fields, fieldId)) {
+              const value = issue.fields[fieldId];
+              if (value !== undefined && value !== null && value !== '') {
+                return { fieldId, value };
+              }
+              return { fieldId, value: null };
+            }
+          }
+
+          // Fallback to helper which may detect additional IDs
+          const formatted = formatStoryPoints(issue, projectConfig);
+          if (formatted) {
+            const valueText = formatted.split(':').pop()?.trim();
+            if (valueText) {
+              if (valueText === 'Not set') {
+                return { fieldId: '', value: null };
+              }
+              return { fieldId: '', value: valueText };
+            }
+          }
+
+          return null;
+        };
+
         // Process and format issues
         const formattedIssues = issues.map((issue: any) => {
           const fields = issue.fields;
+          const storyPointsInfo = resolveStoryPoints(issue);
+          const storyPointsValue = storyPointsInfo
+            ? storyPointsInfo.value === null || storyPointsInfo.value === undefined
+              ? 'Not set'
+              : storyPointsInfo.value
+            : null;
           return {
             key: issue.key,
             id: issue.id,
@@ -72,6 +128,7 @@ export async function handleSearchIssuesJql(args: SearchIssuesJqlArgs, session?:
             description: fields.description || 'No description',
             reporter: fields.reporter?.displayName || 'Unknown',
             project: fields.project?.key || 'Unknown',
+            storyPoints: storyPointsValue,
           };
         });
 
@@ -154,6 +211,7 @@ ${
 - **Components**: ${issue.components.length > 0 ? issue.components.join(', ') : 'None'}
 - **Fix Versions**: ${issue.fixVersions.length > 0 ? issue.fixVersions.join(', ') : 'None'}
 - **Labels**: ${issue.labels.length > 0 ? issue.labels.join(', ') : 'None'}
+- **Story Points**: ${issue.storyPoints ?? 'Not available'}
 - **Created**: ${new Date(issue.created).toLocaleDateString()}
 - **Updated**: ${new Date(issue.updated).toLocaleDateString()}
 ${issue.epic ? `- **Epic**: ${issue.epic}` : ''}

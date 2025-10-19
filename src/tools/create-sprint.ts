@@ -5,6 +5,7 @@ import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { getBoardId } from '../utils/jira-api.js';
 import { withJiraContext } from '../utils/tool-wrapper.js';
 import { BaseArgs } from '../types.js';
+import { normalizeIsoDate, assertStartBeforeEnd } from '../utils/date-utils.js';
 import type { SessionState } from '../session-manager.js';
 
 export interface CreateSprintArgs extends BaseArgs {
@@ -34,18 +35,45 @@ export async function handleCreateSprint(args: CreateSprintArgs, session?: Sessi
         boardId,
       });
 
+      let normalizedStartDate: string | undefined;
+      let normalizedEndDate: string | undefined;
+
+      try {
+        normalizedStartDate = normalizeIsoDate(startDate);
+      } catch {
+        throw new McpError(
+          ErrorCode.InvalidRequest,
+          `Invalid startDate format: ${startDate}. Use ISO format like "2025-09-29T00:00:00Z" or "2025-09-29"`
+        );
+      }
+
+      try {
+        normalizedEndDate = normalizeIsoDate(endDate);
+      } catch {
+        throw new McpError(
+          ErrorCode.InvalidRequest,
+          `Invalid endDate format: ${endDate}. Use ISO format like "2025-10-12T23:59:59Z" or "2025-10-12"`
+        );
+      }
+
+      try {
+        assertStartBeforeEnd(normalizedStartDate, normalizedEndDate, 'Sprint dates');
+      } catch (error: any) {
+        throw new McpError(ErrorCode.InvalidRequest, error.message);
+      }
+
       // Get board ID if not provided
       const effectiveBoardId =
         boardId || (await getBoardId(agileAxiosInstance, effectiveProjectKey));
 
-      const sprintData: any = {
+      const sprintData: Record<string, unknown> = {
         name,
         originBoardId: effectiveBoardId,
       };
 
       if (goal) sprintData.goal = goal;
-      if (startDate) sprintData.startDate = startDate;
-      if (endDate) sprintData.endDate = endDate;
+      if (normalizedStartDate) sprintData.startDate = normalizedStartDate;
+      if (normalizedEndDate) sprintData.endDate = normalizedEndDate;
 
       try {
         console.error('Sprint creation request:', JSON.stringify(sprintData, null, 2));

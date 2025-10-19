@@ -4,7 +4,12 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { JiraConfig, MultiInstanceJiraConfig, JiraInstanceConfig } from './types.js';
+import {
+  JiraConfig,
+  MultiInstanceJiraConfig,
+  JiraInstanceConfig,
+  FieldIdDefaults,
+} from './types.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import type { SessionState } from './session-manager.js';
 import logger from './utils/logger.js';
@@ -176,13 +181,49 @@ export async function getInstanceForProjectWithSession(
     ...projectConfig?.fieldDefaults, // Override with project-specific defaults
   };
 
+  const instanceDefaultFields = instanceConfig.defaultFields || {};
+  const projectDefaultFields = projectConfig?.defaultFields || {};
+
+  const combinedFieldDefaults = Object.keys(fieldDefaults).length ? fieldDefaults : undefined;
+
+  const combinedDefaultFields = Object.entries({
+    ...instanceDefaultFields,
+    ...projectDefaultFields,
+  }).reduce<Partial<FieldIdDefaults>>((acc, [key, value]) => {
+    if (value) {
+      acc[key as keyof FieldIdDefaults] = value;
+    }
+    return acc;
+  }, {});
+
+  // Field precedence: explicit project config -> project defaultFields -> instance defaultFields
+  const storyPointsField =
+    projectConfig?.storyPointsField ||
+    projectDefaultFields.storyPointsField ||
+    instanceDefaultFields.storyPointsField;
+
+  const sprintField =
+    projectConfig?.sprintField ||
+    projectDefaultFields.sprintField ||
+    instanceDefaultFields.sprintField;
+
+  const epicLinkField =
+    projectConfig?.epicLinkField ||
+    projectDefaultFields.epicLinkField ||
+    instanceDefaultFields.epicLinkField;
+
+  const rankField =
+    projectConfig?.rankField || projectDefaultFields.rankField || instanceDefaultFields.rankField;
+
   const finalProjectConfig: JiraConfig = {
     projectKey,
     // Keep backwards compatibility for explicit field IDs
-    storyPointsField: projectConfig?.storyPointsField,
-    sprintField: projectConfig?.sprintField,
-    epicLinkField: projectConfig?.epicLinkField,
-    fieldDefaults,
+    storyPointsField,
+    sprintField,
+    epicLinkField,
+    rankField,
+    fieldDefaults: combinedFieldDefaults,
+    defaultFields: Object.keys(combinedDefaultFields).length ? combinedDefaultFields : undefined,
   };
 
   logger.debug('Built project config for session', {

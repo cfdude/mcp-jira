@@ -15,3 +15,5 @@ direct-test.*
 simple-test.*
 *-test-temp.*
 temp-test-*.*
+
+.serena/
