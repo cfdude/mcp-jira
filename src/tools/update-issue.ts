@@ -288,8 +288,8 @@ The 'status' field cannot be set directly via update_issue. Use the workflow tra
       }
 
       // Extract time tracking fields from custom_fields (for backwards compatibility)
-      const timeTrackingFields: any = {};
-      if (custom_fields) {
+      const timeTrackingFields: Record<string, unknown> = {};
+      if (Object.keys(custom_fields).length > 0) {
         console.error(
           'Checking custom_fields for time tracking fields:',
           Object.keys(custom_fields)
@@ -349,7 +349,7 @@ The 'status' field cannot be set directly via update_issue. Use the workflow tra
       }
 
       // Handle dynamic custom fields (user-specified only for updates - no defaults)
-      if (custom_fields && Object.keys(custom_fields).length > 0) {
+      if (Object.keys(custom_fields).length > 0) {
         console.error('Processing user custom fields:', Object.keys(custom_fields));
 
         // Build dynamic fields with proper resolution and type conversion

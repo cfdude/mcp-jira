@@ -238,8 +238,8 @@ export async function handleGetIssue(args: GetIssueArgs, session?: SessionState)
             // Format the field value appropriately
             let displayValue = fieldValue;
 
-            // Handle different field value types
-            if (typeof fieldValue === 'object' && fieldValue !== null) {
+            // Handle different field value types (fieldValue is non-null due to earlier filter)
+            if (typeof fieldValue === 'object') {
               if ('name' in fieldValue && fieldValue.name) {
                 displayValue = fieldValue.name; // Option fields
               } else if ('displayName' in fieldValue && fieldValue.displayName) {

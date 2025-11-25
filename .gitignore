@@ -17,3 +17,10 @@ simple-test.*
 temp-test-*.*
 
 .serena/
+
+# Test coverage
+coverage/
+
+# One-time scripts
+update-all-descriptions.js
+updates.json
