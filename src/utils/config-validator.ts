@@ -42,7 +42,10 @@ export function validateInstanceConfig(
 
   if (!config.domain || config.domain.trim() === '') {
     errors.push(`Instance '${instanceName}': domain is required`);
-  } else if (config.domain.endsWith('.atlassian.net') || config.domain.includes('.atlassian.net/')) {
+  } else if (
+    config.domain.endsWith('.atlassian.net') ||
+    config.domain.includes('.atlassian.net/')
+  ) {
     warnings.push(
       `Instance '${instanceName}': domain should not include '.atlassian.net' - use just the subdomain`
     );
