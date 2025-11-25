@@ -126,7 +126,7 @@ export async function withJiraContext<TArgs extends BaseArgs, TResult>(
 
     // Check for missing field configuration and provide guidance if needed
     let configGuidance: string | undefined;
-    if (session && projectKey) {
+    if (projectKey) {
       try {
         // Load the full multi-instance config to check field completeness
         const fullConfig = await loadMultiInstanceConfigForSession(working_dir, session);

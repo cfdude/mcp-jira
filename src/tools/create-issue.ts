@@ -215,7 +215,7 @@ export async function handleCreateIssue(args: CreateIssueArgs, session?: Session
           }
 
           // Override defaults with user-specified custom fields
-          if (custom_fields) {
+          if (Object.keys(custom_fields).length > 0) {
             console.error('Processing user custom fields:', Object.keys(custom_fields));
             combinedCustomFields = { ...combinedCustomFields, ...custom_fields };
           }
@@ -294,7 +294,7 @@ export async function handleCreateIssue(args: CreateIssueArgs, session?: Session
       }
 
       // Override defaults with user-specified custom fields
-      if (custom_fields) {
+      if (Object.keys(custom_fields).length > 0) {
         console.error('Processing user custom fields:', Object.keys(custom_fields));
         combinedCustomFields = { ...combinedCustomFields, ...custom_fields };
       }
