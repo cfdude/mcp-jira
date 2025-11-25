@@ -5,40 +5,45 @@ import { withJiraContext } from '../utils/tool-wrapper.js';
 import { CreateFilterArgs } from '../types.js';
 import type { SessionState } from '../session-manager.js';
 
-export async function handleCreateFilter(args: CreateFilterArgs, _session?: SessionState) {
-  return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
-    try {
-      const filterData: any = {
-        name: toolArgs.name,
-        description: toolArgs.description || '',
-        jql: toolArgs.jql,
-        favourite: toolArgs.favourite !== undefined ? toolArgs.favourite : false,
-      };
+export async function handleCreateFilter(args: CreateFilterArgs, session?: SessionState) {
+  return withJiraContext(
+    args,
+    { requiresProject: false },
+    async (toolArgs, { axiosInstance }) => {
+      try {
+        const filterData: any = {
+          name: toolArgs.name,
+          description: toolArgs.description || '',
+          jql: toolArgs.jql,
+          favourite: toolArgs.favourite !== undefined ? toolArgs.favourite : false,
+        };
 
-      // Add optional fields
-      if (toolArgs.sharePermissions) {
-        filterData.sharePermissions = toolArgs.sharePermissions;
-      }
-      if (toolArgs.editPermissions) {
-        filterData.editPermissions = toolArgs.editPermissions;
-      }
+        // Add optional fields
+        if (toolArgs.sharePermissions) {
+          filterData.sharePermissions = toolArgs.sharePermissions;
+        }
+        if (toolArgs.editPermissions) {
+          filterData.editPermissions = toolArgs.editPermissions;
+        }
 
-      const response = await axiosInstance.post(`/filter`, filterData);
+        const response = await axiosInstance.post(`/filter`, filterData);
 
-      const filter = response.data;
+        const filter = response.data;
 
-      // Get filter details to show what was created
-      const detailsResponse = await axiosInstance.get(`/filter/${filter.id}`, {
-        params: { expand: 'sharePermissions,editPermissions,owner,favouritedCount,subscriptions' },
-      });
+        // Get filter details to show what was created
+        const detailsResponse = await axiosInstance.get(`/filter/${filter.id}`, {
+          params: {
+            expand: 'sharePermissions,editPermissions,owner,favouritedCount,subscriptions',
+          },
+        });
 
-      const filterDetails = detailsResponse.data;
+        const filterDetails = detailsResponse.data;
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `# Filter Created Successfully
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `# Filter Created Successfully
 
 ## 🔍 Filter Details
 - **Name**: ${filterDetails.name}
@@ -93,19 +98,21 @@ ${
 4. Use in dashboard gadgets for project visibility
 
 Filter is ready for use in project tracking and reporting!`,
-          },
-        ],
-      };
-    } catch (error: any) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Error creating filter: ${error.response?.data?.errorMessages?.join(', ') || error.message}`,
-          },
-        ],
-        isError: true,
-      };
-    }
-  });
+            },
+          ],
+        };
+      } catch (error: any) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error creating filter: ${error.response?.data?.errorMessages?.join(', ') || error.message}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    },
+    session
+  );
 }

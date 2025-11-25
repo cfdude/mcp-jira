@@ -11,78 +11,82 @@ interface ListPlansArgs {
   maxResults?: number;
 }
 
-export async function handleListPlans(args: ListPlansArgs, _session?: SessionState) {
-  return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
-    try {
-      const params: any = {};
+export async function handleListPlans(args: ListPlansArgs, session?: SessionState) {
+  return withJiraContext(
+    args,
+    { requiresProject: false },
+    async (toolArgs, { axiosInstance }) => {
+      try {
+        const params: any = {};
 
-      // Add optional parameters
-      if (toolArgs.startAt) {
-        params.startAt = toolArgs.startAt;
-      }
-      if (toolArgs.maxResults) {
-        params.maxResults = toolArgs.maxResults;
-      }
-
-      const response = await axiosInstance.get(`/plans/plan`, { params });
-
-      const data = response.data;
-      const plans = data.values || [];
-
-      // Format plans with useful information
-      const formattedPlans = plans.map((plan: any) => ({
-        id: plan.id,
-        name: plan.name,
-        description: plan.description || 'No description',
-        status: plan.status || 'Unknown',
-        owner: plan.owner?.displayName || 'No owner',
-        ownerAccountId: plan.owner?.accountId || null,
-        startDate: plan.startDate || 'Not set',
-        endDate: plan.endDate || 'Not set',
-        createdDate: plan.createdDate,
-        updatedDate: plan.updatedDate,
-        teamCount: plan.teams?.length || 0,
-        issueCount: plan.issues?.length || 0,
-        categoryIds: plan.categoryIds || [],
-        projectIds: plan.projectIds || [],
-        self: plan.self,
-      }));
-
-      // Categorize plans by status
-      const activePlans = formattedPlans.filter(
-        (p: any) =>
-          p.status && p.status.toLowerCase() !== 'closed' && p.status.toLowerCase() !== 'archived'
-      );
-      const closedPlans = formattedPlans.filter(
-        (p: any) =>
-          p.status && (p.status.toLowerCase() === 'closed' || p.status.toLowerCase() === 'archived')
-      );
-
-      // Calculate timeline information
-      const today = new Date();
-      const plansWithTimeline = formattedPlans.map((plan: any) => {
-        const startDate = plan.startDate !== 'Not set' ? new Date(plan.startDate) : null;
-        const endDate = plan.endDate !== 'Not set' ? new Date(plan.endDate) : null;
-
-        let timelineStatus = 'Unknown';
-        if (startDate && endDate) {
-          if (today < startDate) {
-            timelineStatus = 'Future';
-          } else if (today > endDate) {
-            timelineStatus = 'Past Due';
-          } else {
-            timelineStatus = 'Active';
-          }
+        // Add optional parameters
+        if (toolArgs.startAt) {
+          params.startAt = toolArgs.startAt;
+        }
+        if (toolArgs.maxResults) {
+          params.maxResults = toolArgs.maxResults;
         }
 
-        return { ...plan, timelineStatus };
-      });
+        const response = await axiosInstance.get(`/plans/plan`, { params });
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `# Strategic Plans Overview
+        const data = response.data;
+        const plans = data.values || [];
+
+        // Format plans with useful information
+        const formattedPlans = plans.map((plan: any) => ({
+          id: plan.id,
+          name: plan.name,
+          description: plan.description || 'No description',
+          status: plan.status || 'Unknown',
+          owner: plan.owner?.displayName || 'No owner',
+          ownerAccountId: plan.owner?.accountId || null,
+          startDate: plan.startDate || 'Not set',
+          endDate: plan.endDate || 'Not set',
+          createdDate: plan.createdDate,
+          updatedDate: plan.updatedDate,
+          teamCount: plan.teams?.length || 0,
+          issueCount: plan.issues?.length || 0,
+          categoryIds: plan.categoryIds || [],
+          projectIds: plan.projectIds || [],
+          self: plan.self,
+        }));
+
+        // Categorize plans by status
+        const activePlans = formattedPlans.filter(
+          (p: any) =>
+            p.status && p.status.toLowerCase() !== 'closed' && p.status.toLowerCase() !== 'archived'
+        );
+        const closedPlans = formattedPlans.filter(
+          (p: any) =>
+            p.status &&
+            (p.status.toLowerCase() === 'closed' || p.status.toLowerCase() === 'archived')
+        );
+
+        // Calculate timeline information
+        const today = new Date();
+        const plansWithTimeline = formattedPlans.map((plan: any) => {
+          const startDate = plan.startDate !== 'Not set' ? new Date(plan.startDate) : null;
+          const endDate = plan.endDate !== 'Not set' ? new Date(plan.endDate) : null;
+
+          let timelineStatus = 'Unknown';
+          if (startDate && endDate) {
+            if (today < startDate) {
+              timelineStatus = 'Future';
+            } else if (today > endDate) {
+              timelineStatus = 'Past Due';
+            } else {
+              timelineStatus = 'Active';
+            }
+          }
+
+          return { ...plan, timelineStatus };
+        });
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `# Strategic Plans Overview
 
 ## 📊 Summary
 - **Total Plans**: ${formattedPlans.length}
@@ -161,17 +165,17 @@ ${
     ? `\n**Pagination**: Showing ${formattedPlans.length} of ${data.total} total plans. Use startAt and maxResults parameters to see more.`
     : ''
 }`,
-          },
-        ],
-      };
-    } catch (error: any) {
-      // Check if it's a 404 or permission error (feature not available)
-      if (error.response?.status === 404 || error.response?.status === 403) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `# Plans Feature Not Available
+            },
+          ],
+        };
+      } catch (error: any) {
+        // Check if it's a 404 or permission error (feature not available)
+        if (error.response?.status === 404 || error.response?.status === 403) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `# Plans Feature Not Available
 
 The Plans feature is not available in this Jira instance. This could be due to:
 
@@ -188,20 +192,22 @@ Consider using these alternatives for strategic planning:
 - **Dashboards**: Create custom dashboards to track progress across projects
 
 Contact your Jira administrator if you need access to the Plans feature.`,
+              },
+            ],
+          };
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error listing plans: ${error.response?.data?.errorMessages?.join(', ') || error.message}`,
             },
           ],
+          isError: true,
         };
       }
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Error listing plans: ${error.response?.data?.errorMessages?.join(', ') || error.message}`,
-          },
-        ],
-        isError: true,
-      };
-    }
-  });
+    },
+    session
+  );
 }

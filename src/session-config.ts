@@ -4,6 +4,8 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { loadOpenCodeEnvironment, normalizePotentialPath } from './utils/opencode-config.js';
+import { getJiraApiToken, getJiraDomain, getJiraEmail } from './utils/env.js';
 import {
   JiraConfig,
   MultiInstanceJiraConfig,
@@ -13,11 +15,6 @@ import {
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import type { SessionState } from './session-manager.js';
 import logger from './utils/logger.js';
-
-// Legacy environment variables (for backward compatibility)
-export const JIRA_EMAIL = process.env.JIRA_EMAIL as string;
-export const JIRA_API_TOKEN = process.env.JIRA_API_TOKEN as string;
-export const JIRA_DOMAIN = process.env.JIRA_DOMAIN as string;
 
 /**
  * Load multi-instance configuration with session-specific caching
@@ -42,6 +39,47 @@ export async function loadMultiInstanceConfigForSession(
     workingDir,
   });
 
+  const serverKey = process.env.JIRA_MCP_KEY || 'jira';
+  let explicitConfigPath = process.env.JIRA_CONFIG_PATH;
+
+  try {
+    const openCodeEnv = await loadOpenCodeEnvironment(workingDir, serverKey);
+    if (openCodeEnv) {
+      logger.info('OpenCode MCP configuration detected for session', {
+        sessionId: session.sessionId,
+        serverKey: openCodeEnv.serverKey,
+        configPath: openCodeEnv.configPath,
+      });
+
+      for (const [envKey, envValue] of Object.entries(openCodeEnv.environment)) {
+        if (process.env[envKey] === undefined) {
+          process.env[envKey] = envValue;
+          logger.debug('Applied environment variable from OpenCode config', {
+            sessionId: session.sessionId,
+            envKey,
+          });
+        }
+      }
+
+      if (!explicitConfigPath && openCodeEnv.environment.JIRA_CONFIG_PATH) {
+        explicitConfigPath = openCodeEnv.environment.JIRA_CONFIG_PATH;
+      }
+    }
+  } catch (error) {
+    logger.warn('Failed to resolve OpenCode configuration for session', {
+      sessionId: session.sessionId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  if (explicitConfigPath) {
+    explicitConfigPath = normalizePotentialPath(explicitConfigPath, workingDir || process.cwd());
+    logger.debug('Explicit JIRA config path for session', {
+      sessionId: session.sessionId,
+      configPath: explicitConfigPath,
+    });
+  }
+
   // List of potential config locations (see CONFIG_SEARCH_PATHS.md for details)
   const configLocations = [
     workingDir, // Project-specific config
@@ -51,18 +89,34 @@ export async function loadMultiInstanceConfigForSession(
     path.join(process.cwd(), '..'), // Parent directory (legacy)
   ];
 
+  const configCandidates: string[] = [];
+  if (explicitConfigPath) {
+    configCandidates.push(explicitConfigPath);
+  }
+  for (const location of configLocations) {
+    configCandidates.push(path.join(location, '.jira-config.json'));
+  }
+
+  const attemptedPaths: string[] = [];
+  const seen = new Set<string>();
   let lastError: Error | null = null;
 
-  // Try each location
-  for (const location of configLocations) {
+  // Try each candidate path
+  for (const candidatePath of configCandidates) {
+    const normalized = path.resolve(candidatePath);
+    if (seen.has(normalized)) {
+      continue;
+    }
+    seen.add(normalized);
+    attemptedPaths.push(candidatePath);
+
     try {
-      const configPath = path.join(location, '.jira-config.json');
       logger.debug('Trying config path', {
         sessionId: session.sessionId,
-        configPath,
+        configPath: candidatePath,
       });
 
-      const configContent = await fs.promises.readFile(configPath, 'utf-8');
+      const configContent = await fs.promises.readFile(candidatePath, 'utf-8');
       const rawConfig = JSON.parse(configContent);
 
       let config: MultiInstanceJiraConfig;
@@ -84,9 +138,9 @@ export async function loadMultiInstanceConfigForSession(
 
         // Create default instance from environment variables or legacy config
         const instanceConfig: JiraInstanceConfig = {
-          email: JIRA_EMAIL || '',
-          apiToken: JIRA_API_TOKEN || '',
-          domain: JIRA_DOMAIN || '',
+          email: getJiraEmail() || '',
+          apiToken: getJiraApiToken() || '',
+          domain: getJiraDomain() || '',
         };
 
         // Validate that we have credentials
@@ -119,7 +173,7 @@ export async function loadMultiInstanceConfigForSession(
 
       logger.info('Successfully loaded config for session', {
         sessionId: session.sessionId,
-        configPath,
+        configPath: candidatePath,
         instances: Object.keys(config.instances),
         projects: Object.keys(config.projects || {}),
       });
@@ -127,9 +181,9 @@ export async function loadMultiInstanceConfigForSession(
       return config;
     } catch (error) {
       lastError = error as Error;
-      logger.debug('Config loading failed at location', {
+      logger.debug('Config loading failed at path', {
         sessionId: session.sessionId,
-        location,
+        configPath: candidatePath,
         error: error instanceof Error ? error.message : String(error),
       });
       continue;
@@ -140,13 +194,13 @@ export async function loadMultiInstanceConfigForSession(
   logger.error('No valid configuration found for session', {
     sessionId: session.sessionId,
     workingDir,
-    attemptedLocations: configLocations,
+    attemptedPaths,
     lastError: lastError?.message,
   });
 
   throw new McpError(
     ErrorCode.InvalidRequest,
-    `No valid .jira-config.json found in any of the expected locations: ${configLocations.join(', ')}. Last error: ${lastError?.message}`
+    `No valid .jira-config.json found in any of the expected locations. Tried: ${attemptedPaths.join(', ')}. Last error: ${lastError?.message}`
   );
 }
 

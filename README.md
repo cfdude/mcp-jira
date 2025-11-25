@@ -408,6 +408,27 @@ For single Jira instance setups, use the simplified format:
 }
 ```
 
+
+**For OpenCode** (`opencode.json` in project or `~/.config/opencode/opencode.json`):
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "jira": {
+      "type": "local",
+      "command": ["node", "build/index.js"],
+      "enabled": true,
+      "environment": {
+        "JIRA_CONFIG_PATH": "./config/.jira-config.json"
+      }
+    }
+  }
+}
+```
+
+`JIRA_CONFIG_PATH` can be absolute, relative to the config file, or use `~` for the home directory. If you register the server under a different MCP name, set `JIRA_MCP_KEY` to that value so the loader can locate the correct block.
+
 #### 4. Cross-Server Integration Configuration
 
 For cross-server integration between Jira and Confluence MCP servers, you'll need to install and configure the companion [confluence-cloud-mcp](https://github.com/cfdude/confluence-cloud-mcp) server alongside this Jira server.

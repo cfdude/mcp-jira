@@ -10,94 +10,97 @@ interface GetPlanTeamsArgs {
   planId: string;
 }
 
-export async function handleGetPlanTeams(args: GetPlanTeamsArgs, _session?: SessionState) {
-  return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
-    try {
-      const response = await axiosInstance.get(`/plans/plan/${toolArgs.planId}/team`);
+export async function handleGetPlanTeams(args: GetPlanTeamsArgs, session?: SessionState) {
+  return withJiraContext(
+    args,
+    { requiresProject: false },
+    async (toolArgs, { axiosInstance }) => {
+      try {
+        const response = await axiosInstance.get(`/plans/plan/${toolArgs.planId}/team`);
 
-      const teams = response.data;
+        const teams = response.data;
 
-      // Format team information for display
-      const formatTeamDetails = (team: any) => {
-        let details = [];
+        // Format team information for display
+        const formatTeamDetails = (team: any) => {
+          let details = [];
 
-        details.push(`**ID**: ${team.id}`);
-        details.push(`**Name**: ${team.name}`);
-        details.push(`**Type**: ${team.type || 'Unknown'}`);
+          details.push(`**ID**: ${team.id}`);
+          details.push(`**Name**: ${team.name}`);
+          details.push(`**Type**: ${team.type || 'Unknown'}`);
 
-        if (team.description) {
-          details.push(`**Description**: ${team.description}`);
-        }
+          if (team.description) {
+            details.push(`**Description**: ${team.description}`);
+          }
 
-        if (team.lead) {
-          details.push(`**Lead**: ${team.lead.displayName || team.lead.accountId}`);
-        }
+          if (team.lead) {
+            details.push(`**Lead**: ${team.lead.displayName || team.lead.accountId}`);
+          }
 
-        if (team.members && team.members.length > 0) {
-          details.push(`**Members**: ${team.members.length} member(s)`);
-        }
+          if (team.members && team.members.length > 0) {
+            details.push(`**Members**: ${team.members.length} member(s)`);
+          }
 
-        if (team.sharePermissions && team.sharePermissions.length > 0) {
-          details.push(`**Permissions**: ${team.sharePermissions.length} permission rule(s)`);
-        }
+          if (team.sharePermissions && team.sharePermissions.length > 0) {
+            details.push(`**Permissions**: ${team.sharePermissions.length} permission rule(s)`);
+          }
 
-        if (team.organizationId) {
-          details.push(`**Organization ID**: ${team.organizationId}`);
-        }
+          if (team.organizationId) {
+            details.push(`**Organization ID**: ${team.organizationId}`);
+          }
 
-        return details.join('\n');
-      };
+          return details.join('\n');
+        };
 
-      // Format team members
-      const formatTeamMembers = (members: any[]) => {
-        if (!members || members.length === 0) return 'No members listed';
+        // Format team members
+        const formatTeamMembers = (members: any[]) => {
+          if (!members || members.length === 0) return 'No members listed';
 
-        return members
-          .map((member, index) => {
-            let memberInfo = `${index + 1}. **${member.displayName || member.accountId}**`;
-            if (member.emailAddress) memberInfo += ` (${member.emailAddress})`;
-            if (member.accountType) memberInfo += ` - ${member.accountType}`;
-            return memberInfo;
-          })
-          .join('\n');
-      };
+          return members
+            .map((member, index) => {
+              let memberInfo = `${index + 1}. **${member.displayName || member.accountId}**`;
+              if (member.emailAddress) memberInfo += ` (${member.emailAddress})`;
+              if (member.accountType) memberInfo += ` - ${member.accountType}`;
+              return memberInfo;
+            })
+            .join('\n');
+        };
 
-      // Format permissions
-      const formatPermissions = (permissions: any[]) => {
-        if (!permissions || permissions.length === 0) return 'No specific permissions configured';
+        // Format permissions
+        const formatPermissions = (permissions: any[]) => {
+          if (!permissions || permissions.length === 0) return 'No specific permissions configured';
 
-        return permissions
-          .map((perm, index) => {
-            let permInfo = `${index + 1}. **${perm.type || 'Unknown'}**`;
-            if (perm.holder) {
-              permInfo += ` - ${perm.holder.type}: ${perm.holder.value}`;
-            }
-            return permInfo;
-          })
-          .join('\n');
-      };
+          return permissions
+            .map((perm, index) => {
+              let permInfo = `${index + 1}. **${perm.type || 'Unknown'}**`;
+              if (perm.holder) {
+                permInfo += ` - ${perm.holder.type}: ${perm.holder.value}`;
+              }
+              return permInfo;
+            })
+            .join('\n');
+        };
 
-      // Categorize teams by type
-      const atlassianTeams = teams.filter(
-        (team: any) => team.type === 'ATLAS_TEAM' || team.type === 'ATLASSIAN'
-      );
-      const planOnlyTeams = teams.filter(
-        (team: any) => team.type === 'PLAN_ONLY' || !team.type || team.type === 'UNKNOWN'
-      );
-      const otherTeams = teams.filter(
-        (team: any) =>
-          team.type &&
-          team.type !== 'ATLAS_TEAM' &&
-          team.type !== 'ATLASSIAN' &&
-          team.type !== 'PLAN_ONLY' &&
-          team.type !== 'UNKNOWN'
-      );
+        // Categorize teams by type
+        const atlassianTeams = teams.filter(
+          (team: any) => team.type === 'ATLAS_TEAM' || team.type === 'ATLASSIAN'
+        );
+        const planOnlyTeams = teams.filter(
+          (team: any) => team.type === 'PLAN_ONLY' || !team.type || team.type === 'UNKNOWN'
+        );
+        const otherTeams = teams.filter(
+          (team: any) =>
+            team.type &&
+            team.type !== 'ATLAS_TEAM' &&
+            team.type !== 'ATLASSIAN' &&
+            team.type !== 'PLAN_ONLY' &&
+            team.type !== 'UNKNOWN'
+        );
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `# Plan Teams: ${toolArgs.planId}
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `# Plan Teams: ${toolArgs.planId}
 
 ## 📊 Team Summary
 - **Total Teams**: ${teams.length}
@@ -218,17 +221,17 @@ ${teams.map((team: any) => `- ${team.name}: ${team.sharePermissions?.length || 0
 
 ## ⚠️ Note
 Plans are a Jira Premium feature requiring Advanced Roadmaps. Team management capabilities depend on your organization's Atlassian setup and permissions.`,
-          },
-        ],
-      };
-    } catch (error: any) {
-      // Check for specific error types
-      if (error.response?.status === 404) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `# Plan Teams Not Found
+            },
+          ],
+        };
+      } catch (error: any) {
+        // Check for specific error types
+        if (error.response?.status === 404) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `# Plan Teams Not Found
 
 Could not retrieve teams for plan \`${toolArgs.planId}\`. This could be due to:
 
@@ -244,17 +247,17 @@ Could not retrieve teams for plan \`${toolArgs.planId}\`. This could be due to:
 ## Alternative Actions
 - Use \`list-plans\` to see all available plans
 - Use \`get-plan\` to view basic plan information including team count`,
-            },
-          ],
-        };
-      }
+              },
+            ],
+          };
+        }
 
-      if (error.response?.status === 403) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `# Access Denied
+        if (error.response?.status === 403) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `# Access Denied
 
 You don't have permission to view teams for plan \`${toolArgs.planId}\`. This could be due to:
 
@@ -270,20 +273,22 @@ Consider using these alternatives for team planning:
 - **Labels**: Use labels to categorize work by team
 
 Contact your Jira administrator if you need access to the Plans feature.`,
+              },
+            ],
+          };
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error retrieving plan teams: ${error.response?.data?.errorMessages?.join(', ') || error.message}`,
             },
           ],
+          isError: true,
         };
       }
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Error retrieving plan teams: ${error.response?.data?.errorMessages?.join(', ') || error.message}`,
-          },
-        ],
-        isError: true,
-      };
-    }
-  });
+    },
+    session
+  );
 }

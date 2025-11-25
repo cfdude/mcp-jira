@@ -10,16 +10,19 @@ interface ArchivePlanArgs {
   planId: string;
 }
 
-export async function handleArchivePlan(args: ArchivePlanArgs, _session?: SessionState) {
-  return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
-    try {
-      await axiosInstance.post(`/plans/plan/${toolArgs.planId}/archive`);
+export async function handleArchivePlan(args: ArchivePlanArgs, session?: SessionState) {
+  return withJiraContext(
+    args,
+    { requiresProject: false },
+    async (toolArgs, { axiosInstance }) => {
+      try {
+        await axiosInstance.post(`/plans/plan/${toolArgs.planId}/archive`);
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `# Plan Archived Successfully
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `# Plan Archived Successfully
 
 ## ✅ Operation Complete
 Plan \`${toolArgs.planId}\` has been successfully archived.
@@ -146,17 +149,17 @@ Plan \`${toolArgs.planId}\` has been successfully archived.
 - **Future Reference**: Consider archived plans when planning similar initiatives
 
 Plans are a Jira Premium feature requiring Advanced Roadmaps. Ensure your instance has this feature enabled and you have appropriate permissions.`,
-          },
-        ],
-      };
-    } catch (error: any) {
-      // Check for specific error types
-      if (error.response?.status === 404) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `# Plan Not Found
+            },
+          ],
+        };
+      } catch (error: any) {
+        // Check for specific error types
+        if (error.response?.status === 404) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `# Plan Not Found
 
 Could not archive plan \`${toolArgs.planId}\` because it was not found. This could be due to:
 
@@ -183,17 +186,17 @@ If the plan is already archived:
 - No further action is needed
 - Use \`get-plan\` to view the archived plan details
 - The plan is already in the desired archived state`,
-            },
-          ],
-        };
-      }
+              },
+            ],
+          };
+        }
 
-      if (error.response?.status === 403) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `# Access Denied
+        if (error.response?.status === 403) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `# Access Denied
 
 You don't have permission to archive plan \`${toolArgs.planId}\`. This could be due to:
 
@@ -221,17 +224,17 @@ To archive plans, you typically need:
 - Contact your organization's Jira administrators for assistance
 
 Contact your Jira administrator if you need access to archive plans.`,
-            },
-          ],
-        };
-      }
+              },
+            ],
+          };
+        }
 
-      if (error.response?.status === 400) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `# Cannot Archive Plan
+        if (error.response?.status === 400) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `# Cannot Archive Plan
 
 Plan \`${toolArgs.planId}\` cannot be archived at this time. This could be due to:
 
@@ -261,17 +264,17 @@ Before archiving a plan, consider:
 - Complete remaining work before archiving
 - Use \`update-plan\` to resolve any blocking issues
 - Contact plan stakeholders to coordinate closure`,
-            },
-          ],
-        };
-      }
+              },
+            ],
+          };
+        }
 
-      if (error.response?.status === 409) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `# Plan Archive Conflict
+        if (error.response?.status === 409) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `# Plan Archive Conflict
 
 Plan \`${toolArgs.planId}\` cannot be archived due to a conflict. This could be due to:
 
@@ -295,20 +298,22 @@ If the plan is already archived:
 - The desired state has been achieved
 - No further action is needed
 - Use \`list-plans\` to confirm the plan appears in archived section`,
+              },
+            ],
+          };
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error archiving plan: ${error.response?.data?.errorMessages?.join(', ') || error.message}`,
             },
           ],
+          isError: true,
         };
       }
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Error archiving plan: ${error.response?.data?.errorMessages?.join(', ') || error.message}`,
-          },
-        ],
-        isError: true,
-      };
-    }
-  });
+    },
+    session
+  );
 }
