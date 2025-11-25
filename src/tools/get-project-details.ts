@@ -11,97 +11,97 @@ interface GetProjectDetailsArgs {
   expand?: string;
 }
 
-export async function handleGetProjectDetails(
-  args: GetProjectDetailsArgs,
-  _session?: SessionState
-) {
-  return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
-    try {
-      const projectKey = toolArgs.projectKey;
-      const expand =
-        toolArgs.expand || 'description,lead,url,projectKeys,permissions,insight,features';
+export async function handleGetProjectDetails(args: GetProjectDetailsArgs, session?: SessionState) {
+  return withJiraContext(
+    args,
+    { requiresProject: false },
+    async (toolArgs, { axiosInstance }) => {
+      try {
+        const projectKey = toolArgs.projectKey;
+        const expand =
+          toolArgs.expand || 'description,lead,url,projectKeys,permissions,insight,features';
 
-      // Get project details
-      console.error(
-        `[get-project-details] Requesting: /project/${projectKey} with expand: ${expand}`
-      );
-      const response = await axiosInstance.get(`/project/${projectKey}`, {
-        params: { expand },
-      });
+        // Get project details
+        console.error(
+          `[get-project-details] Requesting: /project/${projectKey} with expand: ${expand}`
+        );
+        const response = await axiosInstance.get(`/project/${projectKey}`, {
+          params: { expand },
+        });
 
-      const project = response.data;
+        const project = response.data;
 
-      // Get additional project information in parallel
-      const additionalDataPromises = [];
+        // Get additional project information in parallel
+        const additionalDataPromises = [];
 
-      // Get project versions
-      additionalDataPromises.push(
-        axiosInstance
-          .get(`/project/${projectKey}/versions`)
-          .then(res => ({ type: 'versions', data: res.data }))
-          .catch(() => ({ type: 'versions', data: [] }))
-      );
+        // Get project versions
+        additionalDataPromises.push(
+          axiosInstance
+            .get(`/project/${projectKey}/versions`)
+            .then(res => ({ type: 'versions', data: res.data }))
+            .catch(() => ({ type: 'versions', data: [] }))
+        );
 
-      // Get project components
-      additionalDataPromises.push(
-        axiosInstance
-          .get(`/project/${projectKey}/components`)
-          .then(res => ({ type: 'components', data: res.data }))
-          .catch(() => ({ type: 'components', data: [] }))
-      );
+        // Get project components
+        additionalDataPromises.push(
+          axiosInstance
+            .get(`/project/${projectKey}/components`)
+            .then(res => ({ type: 'components', data: res.data }))
+            .catch(() => ({ type: 'components', data: [] }))
+        );
 
-      // Get project roles
-      additionalDataPromises.push(
-        axiosInstance
-          .get(`/project/${projectKey}/role`)
-          .then(res => ({ type: 'roles', data: res.data }))
-          .catch(() => ({ type: 'roles', data: {} }))
-      );
+        // Get project roles
+        additionalDataPromises.push(
+          axiosInstance
+            .get(`/project/${projectKey}/role`)
+            .then(res => ({ type: 'roles', data: res.data }))
+            .catch(() => ({ type: 'roles', data: {} }))
+        );
 
-      // Get project issue type hierarchy
-      additionalDataPromises.push(
-        axiosInstance
-          .get(`/project/${projectKey}/hierarchy`)
-          .then(res => ({ type: 'hierarchy', data: res.data }))
-          .catch(() => ({ type: 'hierarchy', data: [] }))
-      );
+        // Get project issue type hierarchy
+        additionalDataPromises.push(
+          axiosInstance
+            .get(`/project/${projectKey}/hierarchy`)
+            .then(res => ({ type: 'hierarchy', data: res.data }))
+            .catch(() => ({ type: 'hierarchy', data: [] }))
+        );
 
-      // Get project features (if available)
-      additionalDataPromises.push(
-        axiosInstance
-          .get(`/project/${projectKey}/features`)
-          .then(res => ({ type: 'features', data: res.data }))
-          .catch(() => ({ type: 'features', data: {} }))
-      );
+        // Get project features (if available)
+        additionalDataPromises.push(
+          axiosInstance
+            .get(`/project/${projectKey}/features`)
+            .then(res => ({ type: 'features', data: res.data }))
+            .catch(() => ({ type: 'features', data: {} }))
+        );
 
-      const additionalData = await Promise.all(additionalDataPromises);
-      const dataMap = additionalData.reduce((acc, item) => {
-        acc[item.type] = item.data;
-        return acc;
-      }, {} as any);
+        const additionalData = await Promise.all(additionalDataPromises);
+        const dataMap = additionalData.reduce((acc, item) => {
+          acc[item.type] = item.data;
+          return acc;
+        }, {} as any);
 
-      // Process versions
-      const versions = dataMap.versions || [];
-      const activeVersions = versions.filter((v: any) => !v.released && !v.archived);
-      const releasedVersions = versions.filter((v: any) => v.released);
+        // Process versions
+        const versions = dataMap.versions || [];
+        const activeVersions = versions.filter((v: any) => !v.released && !v.archived);
+        const releasedVersions = versions.filter((v: any) => v.released);
 
-      // Process components
-      const components = dataMap.components || [];
+        // Process components
+        const components = dataMap.components || [];
 
-      // Process roles
-      const roles = dataMap.roles || {};
+        // Process roles
+        const roles = dataMap.roles || {};
 
-      // Process hierarchy
-      const hierarchy = dataMap.hierarchy || [];
+        // Process hierarchy
+        const hierarchy = dataMap.hierarchy || [];
 
-      // Process features
-      const features = dataMap.features || {};
+        // Process features
+        const features = dataMap.features || {};
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `# Project Details: ${project.name}
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `# Project Details: ${project.name}
 
 ## 📋 Basic Information
 - **Key**: ${project.key}
@@ -213,19 +213,21 @@ ${
 
 ${project.archived ? '📦 **This project is archived**' : ''}
 ${project.deleted ? '🗑️ **This project is deleted**' : ''}`,
-          },
-        ],
-      };
-    } catch (error: any) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Error getting project details: ${error.response?.data?.errorMessages?.join(', ') || error.message}`,
-          },
-        ],
-        isError: true,
-      };
-    }
-  });
+            },
+          ],
+        };
+      } catch (error: any) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error getting project details: ${error.response?.data?.errorMessages?.join(', ') || error.message}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    },
+    session
+  );
 }

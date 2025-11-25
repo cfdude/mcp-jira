@@ -3,7 +3,7 @@
  */
 import axios, { AxiosInstance } from 'axios';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
-import { JIRA_DOMAIN, JIRA_EMAIL, JIRA_API_TOKEN } from '../session-config.js';
+import { getJiraApiToken, getJiraDomain, getJiraEmail } from './env.js';
 import { JiraInstanceConfig } from '../types.js';
 
 /**
@@ -11,9 +11,9 @@ import { JiraInstanceConfig } from '../types.js';
  */
 export function createJiraApiInstances(instanceConfig?: JiraInstanceConfig) {
   // Use instance config if provided, otherwise fall back to environment variables
-  const domain = instanceConfig?.domain || JIRA_DOMAIN;
-  const email = instanceConfig?.email || JIRA_EMAIL;
-  const apiToken = instanceConfig?.apiToken || JIRA_API_TOKEN;
+  const domain = instanceConfig?.domain || getJiraDomain();
+  const email = instanceConfig?.email || getJiraEmail();
+  const apiToken = instanceConfig?.apiToken || getJiraApiToken();
 
   if (!domain || !email || !apiToken) {
     throw new McpError(
@@ -158,52 +158,27 @@ export async function inspectIssueFields(
 ): Promise<void> {
   // Get field configuration first
   const fieldConfigResponse = await axiosInstance.get('/field');
-
-  // Look specifically for Story Points field
   const storyPointsFields = fieldConfigResponse.data.filter((field: any) => {
-    const nameMatch = field.name?.toLowerCase().includes('story point');
-    const descMatch = field.description?.toLowerCase().includes('story point');
-    return nameMatch || descMatch;
+    // Look specifically for "Story Points" field
+    return field.name === 'Story Points';
   });
 
-  console.error('Story Points Fields:', JSON.stringify(storyPointsFields, null, 2));
+  if (storyPointsFields.length === 0) {
+    console.error(`Story Points field not found for issue ${issueKey} in project ${projectKey}.`);
+    console.error('Available fields:', JSON.stringify(fieldConfigResponse.data, null, 2));
+  } else {
+    const field = storyPointsFields[0];
+    console.error(`Found Story Points field: ${field.name} (${field.id})`);
 
-  // Get available field metadata for the project
-  const metadataResponse = await axiosInstance.get('/issue/createmeta', {
-    params: {
-      projectKeys: projectKey,
-      expand: 'projects.issuetypes.fields',
-    },
-  });
+    const issueResponse = await axiosInstance.get(`/issue/${issueKey}`, {
+      params: {
+        fields: field.id,
+      },
+    });
 
-  // Look for Story Points in available fields
-  const availableFields = metadataResponse.data.projects[0].issuetypes[0].fields;
-  const storyPointsInMeta = Object.entries(availableFields).filter(
-    ([_, value]: [string, any]) =>
-      value.name?.toLowerCase().includes('story point') ||
-      value.description?.toLowerCase().includes('story point')
-  );
-
-  console.error('Story Points in Metadata:', JSON.stringify(storyPointsInMeta, null, 2));
-
-  // Get current field values
-  const response = await axiosInstance.get(`/issue/${issueKey}`, {
-    params: {
-      expand: 'renderedFields,names,schema,editmeta',
-      fields: '*all',
-    },
-  });
-
-  // Look for potential Story Points values in custom fields
-  const customFields = Object.entries(response.data.fields)
-    .filter(
-      ([key, value]) =>
-        key.startsWith('customfield_') && (typeof value === 'number' || value === null)
-    )
-    .reduce((acc: any, [key, value]) => {
-      acc[key] = value;
-      return acc;
-    }, {});
-
-  console.error('Potential Story Points Fields:', JSON.stringify(customFields, null, 2));
+    console.error(
+      `Story points value for ${issueKey}:`,
+      issueResponse.data.fields[field.id] ?? 'Field not populated'
+    );
+  }
 }

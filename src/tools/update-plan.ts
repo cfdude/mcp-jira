@@ -17,75 +17,78 @@ interface UpdatePlanArgs {
   useGroupId?: boolean;
 }
 
-export async function handleUpdatePlan(args: UpdatePlanArgs, _session?: SessionState) {
-  return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
-    try {
-      const params: any = {};
-      if (toolArgs.useGroupId) {
-        params.useGroupId = toolArgs.useGroupId;
-      }
-
-      const response = await axiosInstance.patch(
-        `/plans/plan/${toolArgs.planId}`,
-        toolArgs.operations,
-        {
-          params,
-          headers: {
-            'Content-Type': 'application/json-patch+json',
-          },
+export async function handleUpdatePlan(args: UpdatePlanArgs, session?: SessionState) {
+  return withJiraContext(
+    args,
+    { requiresProject: false },
+    async (toolArgs, { axiosInstance }) => {
+      try {
+        const params: any = {};
+        if (toolArgs.useGroupId) {
+          params.useGroupId = toolArgs.useGroupId;
         }
-      );
 
-      // Format the operations for display
-      const formatOperations = (operations: any[]) => {
-        return operations
-          .map((op, index) => {
-            let description = `${index + 1}. **${op.op.toUpperCase()}**`;
-
-            switch (op.op) {
-              case 'replace':
-                description += ` \`${op.path}\` with new value`;
-                break;
-              case 'add':
-                description += ` new value to \`${op.path}\``;
-                break;
-              case 'remove':
-                description += ` \`${op.path}\``;
-                break;
-              case 'move':
-                description += ` from \`${op.from}\` to \`${op.path}\``;
-                break;
-              case 'copy':
-                description += ` from \`${op.from}\` to \`${op.path}\``;
-                break;
-              case 'test':
-                description += ` that \`${op.path}\` has expected value`;
-                break;
-              default:
-                description += ` operation on \`${op.path}\``;
-            }
-
-            if (op.value !== undefined && op.op !== 'remove' && op.op !== 'move') {
-              const valueStr =
-                typeof op.value === 'object'
-                  ? JSON.stringify(op.value).substring(0, 100) +
-                    (JSON.stringify(op.value).length > 100 ? '...' : '')
-                  : String(op.value);
-              description += `\n   - Value: \`${valueStr}\``;
-            }
-
-            return description;
-          })
-          .join('\n\n');
-      };
-
-      const updatedPlan = response.data;
-
-      return {
-        content: [
+        const response = await axiosInstance.patch(
+          `/plans/plan/${toolArgs.planId}`,
+          toolArgs.operations,
           {
-            type: 'text',
-            text: `# Plan Updated Successfully
+            params,
+            headers: {
+              'Content-Type': 'application/json-patch+json',
+            },
+          }
+        );
+
+        // Format the operations for display
+        const formatOperations = (operations: any[]) => {
+          return operations
+            .map((op, index) => {
+              let description = `${index + 1}. **${op.op.toUpperCase()}**`;
+
+              switch (op.op) {
+                case 'replace':
+                  description += ` \`${op.path}\` with new value`;
+                  break;
+                case 'add':
+                  description += ` new value to \`${op.path}\``;
+                  break;
+                case 'remove':
+                  description += ` \`${op.path}\``;
+                  break;
+                case 'move':
+                  description += ` from \`${op.from}\` to \`${op.path}\``;
+                  break;
+                case 'copy':
+                  description += ` from \`${op.from}\` to \`${op.path}\``;
+                  break;
+                case 'test':
+                  description += ` that \`${op.path}\` has expected value`;
+                  break;
+                default:
+                  description += ` operation on \`${op.path}\``;
+              }
+
+              if (op.value !== undefined && op.op !== 'remove' && op.op !== 'move') {
+                const valueStr =
+                  typeof op.value === 'object'
+                    ? JSON.stringify(op.value).substring(0, 100) +
+                      (JSON.stringify(op.value).length > 100 ? '...' : '')
+                    : String(op.value);
+                description += `\n   - Value: \`${valueStr}\``;
+              }
+
+              return description;
+            })
+            .join('\n\n');
+        };
+
+        const updatedPlan = response.data;
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `# Plan Updated Successfully
 
 ## 📋 Updated Plan Details
 - **Plan ID**: ${toolArgs.planId}
@@ -155,17 +158,17 @@ Here are some frequently used JSON Patch paths for plan updates:
 
 ## ⚠️ Note
 Plans are a Jira Premium feature requiring Advanced Roadmaps. Some operations may require specific permissions or feature availability.`,
-          },
-        ],
-      };
-    } catch (error: any) {
-      // Check for specific error types
-      if (error.response?.status === 404) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `# Plan Not Found
+            },
+          ],
+        };
+      } catch (error: any) {
+        // Check for specific error types
+        if (error.response?.status === 404) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `# Plan Not Found
 
 The plan with ID \`${toolArgs.planId}\` could not be found for updating. This could be due to:
 
@@ -181,17 +184,17 @@ The plan with ID \`${toolArgs.planId}\` could not be found for updating. This co
 ## Alternative Actions
 - Use \`list-plans\` to see all available plans
 - Use \`create-plan\` to create a new strategic plan if needed`,
-            },
-          ],
-        };
-      }
+              },
+            ],
+          };
+        }
 
-      if (error.response?.status === 403) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `# Access Denied
+        if (error.response?.status === 403) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `# Access Denied
 
 You don't have permission to update plan \`${toolArgs.planId}\`. This could be due to:
 
@@ -200,17 +203,17 @@ You don't have permission to update plan \`${toolArgs.planId}\`. This could be d
 - **Plan Permissions**: The plan may have specific edit permissions that exclude you
 
 Contact your Jira administrator if you need access to update plans.`,
-            },
-          ],
-        };
-      }
+              },
+            ],
+          };
+        }
 
-      if (error.response?.status === 400) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `# Invalid Update Operations
+        if (error.response?.status === 400) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `# Invalid Update Operations
 
 The update operations could not be applied to plan \`${toolArgs.planId}\`. This could be due to:
 
@@ -239,20 +242,22 @@ Each operation should follow this structure:
 - Values must match the expected data type
 - Required fields cannot be removed
 - Some fields may be read-only`,
+              },
+            ],
+          };
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error updating plan: ${error.response?.data?.errorMessages?.join(', ') || error.message}`,
             },
           ],
+          isError: true,
         };
       }
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Error updating plan: ${error.response?.data?.errorMessages?.join(', ') || error.message}`,
-          },
-        ],
-        isError: true,
-      };
-    }
-  });
+    },
+    session
+  );
 }

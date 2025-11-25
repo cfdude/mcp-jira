@@ -52,53 +52,56 @@ interface CreatePlanArgs {
   useGroupId?: boolean;
 }
 
-export async function handleCreatePlan(args: CreatePlanArgs, _session?: SessionState) {
-  return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
-    try {
-      const requestBody: any = {
-        name: toolArgs.name,
-        issueSources: toolArgs.issueSources,
-      };
+export async function handleCreatePlan(args: CreatePlanArgs, session?: SessionState) {
+  return withJiraContext(
+    args,
+    { requiresProject: false },
+    async (toolArgs, { axiosInstance }) => {
+      try {
+        const requestBody: any = {
+          name: toolArgs.name,
+          issueSources: toolArgs.issueSources,
+        };
 
-      // Add optional fields
-      if (toolArgs.leadAccountId) {
-        requestBody.leadAccountId = toolArgs.leadAccountId;
-      }
+        // Add optional fields
+        if (toolArgs.leadAccountId) {
+          requestBody.leadAccountId = toolArgs.leadAccountId;
+        }
 
-      if (toolArgs.scheduling) {
-        requestBody.scheduling = toolArgs.scheduling;
-      }
+        if (toolArgs.scheduling) {
+          requestBody.scheduling = toolArgs.scheduling;
+        }
 
-      if (toolArgs.exclusionRules) {
-        requestBody.exclusionRules = toolArgs.exclusionRules;
-      }
+        if (toolArgs.exclusionRules) {
+          requestBody.exclusionRules = toolArgs.exclusionRules;
+        }
 
-      if (toolArgs.crossProjectReleases) {
-        requestBody.crossProjectReleases = toolArgs.crossProjectReleases;
-      }
+        if (toolArgs.crossProjectReleases) {
+          requestBody.crossProjectReleases = toolArgs.crossProjectReleases;
+        }
 
-      if (toolArgs.customFields) {
-        requestBody.customFields = toolArgs.customFields;
-      }
+        if (toolArgs.customFields) {
+          requestBody.customFields = toolArgs.customFields;
+        }
 
-      if (toolArgs.permissions) {
-        requestBody.permissions = toolArgs.permissions;
-      }
+        if (toolArgs.permissions) {
+          requestBody.permissions = toolArgs.permissions;
+        }
 
-      const params: any = {};
-      if (toolArgs.useGroupId) {
-        params.useGroupId = toolArgs.useGroupId;
-      }
+        const params: any = {};
+        if (toolArgs.useGroupId) {
+          params.useGroupId = toolArgs.useGroupId;
+        }
 
-      const response = await axiosInstance.post(`/plans/plan`, requestBody, { params });
+        const response = await axiosInstance.post(`/plans/plan`, requestBody, { params });
 
-      const planId = response.data;
+        const planId = response.data;
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `# Plan Created Successfully
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `# Plan Created Successfully
 
 ## 📋 Plan Details
 - **Plan ID**: ${planId}
@@ -176,17 +179,17 @@ ${toolArgs.permissions
 
 ## ⚠️ Note
 Plans are a Jira Premium feature requiring Advanced Roadmaps. Ensure your instance has this feature enabled and you have appropriate permissions.`,
-          },
-        ],
-      };
-    } catch (error: any) {
-      // Check if it's a 404 or permission error (feature not available)
-      if (error.response?.status === 404 || error.response?.status === 403) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `# Plans Feature Not Available
+            },
+          ],
+        };
+      } catch (error: any) {
+        // Check if it's a 404 or permission error (feature not available)
+        if (error.response?.status === 404 || error.response?.status === 403) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `# Plans Feature Not Available
 
 The Plans feature is not available in this Jira instance. This could be due to:
 
@@ -203,20 +206,22 @@ Consider using these alternatives for strategic planning:
 - **Dashboards**: Create custom dashboards to track progress across projects
 
 Contact your Jira administrator if you need access to the Plans feature.`,
+              },
+            ],
+          };
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error creating plan: ${error.response?.data?.errorMessages?.join(', ') || error.message}`,
             },
           ],
+          isError: true,
         };
       }
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Error creating plan: ${error.response?.data?.errorMessages?.join(', ') || error.message}`,
-          },
-        ],
-        isError: true,
-      };
-    }
-  });
+    },
+    session
+  );
 }

@@ -3,6 +3,8 @@
  */
 import fs from 'fs';
 import path from 'path';
+import { loadOpenCodeEnvironment, normalizePotentialPath } from './utils/opencode-config.js';
+import { getJiraApiToken, getJiraDomain, getJiraEmail } from './utils/env.js';
 import {
   JiraConfig,
   MultiInstanceJiraConfig,
@@ -10,11 +12,6 @@ import {
   FieldIdDefaults,
 } from './types.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
-
-// Legacy environment variables (for backward compatibility)
-export const JIRA_EMAIL = process.env.JIRA_EMAIL as string;
-export const JIRA_API_TOKEN = process.env.JIRA_API_TOKEN as string;
-export const JIRA_DOMAIN = process.env.JIRA_DOMAIN as string;
 
 // Global configuration cache
 let globalConfig: MultiInstanceJiraConfig | null = null;
@@ -34,23 +31,74 @@ export async function loadMultiInstanceConfig(
 
   console.error('Loading multi-instance config. Received working_dir parameter:', workingDir);
 
+  const serverKey = process.env.JIRA_MCP_KEY || 'jira';
+  let explicitConfigPath = process.env.JIRA_CONFIG_PATH;
+
+  try {
+    const openCodeEnv = await loadOpenCodeEnvironment(workingDir, serverKey);
+    if (openCodeEnv) {
+      console.error(
+        `Found OpenCode MCP configuration for key '${openCodeEnv.serverKey}' at: ${openCodeEnv.configPath}`
+      );
+
+      for (const [envKey, envValue] of Object.entries(openCodeEnv.environment)) {
+        if (process.env[envKey] === undefined) {
+          process.env[envKey] = envValue;
+          console.error(`Applied environment variable from OpenCode config: ${envKey}`);
+        }
+      }
+
+      if (!explicitConfigPath && openCodeEnv.environment.JIRA_CONFIG_PATH) {
+        explicitConfigPath = openCodeEnv.environment.JIRA_CONFIG_PATH;
+      }
+    }
+  } catch (error) {
+    console.error(
+      'Failed to resolve OpenCode configuration:',
+      error instanceof Error ? error.message : String(error)
+    );
+  }
+
+  if (explicitConfigPath) {
+    explicitConfigPath = normalizePotentialPath(explicitConfigPath, workingDir || process.cwd());
+    console.error('Explicit JIRA config path detected:', explicitConfigPath);
+  }
+
   // List of potential config locations
-  const configLocations = [
+  const configSearchLocations = [
     workingDir,
     process.cwd(),
     path.resolve(path.dirname(new URL(import.meta.url).pathname), '..'),
     path.join(process.cwd(), '..'),
   ];
 
-  console.error('Will try these config locations:', configLocations);
+  console.error('Will try these config search locations:', configSearchLocations);
 
-  // Try each location
-  for (const location of configLocations) {
+  const configCandidates: string[] = [];
+  if (explicitConfigPath) {
+    configCandidates.push(explicitConfigPath);
+  }
+  for (const location of configSearchLocations) {
+    configCandidates.push(path.join(location, '.jira-config.json'));
+  }
+
+  console.error('Resolved config candidates (in priority order):', configCandidates);
+
+  const attemptedPaths: string[] = [];
+  const seen = new Set<string>();
+
+  // Try each candidate path
+  for (const candidatePath of configCandidates) {
+    const normalized = path.resolve(candidatePath);
+    if (seen.has(normalized)) {
+      continue;
+    }
+    seen.add(normalized);
+    attemptedPaths.push(candidatePath);
+
     try {
-      const configPath = path.join(location, '.jira-config.json');
-      console.error('\nTrying config path:', configPath);
-
-      const configContent = await fs.promises.readFile(configPath, 'utf-8');
+      console.error('\nTrying config path:', candidatePath);
+      const configContent = await fs.promises.readFile(candidatePath, 'utf-8');
       console.error('Found config content (truncated):', configContent.substring(0, 200) + '...');
 
       const rawConfig = JSON.parse(configContent);
@@ -60,9 +108,9 @@ export async function loadMultiInstanceConfig(
         // Multi-instance configuration
         console.error('Detected multi-instance configuration');
         globalConfig = rawConfig as MultiInstanceJiraConfig;
-        configLoadPath = configPath;
+        configLoadPath = candidatePath;
 
-        console.error('Successfully loaded multi-instance config from:', configPath);
+        console.error('Successfully loaded multi-instance config from:', candidatePath);
         console.error('Available instances:', Object.keys(globalConfig.instances));
         console.error('Configured projects:', Object.keys(globalConfig.projects || {}));
 
@@ -93,9 +141,9 @@ export async function loadMultiInstanceConfig(
 
         // Create default instance from environment variables or legacy config
         const instanceConfig: JiraInstanceConfig = {
-          email: JIRA_EMAIL || '',
-          apiToken: JIRA_API_TOKEN || '',
-          domain: JIRA_DOMAIN || '',
+          email: getJiraEmail() || '',
+          apiToken: getJiraApiToken() || '',
+          domain: getJiraDomain() || '',
         };
 
         // Validate that we have credentials
@@ -120,7 +168,7 @@ export async function loadMultiInstanceConfig(
           defaultInstance: 'default',
         };
 
-        configLoadPath = configPath;
+        configLoadPath = candidatePath;
         console.error(
           'Converted legacy config. Default instance created for project:',
           rawConfig.projectKey
@@ -128,20 +176,24 @@ export async function loadMultiInstanceConfig(
         return globalConfig;
       }
     } catch (error) {
-      console.error('Error trying location', location, ':', error);
-      // Error logged above for debugging - could be stored for future use if needed
+      console.error('Error trying config path', candidatePath, ':', error);
+      // Continue to next candidate path
     }
   }
 
   // If no config file found, try environment variables as fallback
-  if (JIRA_EMAIL && JIRA_API_TOKEN && JIRA_DOMAIN) {
+  const legacyEmail = getJiraEmail();
+  const legacyToken = getJiraApiToken();
+  const legacyDomain = getJiraDomain();
+
+  if (legacyEmail && legacyToken && legacyDomain) {
     console.error('No config file found, using environment variables as fallback');
     globalConfig = {
       instances: {
         default: {
-          email: JIRA_EMAIL,
-          apiToken: JIRA_API_TOKEN,
-          domain: JIRA_DOMAIN,
+          email: legacyEmail,
+          apiToken: legacyToken,
+          domain: legacyDomain,
         },
       },
       projects: {},
@@ -155,7 +207,7 @@ export async function loadMultiInstanceConfig(
   console.error('Failed to load config from any location');
   throw new McpError(
     ErrorCode.InvalidRequest,
-    `Failed to load Jira configuration. Tried locations: ${configLocations.join(', ')}. ` +
+    `Failed to load Jira configuration. Tried config paths: ${attemptedPaths.join(', ')}. ` +
       `Either provide a .jira-config.json file or set JIRA_EMAIL, JIRA_API_TOKEN, and JIRA_DOMAIN environment variables.`
   );
 }

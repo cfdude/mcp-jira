@@ -11,21 +11,24 @@ interface AddPlanTeamArgs {
   teamId: string;
 }
 
-export async function handleAddPlanTeam(args: AddPlanTeamArgs, _session?: SessionState) {
-  return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
-    try {
-      const response = await axiosInstance.put(
-        `/plans/plan/${toolArgs.planId}/team/${toolArgs.teamId}`
-      );
+export async function handleAddPlanTeam(args: AddPlanTeamArgs, session?: SessionState) {
+  return withJiraContext(
+    args,
+    { requiresProject: false },
+    async (toolArgs, { axiosInstance }) => {
+      try {
+        const response = await axiosInstance.put(
+          `/plans/plan/${toolArgs.planId}/team/${toolArgs.teamId}`
+        );
 
-      // The response typically contains the updated team information
-      const teamData = response.data;
+        // The response typically contains the updated team information
+        const teamData = response.data;
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `# Team Added Successfully
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `# Team Added Successfully
 
 ## ✅ Operation Complete
 Team \`${toolArgs.teamId}\` has been successfully added to plan \`${toolArgs.planId}\`.
@@ -96,18 +99,18 @@ This team addition affects:
 - Regular review of team assignments helps maintain plan effectiveness
 
 Plans are a Jira Premium feature requiring Advanced Roadmaps. Ensure your instance has this feature enabled and you have appropriate permissions.`,
-          },
-        ],
-      };
-    } catch (error: any) {
-      // Check for specific error types
-      if (error.response?.status === 404) {
-        // Could be plan not found or team not found
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `# Resource Not Found
+            },
+          ],
+        };
+      } catch (error: any) {
+        // Check for specific error types
+        if (error.response?.status === 404) {
+          // Could be plan not found or team not found
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `# Resource Not Found
 
 Could not add team \`${toolArgs.teamId}\` to plan \`${toolArgs.planId}\`. This could be due to:
 
@@ -135,17 +138,17 @@ Team IDs can be found through:
 - Use \`list-plans\` to see all available plans
 - Create a new plan if the target plan doesn't exist
 - Create a plan-only team if the team doesn't exist organizationally`,
-            },
-          ],
-        };
-      }
+              },
+            ],
+          };
+        }
 
-      if (error.response?.status === 403) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `# Access Denied
+        if (error.response?.status === 403) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `# Access Denied
 
 You don't have permission to add team \`${toolArgs.teamId}\` to plan \`${toolArgs.planId}\`. This could be due to:
 
@@ -167,17 +170,17 @@ You don't have permission to add team \`${toolArgs.teamId}\` to plan \`${toolArg
 - Create plan-only teams that you can manage within the plan scope
 
 Contact your Jira administrator if you need access to manage plan teams.`,
-            },
-          ],
-        };
-      }
+              },
+            ],
+          };
+        }
 
-      if (error.response?.status === 400) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `# Invalid Request
+        if (error.response?.status === 400) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `# Invalid Request
 
 The request to add team \`${toolArgs.teamId}\` to plan \`${toolArgs.planId}\` could not be processed. This could be due to:
 
@@ -201,17 +204,17 @@ Different team types may have different ID formats:
 - **Atlassian Teams**: Usually UUID format (e.g., \`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\`)
 - **Plan-Only Teams**: May use different ID schemes
 - **Legacy Teams**: Could have numeric or string IDs`,
-            },
-          ],
-        };
-      }
+              },
+            ],
+          };
+        }
 
-      if (error.response?.status === 409) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `# Team Already Assigned
+        if (error.response?.status === 409) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `# Team Already Assigned
 
 Team \`${toolArgs.teamId}\` is already assigned to plan \`${toolArgs.planId}\`.
 
@@ -228,20 +231,22 @@ This might happen if:
 - The team was previously added by another user
 - The operation was already completed in a previous request
 - There was a delay in the system updating team assignments`,
+              },
+            ],
+          };
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error adding team to plan: ${error.response?.data?.errorMessages?.join(', ') || error.message}`,
             },
           ],
+          isError: true,
         };
       }
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Error adding team to plan: ${error.response?.data?.errorMessages?.join(', ') || error.message}`,
-          },
-        ],
-        isError: true,
-      };
-    }
-  });
+    },
+    session
+  );
 }

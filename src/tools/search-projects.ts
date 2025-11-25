@@ -5,83 +5,86 @@ import { withJiraContext } from '../utils/tool-wrapper.js';
 import { SearchProjectsArgs } from '../types.js';
 import type { SessionState } from '../session-manager.js';
 
-export async function handleSearchProjects(args: SearchProjectsArgs, _session?: SessionState) {
-  return withJiraContext(args, { requiresProject: false }, async (toolArgs, { axiosInstance }) => {
-    try {
-      const params: any = {};
+export async function handleSearchProjects(args: SearchProjectsArgs, session?: SessionState) {
+  return withJiraContext(
+    args,
+    { requiresProject: false },
+    async (toolArgs, { axiosInstance }) => {
+      try {
+        const params: any = {};
 
-      // Add search parameters
-      if (toolArgs.query) {
-        params.query = toolArgs.query;
-      }
-      if (toolArgs.typeKey) {
-        params.typeKey = toolArgs.typeKey;
-      }
-      if (toolArgs.categoryId) {
-        params.categoryId = toolArgs.categoryId;
-      }
-      if (toolArgs.action) {
-        params.action = toolArgs.action;
-      }
-      if (toolArgs.expand) {
-        params.expand = toolArgs.expand;
-      }
-      if (toolArgs.status) {
-        params.status = toolArgs.status;
-      }
-      if (toolArgs.properties) {
-        params.properties = toolArgs.properties;
-      }
-      if (toolArgs.propertyQuery) {
-        params.propertyQuery = toolArgs.propertyQuery;
-      }
+        // Add search parameters
+        if (toolArgs.query) {
+          params.query = toolArgs.query;
+        }
+        if (toolArgs.typeKey) {
+          params.typeKey = toolArgs.typeKey;
+        }
+        if (toolArgs.categoryId) {
+          params.categoryId = toolArgs.categoryId;
+        }
+        if (toolArgs.action) {
+          params.action = toolArgs.action;
+        }
+        if (toolArgs.expand) {
+          params.expand = toolArgs.expand;
+        }
+        if (toolArgs.status) {
+          params.status = toolArgs.status;
+        }
+        if (toolArgs.properties) {
+          params.properties = toolArgs.properties;
+        }
+        if (toolArgs.propertyQuery) {
+          params.propertyQuery = toolArgs.propertyQuery;
+        }
 
-      // Pagination
-      params.startAt = toolArgs.startAt || 0;
-      params.maxResults = toolArgs.maxResults || 50;
+        // Pagination
+        params.startAt = toolArgs.startAt || 0;
+        params.maxResults = toolArgs.maxResults || 50;
 
-      const response = await axiosInstance.get(`/project/search`, { params });
+        const response = await axiosInstance.get(`/project/search`, { params });
 
-      const data = response.data;
-      const projects = data.values || [];
+        const data = response.data;
+        const projects = data.values || [];
 
-      // Format projects with useful information
-      const formattedProjects = projects.map((project: any) => ({
-        id: project.id,
-        key: project.key,
-        name: project.name,
-        description: project.description || 'No description',
-        projectTypeKey: project.projectTypeKey,
-        projectCategory: project.projectCategory?.name || 'No category',
-        lead: project.lead?.displayName || 'No lead',
-        leadAccountId: project.lead?.accountId || null,
-        url: project.url || 'No URL',
-        email: project.email || 'No email',
-        assigneeType: project.assigneeType || 'UNASSIGNED',
-        avatarUrls: project.avatarUrls,
-        components: project.components?.length || 0,
-        versions: project.versions?.length || 0,
-        roles: project.roles ? Object.keys(project.roles).length : 0,
-        insight: project.insight || null,
-        deleted: project.deleted || false,
-        retentionTillDate: project.retentionTillDate || null,
-        deletedDate: project.deletedDate || null,
-        deletedBy: project.deletedBy || null,
-        archived: project.archived || false,
-        archivedDate: project.archivedDate || null,
-        archivedBy: project.archivedBy || null,
-      }));
+        // Format projects with useful information
+        const formattedProjects = projects.map((project: any) => ({
+          id: project.id,
+          key: project.key,
+          name: project.name,
+          description: project.description || 'No description',
+          projectTypeKey: project.projectTypeKey,
+          projectCategory: project.projectCategory?.name || 'No category',
+          lead: project.lead?.displayName || 'No lead',
+          leadAccountId: project.lead?.accountId || null,
+          url: project.url || 'No URL',
+          email: project.email || 'No email',
+          assigneeType: project.assigneeType || 'UNASSIGNED',
+          avatarUrls: project.avatarUrls,
+          components: project.components?.length || 0,
+          versions: project.versions?.length || 0,
+          roles: project.roles ? Object.keys(project.roles).length : 0,
+          insight: project.insight || null,
+          deleted: project.deleted || false,
+          retentionTillDate: project.retentionTillDate || null,
+          deletedDate: project.deletedDate || null,
+          deletedBy: project.deletedBy || null,
+          archived: project.archived || false,
+          archivedDate: project.archivedDate || null,
+          archivedBy: project.archivedBy || null,
+        }));
 
-      // Separate into categories
-      const activeProjects = formattedProjects.filter((p: any) => !p.deleted && !p.archived);
-      const archivedProjects = formattedProjects.filter((p: any) => p.archived);
-      const deletedProjects = formattedProjects.filter((p: any) => p.deleted);
+        // Separate into categories
+        const activeProjects = formattedProjects.filter((p: any) => !p.deleted && !p.archived);
+        const archivedProjects = formattedProjects.filter((p: any) => p.archived);
+        const deletedProjects = formattedProjects.filter((p: any) => p.deleted);
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `# Project Search Results
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `# Project Search Results
 
 ## 📊 Search Summary
 - **Query**: ${toolArgs.query || 'All projects'}
@@ -146,19 +149,21 @@ ${deletedProjects
 - Filter by \`typeKey\` (software, service_desk, business)
 - Use \`status\` parameter (live, archived, deleted)
 - Add \`expand\` parameter for more details (description, lead, url, projectKeys, insight)`,
-          },
-        ],
-      };
-    } catch (error: any) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Error searching projects: ${error.response?.data?.errorMessages?.join(', ') || error.message}`,
-          },
-        ],
-        isError: true,
-      };
-    }
-  });
+            },
+          ],
+        };
+      } catch (error: any) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error searching projects: ${error.response?.data?.errorMessages?.join(', ') || error.message}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    },
+    session
+  );
 }
