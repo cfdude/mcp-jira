@@ -51,6 +51,12 @@ jobs:
         ncu -u
         npm install
 
+    - name: Auto-format code
+      if: steps.check-updates.outputs.has-updates == 'true'
+      run: |
+        # Auto-format to match any new prettier rules
+        npm run format
+
     - name: Run tests
       if: steps.check-updates.outputs.has-updates == 'true'
       run: |
