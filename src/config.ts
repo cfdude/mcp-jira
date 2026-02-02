@@ -115,9 +115,8 @@ export async function loadMultiInstanceConfig(
         console.error('Configured projects:', Object.keys(globalConfig.projects || {}));
 
         // Validate configuration
-        const { validateMultiInstanceConfig, formatValidationResults } = await import(
-          './utils/config-validator.js'
-        );
+        const { validateMultiInstanceConfig, formatValidationResults } =
+          await import('./utils/config-validator.js');
         const validation = validateMultiInstanceConfig(globalConfig);
 
         if (!validation.isValid) {
