@@ -45,10 +45,7 @@ export function validateInstanceConfig(
   } else {
     // Use exact suffix matching to detect when users include the full domain
     const normalizedDomain = config.domain.replace(/\/+$/, '').toLowerCase();
-    if (
-      normalizedDomain.endsWith('.atlassian.net') ||
-      normalizedDomain === 'atlassian.net'
-    ) {
+    if (normalizedDomain.endsWith('.atlassian.net') || normalizedDomain === 'atlassian.net') {
       warnings.push(
         `Instance '${instanceName}': domain should not include '.atlassian.net' - use just the subdomain`
       );
