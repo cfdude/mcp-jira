@@ -42,13 +42,17 @@ export function validateInstanceConfig(
 
   if (!config.domain || config.domain.trim() === '') {
     errors.push(`Instance '${instanceName}': domain is required`);
-  } else if (
-    config.domain.endsWith('.atlassian.net') ||
-    config.domain.includes('.atlassian.net/')
-  ) {
-    warnings.push(
-      `Instance '${instanceName}': domain should not include '.atlassian.net' - use just the subdomain`
-    );
+  } else {
+    // Use exact suffix matching to detect when users include the full domain
+    const normalizedDomain = config.domain.replace(/\/+$/, '').toLowerCase();
+    if (
+      normalizedDomain.endsWith('.atlassian.net') ||
+      normalizedDomain === 'atlassian.net'
+    ) {
+      warnings.push(
+        `Instance '${instanceName}': domain should not include '.atlassian.net' - use just the subdomain`
+      );
+    }
   }
 
   return {
