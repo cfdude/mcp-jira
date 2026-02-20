@@ -60,7 +60,7 @@ jobs:
     - name: Run tests
       if: steps.check-updates.outputs.has-updates == 'true'
       run: |
-        npm run ci
+        npm run test:coverage
 
     - name: Create Pull Request
       if: steps.check-updates.outputs.has-updates == 'true'
