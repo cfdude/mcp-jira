@@ -1,0 +1,44 @@
+name: Semgrep SAST
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  schedule:
+    - cron: '0 7 * * 1'  # Weekly Monday 7am
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  semgrep:
+    name: Semgrep
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98  # v6.0.2
+
+      - name: Install Semgrep
+        run: pip install semgrep
+
+      - name: Run Semgrep
+        # No SEMGREP_APP_TOKEN = OSS mode, nothing sent to Semgrep cloud
+        run: |
+          semgrep scan \
+            --config=p/python \
+            --config=p/javascript \
+            --config=p/typescript \
+            --config=p/secrets \
+            --config=p/security-audit \
+            --sarif \
+            --output=semgrep.sarif \
+            . || true
+
+      - name: Upload Semgrep results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@77591e2c4a43bf190ac768983419eb058187e62f  # v3
+        if: always()
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
