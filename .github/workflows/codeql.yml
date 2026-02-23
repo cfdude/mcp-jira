@@ -38,7 +38,7 @@ jobs:
           cache: 'npm'
 
       - name: Install and build
-        run: npm ci && npm run build
+        run: npm ci --legacy-peer-deps && npm run build
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@b5ebac6f4c00c8ccddb7cdcd45fdb248329f808a  # v3
