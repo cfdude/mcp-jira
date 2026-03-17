@@ -2,20 +2,20 @@
 
 [![smithery badge](https://smithery.ai/badge/jira-server)](https://smithery.ai/server/jira-server)
 
-A comprehensive Model Context Protocol server that provides enterprise-level integration with Jira's REST API, enabling AI assistants to perform advanced project management, analytics, and strategic planning tasks.
+A Model Context Protocol server that provides comprehensive integration with Jira's REST API, enabling AI assistants to perform advanced project management, analytics, and strategic planning tasks. Supports both STDIO (Claude Desktop) and HTTP (Claude Code / PM2) transport modes.
 
 > **Note**: This is a maintained fork of [1broseidon/mcp-jira-server](https://github.com/1broseidon/mcp-jira-server). We are grateful for the original work and continue to develop and enhance this project independently. All credit for the initial implementation goes to the original authors.
 
 ## 🚀 Features Overview
 
-This server transforms basic Jira functionality into a complete project management platform with enterprise-level concurrency and thread safety:
+This server transforms basic Jira functionality into a complete project management platform with concurrency and thread safety:
 
-### **🔒 Enterprise Concurrency & Thread Safety**
-- **Thread-Safe Multi-Client Support**: Multiple Claude Code sessions can safely use the same server simultaneously
+### **🔒 Dual Transport & Session Management**
+- **STDIO Transport**: For Claude Desktop (spawns process directly)
+- **HTTP Transport**: Stateful Streamable HTTP for Claude Code via PM2 — multiple projects share one server instance (~48MB savings)
 - **Session-Based State Isolation**: Each client connection gets its own isolated session state
 - **Per-Session Configuration Caching**: Prevents race conditions and improves performance
 - **Automatic Session Management**: 30-minute session timeout with graceful cleanup
-- **Production-Ready Architecture**: Designed for high-concurrency enterprise environments
 
 ### **Core Issue Management**
 - Create, update, delete, and manage Jira issues
@@ -172,19 +172,10 @@ Issue type discovery and configuration analysis
 - **Session-Aware**: Provides guidance only on first project access per session
 - **Use Case**: Eliminates manual field ID hunting in Jira admin interface
 
-### **🌉 Cross-Server Integration Tools**
+### **🔍 Server Health Tools**
 
 #### `jira_health_check`
-**🆕 Server Health Monitoring** - Monitor Jira server status and cross-server integration
-- **Purpose**: Check server health, uptime, and cross-server connectivity
-- **Output**: Comprehensive health status, configuration details, supported operations
-- **Cross-Server**: Shows integration status with Confluence MCP servers
-- **Session Info**: Real-time session count and activity monitoring
-
-#### `confluence_health_check`
-**🆕 Cross-Server Health Check** - Monitor Confluence server connectivity from Jira
-- **Purpose**: Verify Jira-to-Confluence integration status and capabilities
-- **Output**: Connection status, endpoint verification, integration configuration
+Server health monitoring — uptime, transport mode, active sessions, and server status.
 
 ### **🎯 Strategic Planning Tools**
 
@@ -429,45 +420,27 @@ For single Jira instance setups, use the simplified format:
 
 `JIRA_CONFIG_PATH` can be absolute, relative to the config file, or use `~` for the home directory. If you register the server under a different MCP name, set `JIRA_MCP_KEY` to that value so the loader can locate the correct block.
 
-#### 4. Cross-Server Integration Configuration
+#### 4. Claude Code HTTP Transport (Recommended for Claude Code)
 
-For cross-server integration between Jira and Confluence MCP servers, you'll need to install and configure the companion [confluence-cloud-mcp](https://github.com/cfdude/confluence-cloud-mcp) server alongside this Jira server.
+For shared access across multiple Claude Code projects, run the HTTP server via PM2:
 
-Add Confluence API configuration to your `.jira-config.json`:
+```bash
+# Build the project
+npm run build
 
-```json
-{
-  "instances": {
-    "primary": {
-      "email": "your-email@company.com",
-      "apiToken": "your-jira-api-token",
-      "domain": "your-jira-domain",
-      "projects": ["PROJ", "DEV"]
-    }
-  },
-  "confluence": {
-    "instances": {
-      "primary": {
-        "email": "your-email@company.com",
-        "apiToken": "your-confluence-api-token",
-        "domain": "your-confluence-domain"
-      }
-    },
-    "defaultInstance": "primary"
-  },
-  "defaultInstance": "primary"
-}
+# Copy and configure the PM2 ecosystem file
+cp ecosystem.config.cjs.example ecosystem.config.cjs
+# Edit ecosystem.config.cjs with your paths
+
+# Start via PM2
+pm2 start ecosystem.config.cjs
+pm2 save
+
+# Add to Claude Code (user scope — available to all projects)
+claude mcp add --scope user --transport http jira http://localhost:8107/mcp
 ```
 
-This enables tools like `jira_health_check`, `confluence_health_check`, and cross-server document creation capabilities.
-
-**Cross-Server Integration Benefits:**
-- **Bidirectional Linking**: Create smart links between Jira issues and Confluence pages
-- **Automated Documentation**: Generate Confluence pages directly from Jira issues (epics, features, etc.)
-- **Health Monitoring**: Monitor both servers and their integration status
-- **Unified Workflow**: Seamlessly switch between issue tracking and documentation within the same AI session
-
-For complete setup instructions and advanced cross-server features, see the [confluence-cloud-mcp documentation](https://github.com/cfdude/confluence-cloud-mcp).
+The HTTP server runs on port 8107 (configurable via `MCP_HTTP_PORT` env var). Each Claude Code session gets its own isolated MCP Server instance with stateful session management.
 
 ## 🎯 Usage Examples
 

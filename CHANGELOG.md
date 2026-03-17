@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-03-17
+
+### Added
+- **HTTP Transport**: New `http-server.ts` entry point for stateful Streamable HTTP transport via PM2
+- **Server-Per-Session Factory**: `JiraServer.createMcpServer()` static factory creates isolated MCP Server instances per HTTP session (required by MCP SDK)
+- **Graceful Shutdown**: HTTP-only shutdown handler with proper session and transport cleanup
+- **PM2 Ecosystem**: `ecosystem.config.cjs.example` template for PM2 deployment on port 8107
+- **Health Endpoint**: `/health` endpoint for PM2 monitoring (uptime, active sessions)
+- **`start:http` script**: Convenience npm script for local HTTP server testing
+
+### Changed
+- **JiraServer refactored**: Constructor now delegates to `createMcpServer()` factory for reuse across transport modes
+- **Health check simplified**: `jira_health_check` now reports transport mode (`stdio`/`http`) and active session count
+- **Build script**: Now sets executable permissions on both `index.js` and `http-server.js`
+
+### Removed
+- **Cross-server integration**: Removed `CrossServerIntegrationConfig`, `confluence_health_check` tool, `initializeCrossServerIntegration()`, and dual-transport scaffolding. Claude orchestrates Jira and Confluence MCP servers directly — MCP-to-MCP plumbing is unnecessary.
+- **`confluence-health-check.ts`**: Entire file removed
+
+### Infrastructure
+- **PM2 managed**: HTTP server runs as `mcp-jira-http` in PM2 on port 8107
+- **Claude Code config**: `claude mcp add --scope user --transport http jira http://localhost:8107/mcp`
+
 ## [1.1.2] - 2025-08-27
 
 ### Fixed

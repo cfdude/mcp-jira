@@ -63,8 +63,9 @@ These items were completed in recent sessions and can serve as reference:
 
 1. **Workflow Transitions**: Added ability to get available transitions and perform state changes on issues
 2. **Sprint Completion**: Fixed bug where sprint completion was failing - issue was overly complex implementation
-3. **Cross-server Integration**: Added health check endpoints for Jira-Confluence integration
+3. **HTTP Transport (v1.4.0)**: Added stateful HTTP transport via `http-server.ts` with server-per-session factory pattern. Runs on port 8107 via PM2. Multiple Claude Code projects share one server instance.
+4. **Cross-Server Deprecation (v1.4.0)**: Removed `CrossServerIntegrationConfig`, `confluence-health-check.ts`, dual-transport scaffolding, and `initializeCrossServerIntegration()`. Claude orchestrates both servers directly.
 
 ---
 
-*Last updated: 2025-01-04*
+*Last updated: 2026-03-17*
