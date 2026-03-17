@@ -84,7 +84,6 @@ import type { SessionState } from '../session-manager.js';
 
 // Health Check Tools
 import { handleJiraHealthCheck } from './jira-health-check.js';
-import { handleConfluenceHealthCheck } from './confluence-health-check.js';
 
 // Field Detection Tools
 import { detectProjectFields } from './detect-project-fields.js';
@@ -2256,16 +2255,7 @@ export function setupToolHandlers(
       {
         name: 'jira_health_check',
         description:
-          'Get comprehensive health information for this Jira MCP server including uptime, cross-server integration status, and server capabilities. Essential for monitoring and troubleshooting cross-server communication.',
-        inputSchema: {
-          type: 'object',
-          properties: {},
-        },
-      },
-      {
-        name: 'confluence_health_check',
-        description:
-          "Check the health and connectivity status with the Confluence MCP server from Jira's perspective. Returns connection information and integration capabilities.",
+          'Get health information for this Jira MCP server including uptime, transport mode, active sessions, and server status.',
         inputSchema: {
           type: 'object',
           properties: {},
@@ -2395,7 +2385,6 @@ export function setupToolHandlers(
         'trash_plan',
         // Health Check Tools
         'jira_health_check',
-        'confluence_health_check',
         // Field Detection Tools
         'detect_project_fields',
       ];
@@ -2534,18 +2523,6 @@ export function setupToolHandlers(
         // Health Check Tools
         case 'jira_health_check':
           return await handleJiraHealthCheck();
-
-        case 'confluence_health_check': {
-          // Load configuration for confluence health check
-          try {
-            const { loadMultiInstanceConfig } = await import('../config.js');
-            const config = await loadMultiInstanceConfig('.');
-            return await handleConfluenceHealthCheck(config?.crossServerIntegration);
-          } catch (error) {
-            console.error('Failed to load config for confluence health check:', error);
-            return await handleConfluenceHealthCheck();
-          }
-        }
 
         // Field Detection Tools
         case 'detect_project_fields':

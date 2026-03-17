@@ -28,17 +28,6 @@ export interface JiraInstanceConfig {
   defaultFields?: FieldIdDefaults; // Optional: declarative default field IDs for this instance
 }
 
-export interface CrossServerIntegrationConfig {
-  enabled: boolean;
-  confluenceMcpPath?: string;
-  timeout?: number;
-  maxRetries?: number;
-  allowedIncomingModes?: string[];
-  excludedOperations?: string[];
-  role?: 'slave' | 'master';
-  supportedConfluenceServers?: string[];
-}
-
 export interface MultiInstanceJiraConfig {
   instances: {
     [instanceName: string]: JiraInstanceConfig;
@@ -55,7 +44,6 @@ export interface MultiInstanceJiraConfig {
     };
   };
   defaultInstance?: string; // fallback instance if project not found
-  crossServerIntegration?: CrossServerIntegrationConfig;
 }
 
 export interface JiraComment {

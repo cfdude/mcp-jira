@@ -221,7 +221,6 @@ export async function loadOpenCodeEnvironment(
       openCodeCache.set(cacheKey, result);
       return result;
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error('Failed to parse OpenCode config', {
         candidate,
         error: error instanceof Error ? error.message : String(error),
