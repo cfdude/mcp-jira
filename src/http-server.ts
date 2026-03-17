@@ -17,7 +17,7 @@ import { jiraHealthCheckManager } from './tools/jira-health-check.js';
 import { setupGracefulShutdown } from './utils/graceful-shutdown.js';
 import logger from './utils/logger.js';
 
-const DEFAULT_PORT = 8106;
+const DEFAULT_PORT = 8107;
 const port = parseInt(process.env.MCP_HTTP_PORT || String(DEFAULT_PORT), 10);
 
 // Map of session ID -> { server, transport } for multi-session support
