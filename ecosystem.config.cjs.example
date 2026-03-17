@@ -1,0 +1,23 @@
+// PM2 Ecosystem Configuration for Jira MCP Server
+// Copy to ecosystem.config.cjs and update paths for your environment.
+module.exports = {
+  apps: [
+    {
+      name: 'mcp-jira-http',
+      script: 'build/http-server.js',
+      cwd: '/path/to/mcp-jira', // UPDATE: absolute path to mcp-jira
+      env: {
+        NODE_ENV: 'production',
+        MCP_HTTP_PORT: '8106',
+        JIRA_CONFIG_PATH: '/path/to/.jira-config.json', // UPDATE: path to config
+      },
+      max_memory_restart: '150M',
+      exp_backoff_restart_delay: 1000,
+      watch: false,
+      error_file: '/tmp/mcp-jira-http-error.log',
+      out_file: '/tmp/mcp-jira-http-out.log',
+      merge_logs: true,
+      log_date_format: 'YYYY-MM-DD HH:mm:ss',
+    },
+  ],
+};

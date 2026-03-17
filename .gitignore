@@ -27,3 +27,6 @@ updates.json
 
 # Swagger/OpenAPI specs
 swagger-v3.v3.json
+
+# PM2 ecosystem config (contains local paths)
+ecosystem.config.cjs
