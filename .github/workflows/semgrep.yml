@@ -1,0 +1,17 @@
+name: Semgrep SAST
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  schedule:
+    - cron: '0 7 * * 1'  # Weekly Monday 7am
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  semgrep:
+    uses: cfdude/.github/.github/workflows/security-semgrep.yml@main

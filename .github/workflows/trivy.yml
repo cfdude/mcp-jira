@@ -1,0 +1,17 @@
+name: Trivy Security Scan
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly Monday 6am
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  trivy:
+    uses: cfdude/.github/.github/workflows/security-trivy.yml@main
