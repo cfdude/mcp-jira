@@ -24,3 +24,6 @@ coverage/
 # One-time scripts
 update-all-descriptions.js
 updates.json
+
+# Swagger/OpenAPI specs
+swagger-v3.v3.json
