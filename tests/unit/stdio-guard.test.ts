@@ -23,12 +23,8 @@ describe('stdio-guard (JSON-RPC stdout protection)', () => {
     // module here is what installs it — without this, nothing is under test.
     await import('../../src/utils/stdio-guard.js');
 
-    stdoutSpy = jest
-      .spyOn(process.stdout, 'write')
-      .mockImplementation(() => true);
-    stderrSpy = jest
-      .spyOn(process.stderr, 'write')
-      .mockImplementation(() => true);
+    stdoutSpy = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    stderrSpy = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
   });
 
   afterEach(() => {
@@ -52,7 +48,7 @@ describe('stdio-guard (JSON-RPC stdout protection)', () => {
 
     Converter.convert(adf);
 
-    const stdoutOutput = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+    const stdoutOutput = stdoutSpy.mock.calls.map(c => String(c[0])).join('');
     expect(stdoutOutput).toBe('');
     expect(stdoutOutput).not.toContain('adding warning');
   });
@@ -66,7 +62,7 @@ describe('stdio-guard (JSON-RPC stdout protection)', () => {
 
     Converter.convert(adf);
 
-    const stderrOutput = stderrSpy.mock.calls.map((c) => String(c[0])).join('');
+    const stderrOutput = stderrSpy.mock.calls.map(c => String(c[0])).join('');
     expect(stderrOutput).toContain('adding warning');
     expect(stdoutSpy).not.toHaveBeenCalled();
   });
@@ -77,7 +73,7 @@ describe('stdio-guard (JSON-RPC stdout protection)', () => {
     console.debug('debug line');
 
     expect(stdoutSpy).not.toHaveBeenCalled();
-    const stderrOutput = stderrSpy.mock.calls.map((c) => String(c[0])).join('');
+    const stderrOutput = stderrSpy.mock.calls.map(c => String(c[0])).join('');
     expect(stderrOutput).toContain('plain log line');
     expect(stderrOutput).toContain('info line');
     expect(stderrOutput).toContain('debug line');
