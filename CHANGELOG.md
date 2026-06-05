@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2026-06-04
+
+### Fixed
+- **STDIO JSON-RPC corruption**: Diagnostic output from dependencies leaked onto stdout in STDIO mode, breaking the client with `Unexpected token ... is not valid JSON`. `adf-to-md` logs `console.log('adding warning for', node.type)` on unrecognized ADF nodes (hit while rendering issue descriptions/comments on the `get_issue`/`list_issues` read paths), and `dotenv` logs an injection tip on load. Added `src/utils/stdio-guard.ts`, imported first in `src/index.ts`, which re-routes all stdout-writing `console.*` methods to stderr so stdout carries only JSON-RPC. `process.stdout.write` is intentionally left untouched (the MCP SDK uses it for the transport).
+
 ## [1.4.0] - 2026-03-17
 
 ### Added
