@@ -53,7 +53,7 @@
     "shutdown": "pkill -f 'node.*jira.*build/index.js' || echo 'No jira server processes found'"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "adf-to-md": "^1.2.1",
     "axios": "^1.13.6",
     "dotenv": "^17.3.1",

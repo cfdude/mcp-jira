@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **STDIO JSON-RPC corruption**: Diagnostic output from dependencies leaked onto stdout in STDIO mode, breaking the client with `Unexpected token ... is not valid JSON`. `adf-to-md` logs `console.log('adding warning for', node.type)` on unrecognized ADF nodes (hit while rendering issue descriptions/comments on the `get_issue`/`list_issues` read paths), and `dotenv` logs an injection tip on load. Added `src/utils/stdio-guard.ts`, imported first in `src/index.ts`, which re-routes all stdout-writing `console.*` methods to stderr so stdout carries only JSON-RPC. `process.stdout.write` is intentionally left untouched (the MCP SDK uses it for the transport).
 
+### Changed
+- **Dependencies**: Upgraded `@modelcontextprotocol/sdk` 1.27.1 → 1.29.0 (includes npm-audit security fix, `ResourceSchema.size`, capability extensions, Windows stdio `windowsHide`). Updated within-range deps via `npm update` (`axios` 1.13.6 → 1.17.0, `dotenv` 17.3.1 → 17.4.2, dev tooling). Resolved all 15 reported `npm audit` advisories (now 0 vulnerabilities). TypeScript 6.x deferred (major bump, separate evaluation).
+
 ## [1.4.0] - 2026-03-17
 
 ### Added
