@@ -36,7 +36,7 @@ jobs:
       id: check-updates
       run: |
         # Check for updates and save output
-        ncu --jsonUpgraded > updates.json
+        ncu --jsonUpgraded --reject typescript > updates.json
         
         # Check if there are updates
         if [ -s updates.json ] && [ "$(cat updates.json)" != "{}" ]; then
@@ -52,7 +52,7 @@ jobs:
       if: steps.check-updates.outputs.has-updates == 'true'
       run: |
         # Update dependencies
-        ncu -u
+        ncu -u --reject typescript
         npm install
 
     - name: Auto-format code
