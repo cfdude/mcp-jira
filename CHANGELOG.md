@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Dependencies**: Upgraded `@modelcontextprotocol/sdk` 1.27.1 → 1.29.0 (includes npm-audit security fix, `ResourceSchema.size`, capability extensions, Windows stdio `windowsHide`). Updated within-range deps via `npm update` (`axios` 1.13.6 → 1.17.0, `dotenv` 17.3.1 → 17.4.2, dev tooling). Resolved all 15 reported `npm audit` advisories (now 0 vulnerabilities). TypeScript 6.x deferred (major bump, separate evaluation).
+- **Lint hygiene**: `npm run lint` now reports 0 problems. Replaced the 3 `no-non-null-assertion` sites (`http-server.ts`, `session-manager.ts`, `update-issue.ts`) with explicit guards (logic unchanged). Set `@typescript-eslint/no-explicit-any` to `off` by project decision — the Jira REST API returns many genuinely dynamic shapes and exhaustively typing them is out of scope; `no-non-null-assertion` stays enforced.
 
 ## [1.4.0] - 2026-03-17
 

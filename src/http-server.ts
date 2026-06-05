@@ -37,9 +37,11 @@ async function handleMcpRequest(req: IncomingMessage, res: ServerResponse) {
 
   // --- Existing session: route to its transport ---
   if (sessionId && sessions.has(sessionId)) {
-    const { transport } = sessions.get(sessionId)!;
-    await transport.handleRequest(req, res);
-    return;
+    const session = sessions.get(sessionId);
+    if (session) {
+      await session.transport.handleRequest(req, res);
+      return;
+    }
   }
 
   // --- Unknown session ID: reject ---

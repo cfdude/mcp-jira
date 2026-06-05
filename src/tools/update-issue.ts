@@ -59,7 +59,7 @@ export async function handleUpdateIssue(args: UpdateIssueArgs, session?: Session
           editMetaFields = {};
         }
 
-        return editMetaFields!;
+        return editMetaFields ?? {};
       };
 
       const detectEditableStoryPointsField = (fields: Record<string, any>) => {

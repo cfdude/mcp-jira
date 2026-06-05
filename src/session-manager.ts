@@ -209,11 +209,11 @@ export class SessionManager {
     session.lastActivity = new Date();
 
     // Check if this is the first access to this project in this instance
-    if (!session.accessedProjects.has(instanceName)) {
-      session.accessedProjects.set(instanceName, new Set());
+    let instanceProjects = session.accessedProjects.get(instanceName);
+    if (!instanceProjects) {
+      instanceProjects = new Set();
+      session.accessedProjects.set(instanceName, instanceProjects);
     }
-
-    const instanceProjects = session.accessedProjects.get(instanceName)!;
     const isFirstAccess = !instanceProjects.has(projectKey);
 
     if (isFirstAccess) {
