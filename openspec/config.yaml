@@ -1,0 +1,56 @@
+schema: spec-driven
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+# Add your tech stack, conventions, style guides, domain knowledge, etc.
+context: |
+  Project: mcp-jira — a Model Context Protocol (MCP) server that exposes
+  comprehensive Jira Cloud integration (issues, sprints, epics, boards,
+  components, versions, plans, analytics) to AI assistants.
+
+  Tech stack:
+  - TypeScript (ESM, "type": "module"), compiled with tsc to build/
+  - Node.js, @modelcontextprotocol/sdk ^1.29.0
+  - axios for the Jira REST API; adf-to-md for ADF -> Markdown rendering
+  - Jest (ESM via ts-jest) for tests; ESLint flat config + Prettier
+
+  Architecture:
+  - Two transports from a transport-agnostic core (src/jira-server.ts,
+    `createMcpServer()` factory):
+      - STDIO entry (src/index.ts) for Claude Desktop
+      - HTTP entry (src/http-server.ts) for Claude Code via PM2 (port 8107)
+  - Server-per-session factory pattern: one MCP Server instance per session
+    (the SDK allows one transport per Server).
+  - Thread-safe session isolation (src/session-manager.ts): per-session config
+    cache, story-points field ref, activity tracking; 30-min idle cleanup.
+  - Multi-instance Jira support via .jira-config.json (project-key based
+    instance selection; env-var fallback).
+  - Tools live in src/tools/*.ts and register via the SDK's low-level
+    setRequestHandler; each accepts an optional SessionState for isolation.
+
+  Critical invariants:
+  - STDIO mode speaks JSON-RPC over stdout — stdout must carry ONLY JSON-RPC.
+    All diagnostics go to stderr (console.error / logger); src/utils/
+    stdio-guard.ts re-routes stray dependency console.* output to stderr.
+    Never override process.stdout.write (the SDK transport uses it).
+  - All tools take a `working_dir` containing .jira-config.json.
+
+  Conventions:
+  - Conventional commits. When a Jira issue applies:
+    `<ISSUE-KEY>: <type>(<scope>): <subject>`; otherwise
+    `<type>(<scope>): <subject>`. Types: feat|fix|docs|style|refactor|test|
+    chore|perf. Never use `git commit --no-verify`.
+  - Tests must pass (unit + integration), lint clean (0 problems), Prettier
+    clean, and build green before work is "done".
+  - TDD: RED -> GREEN -> REFACTOR; one conventional commit per task.
+  - Always verify MCP behavior with `npm run inspector` after changes.
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+rules:
+  tasks:
+    - One conventional commit per task (do not batch tasks into one commit).
+    - Each implementation task follows TDD: write a failing test first.
+  proposal:
+    - Include a "Non-goals" section to keep scope tight.
+    - Call out any impact on the STDIO stdout/JSON-RPC invariant explicitly.
