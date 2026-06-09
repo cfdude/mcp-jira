@@ -3,7 +3,10 @@ build/
 *.log
 .env*
 .jira-config.json
-.claude/
+# Track generated OpenSpec tooling, but keep personal/local settings private.
+.claude/*
+!.claude/commands/
+!.claude/skills/
 .mcp.json
 
 # Temporary test files
