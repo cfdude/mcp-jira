@@ -4,7 +4,6 @@ build/
 .env*
 .jira-config.json
 .claude/
-CLAUDE.md
 .mcp.json
 
 # Temporary test files
